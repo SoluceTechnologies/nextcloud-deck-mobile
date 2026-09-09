@@ -1,0 +1,162 @@
+{
+  "common": {
+    "language": "Lenga",
+    "cancel": "Anullar",
+    "remove": "Suprimir",
+    "close": "Tampar",
+    "errorPermission": "Permission refusada. Aqueste calendari es en lectura sola o partejat sens drech d'escritura.",
+    "errorNetwork": "Error de ret. Verificatz la connexion e tornatz ensajar.",
+    "errorGeneric": "Quicòm s'es mal passat. Tornatz ensajar.",
+    "errorAuth": "L'autentificacion a pas capitat. Tornatz-vos connectar.",
+    "errorNotFound": "Aqueste element existís pas mai sul servidor.",
+    "errorServer": "Lo servidor es temporàriament indisponible. Tornatz ensajar mai tard.",
+    "errorRateLimited": "Tròp de requèstas. Esperatz un moment e tornatz ensajar.",
+    "errorRateLimitedRetry": "Tròp de requèstas. Tornatz ensajar qu’aquí {{seconds}}s.",
+    "back": "Tornar"
+  },
+  "tabs": {
+    "settings": "Paramètres"
+  },
+  "setup": {
+    "brand": "Calendari",
+    "title": "Se connectar a Nextcloud",
+    "scanQr": "Numerizar lo còdi QR",
+    "orManual": "o picar manualament",
+    "serverUrl": "URL del servidor",
+    "username": "Nom d'utilizaire",
+    "appPassword": "Senhal de l'aplicacion",
+    "displayName": "Nom d'afichatge",
+    "optional": "(facultatiu)",
+    "connect": "Se connectar",
+    "hint": "Generatz un senhal d'aplicacion dins Nextcloud → Paramètres → Seguretat → Senhals d'aplicacion.",
+    "footer": "Fach amb ♥ per la comunautat · Còdi font liure",
+    "placeholders": {
+      "serverUrl": "https://cloud.example.com",
+      "username": "john.doe",
+      "appPassword": "xxxx-xxxx-xxxx-xxxx",
+      "displayName": "Trabalh"
+    },
+    "errors": {
+      "required": "Totes los camps son obligatòris.",
+      "invalidCreds": "Identificants invalids. Verificatz vòstre senhal d'aplicacion.",
+      "serverNotFound": "Cap de servidor Nextcloud pas trobat a aquesta adreça. Verificatz l’URL, per exemple https://cloud.example.com",
+      "connect": "Impossible de se connectar : {{msg}}",
+      "qrOneTimeExpired": "Aqueste còdi de connexion de còp unic es ja estat utilizat o a expirat. Generatz un còdi QR novèl dins Nextcloud e numerizatz-lo tornarmai."
+    },
+    "qrCameraDenied": "L'accès a la camèra es refusat. Activatz-lo dins los paramètres de vòstre aparelh per numerizar lo còdi QR.",
+    "qrOpenSettings": "Dobrir los paramètres",
+    "qrInvalidCode": "Es pas un còdi QR de connexion Nextcloud valid. Tornatz ensajar de numerizar.",
+    "qrTryAgain": "Tornar ensajar",
+    "qrHint": "Dobrir vòstre tablèu de bòrd Nextcloud → picatz sus vòstre avatar → \"Se connectar via còdi QR\""
+  },
+  "settings": {
+    "title": "Paramètres",
+    "appearance": "Aparéncia",
+    "accessibility": {
+      "title": "Accessibilitat",
+      "haptics": "Retorn aptic",
+      "hapticsHint": "Vibra suls tusts e interaccions.",
+      "reduceMotion": "Redusir lo movement",
+      "reduceMotionHint": "Minimizar las animacions dins l'aplicacion."
+    },
+    "sections": {
+      "general": "General",
+      "alerts": "Alèrtas",
+      "app": "Aplicacion"
+    },
+    "theme": "Tèma",
+    "themeSystem": "Sistèma",
+    "themeLight": "Clar",
+    "themeDark": "Escur",
+    "weekStart": "La setmana comença lo",
+    "sunday": "dimenge",
+    "monday": "diluns",
+    "calendarZoom": "Zoom del calendari",
+    "reset": "Reïnicializar",
+    "zoom": {
+      "compact": "Compacte",
+      "normal": "Normal",
+      "expanded": "Desplegat",
+      "large": "Grand"
+    },
+    "accounts": "Comptes",
+    "addAccount": "+ Apondre un compte",
+    "removeTitle": "Suprimir lo compte",
+    "removeMsg": "Suprimir \"{{name}}\" d'aqueste aparelh ?",
+    "version": "v{{version}}",
+    "about": {
+      "title": "A prepaus",
+      "name": "Nextcloud Calendar",
+      "description": "Una aplicacion mobila de calendari de còdi font liure per Nextcloud.",
+      "github": "Veire sus GitHub",
+      "reportBug": "Senhalar un bug"
+    },
+    "alerts": {
+      "timed": "Alèrta per defaut",
+      "allDay": "Eveniments del jorn entièr",
+      "none": "Pas cap",
+      "atTime": "A l'ora de l'eveniment",
+      "before": {
+        "5": "5 minutas abans",
+        "10": "10 minutas abans",
+        "15": "15 minutas abans",
+        "30": "30 minutas abans",
+        "60": "1 ora abans",
+        "120": "2 oras abans",
+        "1440": "1 jorn abans",
+        "2880": "2 jorns abans",
+        "10080": "1 setmana abans"
+      },
+      "allDayOpts": {
+        "1": "1 jorn abans (9:00)",
+        "2": "2 jorns abans (9:00)",
+        "7": "1 setmana abans (9:00)",
+        "sameDay": "Lo jorn meteis (9:00)"
+      },
+      "useDefault": "Per defaut",
+      "timedHint": "Rapèl per defaut pels eveniments sens remembre pròpri. Los eveniments qu'an ja un rapèl lo consèrvan.",
+      "allDayHint": "Rapèl per defaut pels eveniments del jorn entièr sens rapèl pròpri, activat a 9:00 lo jorn causit."
+    },
+    "account": {
+      "title": "Compte",
+      "notFound": "Compte pas trobat.",
+      "displayName": "Nom d'afichatge",
+      "email": "Corrièl",
+      "emailHint": "Utilizat coma organizator dels eveniments que creatz.",
+      "server": "Servidor",
+      "serverUrl": "Adreça del servidor",
+      "username": "Nom d'utilizaire",
+      "connection": "Connexion",
+      "reconnectHint": "Picatz un senhal d'aplicacion novèl se l’ancian es estat revocat.",
+      "appPassword": "Senhal d'aplicacion",
+      "scanQr": "Numerizar un còdi QR",
+      "reconnect": "Se reconnectar",
+      "save": "Salvar",
+      "saved": "Cambiaments salvats.",
+      "reconnected": "Compte reconnectat.",
+      "useThisAccount": "Utilizar aqueste compte",
+      "delete": "Suprimir lo compte",
+      "errors": {
+        "required": "Aqueste camp es obligatòri.",
+        "invalidEmail": "Adreça de corrièl invalida.",
+        "accountMismatch": "Aqueste còdi QR aparten a un compte diferent."
+      },
+      "connectionLost": "La connexion a aqueste servidor a expirat. Reconnectatz-vos per contunhar la sincronizacion.",
+      "use": "Utilizar",
+      "editOnNextcloud": "Modificar sus Nextcloud"
+    },
+    "accountActive": "Actiu"
+  },
+  "certTrust": {
+    "title": "Certificat pas de fisança",
+    "body": "Lo servidor {{host}} a presentat un certificat qu'es pas signat per una autoritat coneguda.",
+    "warning": "Contunhatz solament se aquesta emprenta correspond a vòstre servidor. Una emprenta incorrècta significa que qualqu'un pòt interceptar vòstra connexion.",
+    "fingerprint": "Emprenta SHA-256",
+    "subject": "Fornit a",
+    "issuer": "Fornit per",
+    "validFrom": "Valid a partir de",
+    "validTo": "Valid fins a",
+    "trust": "Far fisança e se connectar",
+    "cancel": "Anullar"
+  }
+}

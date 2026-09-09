@@ -1,0 +1,33 @@
+diff --git a/node_modules/@morrowdigital/watermelondb-expo-plugin/build/withWatermelon.js b/node_modules/@morrowdigital/watermelondb-expo-plugin/build/withWatermelon.js
+index 798eb8b..26a49c2 100644
+--- a/node_modules/@morrowdigital/watermelondb-expo-plugin/build/withWatermelon.js
++++ b/node_modules/@morrowdigital/watermelondb-expo-plugin/build/withWatermelon.js
+@@ -71,24 +71,10 @@ const cocoaPods = (config) => {
+     ]);
+ };
+ function mainApplication(config) {
+-    return (0, config_plugins_1.withMainApplication)(config, (mod) => {
+-        if (!mod.modResults.contents.includes("import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage")) {
+-            mod.modResults['contents'] = mod.modResults.contents.replace('import android.app.Application', `
+-import android.app.Application
+-import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage;
+-import com.facebook.react.bridge.JSIModulePackage;        
+-`);
+-        }
+-        if (!mod.modResults.contents.includes("override fun getJSIModulePackage(): JSIModulePackage")) {
+-            const newContents2 = mod.modResults.contents.replace('override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED', `
+-        override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+-        override fun getJSIModulePackage(): JSIModulePackage {
+-        return WatermelonDBJSIPackage()
+-        }`);
+-            mod.modResults.contents = newContents2;
+-        }
+-        return mod;
+-    });
++    // WatermelonDB >=0.28 auto-installs JSI on the New Architecture; the legacy
++    // getJSIModulePackage()/JSIModulePackage path was removed from React Native,
++    // so injecting those imports only breaks compilation. No-op on purpose.
++    return config;
+ }
+ function proGuardRules(config) {
+     return (0, config_plugins_1.withDangerousMod)(config, ['android', async (config) => {

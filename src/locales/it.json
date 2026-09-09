@@ -1,0 +1,170 @@
+{
+  "common": {
+    "language": "Lingua",
+    "cancel": "Annulla",
+    "remove": "Rimuovi",
+    "close": "Chiudi",
+    "errorPermission": "Autorizzazione negata. Questo calendario è di sola lettura o condiviso senza accesso in scrittura.",
+    "errorNetwork": "Errore di rete. Controlla la connessione e riprova.",
+    "errorGeneric": "Qualcosa è andato storto. Riprova.",
+    "errorAuth": "Autenticazione non riuscita. Accedi di nuovo.",
+    "errorNotFound": "Questo elemento non esiste più sul server.",
+    "errorServer": "Il server è temporaneamente non disponibile. Riprova più tardi.",
+    "errorRateLimited": "Troppe richieste. Attendi un momento e riprova.",
+    "errorRateLimitedRetry": "Troppe richieste. Riprova tra {{seconds}} s.",
+    "back": "Indietro"
+  },
+  "tabs": {
+    "settings": "Impostazioni"
+  },
+  "setup": {
+    "brand": "Calendario",
+    "title": "Connetti a Nextcloud",
+    "scanQr": "Scansiona QR Code",
+    "orManual": "oppure inserisci manualmente",
+    "serverUrl": "URL del server",
+    "username": "Nome utente",
+    "appPassword": "Password dell'app",
+    "displayName": "Nome visualizzato",
+    "optional": "(facoltativo)",
+    "connect": "Connetti",
+    "hint": "Genera una password dell'app in Nextcloud → Impostazioni → Sicurezza → Password app.",
+    "footer": "Fatto con ♥ per la community · Open Source",
+    "placeholders": {
+      "serverUrl": "https://cloud.example.com",
+      "username": "mario.rossi",
+      "appPassword": "xxxx-xxxx-xxxx-xxxx",
+      "displayName": "Lavoro"
+    },
+    "errors": {
+      "required": "Tutti i campi sono obbligatori.",
+      "invalidCreds": "Credenziali non valide. Controlla la password dell'app.",
+      "serverNotFound": "Nessun server Nextcloud trovato a questo indirizzo. Controlla l'URL, ad esempio https://cloud.esempio.com",
+      "connect": "Impossibile connettersi: {{msg}}",
+      "qrOneTimeExpired": "Questo codice di accesso monouso è già stato usato o è scaduto. Genera un nuovo codice QR in Nextcloud e scansionalo di nuovo."
+    },
+    "qrCameraDenied": "L'accesso alla fotocamera è negato. Attivalo nelle impostazioni del dispositivo per scansionare il codice QR.",
+    "qrOpenSettings": "Apri impostazioni",
+    "qrInvalidCode": "Codice QR di accesso Nextcloud non valido. Riprova a scansionare.",
+    "qrTryAgain": "Riprova",
+    "qrHint": "Apri la dashboard di Nextcloud → tocca il tuo avatar → \"Accedi tramite codice QR\""
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "appearance": "Aspetto",
+    "accessibility": {
+      "title": "Accessibilità",
+      "haptics": "Feedback aptico",
+      "hapticsHint": "Vibra ai tocchi e alle interazioni.",
+      "reduceMotion": "Riduci movimento",
+      "reduceMotionHint": "Riduci le animazioni nell'app."
+    },
+    "sections": {
+      "general": "Generale",
+      "alerts": "Avvisi",
+      "app": "Applicazione"
+    },
+    "theme": "Tema",
+    "themeSystem": "Sistema",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "weekStart": "La settimana inizia di",
+    "sunday": "Domenica",
+    "monday": "Lunedì",
+    "calendarZoom": "Zoom calendario",
+    "reset": "Reimposta",
+    "zoom": {
+      "compact": "Compatto",
+      "normal": "Normale",
+      "expanded": "Espanso",
+      "large": "Grande"
+    },
+    "accounts": "Account",
+    "addAccount": "+ Aggiungi account",
+    "removeTitle": "Rimuovi account",
+    "removeMsg": "Rimuovere \"{{name}}\" da questo dispositivo?",
+    "version": "v{{version}}",
+    "about": {
+      "title": "Informazioni",
+      "name": "Nextcloud Calendar",
+      "description": "Un'app di calendario mobile open source per Nextcloud.",
+      "github": "Vedi su GitHub",
+      "reportBug": "Segnala un bug"
+    },
+    "alerts": {
+      "timed": "Avviso predefinito",
+      "allDay": "Eventi di tutto il giorno",
+      "none": "Nessuno",
+      "atTime": "All'ora dell'evento",
+      "before": {
+        "5": "5 minuti prima",
+        "10": "10 minuti prima",
+        "15": "15 minuti prima",
+        "30": "30 minuti prima",
+        "60": "1 ora prima",
+        "120": "2 ore prima",
+        "1440": "1 giorno prima",
+        "2880": "2 giorni prima",
+        "10080": "1 settimana prima"
+      },
+      "allDayOpts": {
+        "1": "1 giorno prima (9:00)",
+        "2": "2 giorni prima (9:00)",
+        "7": "1 settimana prima (9:00)",
+        "sameDay": "Il giorno stesso (9:00)"
+      },
+      "useDefault": "Predefinito",
+      "timedHint": "Promemoria predefinito per gli eventi senza uno proprio. Quelli che ne hanno già uno lo mantengono.",
+      "allDayHint": "Promemoria predefinito per gli eventi di un giorno intero senza uno proprio, alle 9:00 del giorno scelto."
+    },
+    "account": {
+      "title": "Account",
+      "notFound": "Account non trovato.",
+      "displayName": "Nome visualizzato",
+      "email": "Email",
+      "emailHint": "Usato come organizzatore degli eventi che crei.",
+      "server": "Server",
+      "serverUrl": "Indirizzo del server",
+      "username": "Nome utente",
+      "connection": "Connessione",
+      "reconnectHint": "Inserisci una nuova password dell'app se quella precedente è stata revocata.",
+      "appPassword": "Password dell'app",
+      "scanQr": "Scansiona un codice QR",
+      "reconnect": "Riconnetti",
+      "save": "Salva",
+      "saved": "Modifiche salvate.",
+      "reconnected": "Account riconnesso.",
+      "useThisAccount": "Usa questo account",
+      "delete": "Rimuovi account",
+      "errors": {
+        "required": "Questo campo è obbligatorio.",
+        "invalidEmail": "Indirizzo email non valido.",
+        "accountMismatch": "Questo codice QR appartiene a un altro account."
+      },
+      "connectionLost": "La connessione a questo server è scaduta. Riconnettiti per continuare a sincronizzare.",
+      "use": "Usa",
+      "editOnNextcloud": "Modifica su Nextcloud"
+    },
+    "accountActive": "Attivo"
+  },
+  "certTrust": {
+    "title": "Certificato non attendibile",
+    "body": "Il server {{host}} ha presentato un certificato non firmato da un'autorità nota.",
+    "warning": "Continua solo se questa impronta corrisponde al tuo server. Un'impronta errata significa che qualcuno potrebbe intercettare la tua connessione.",
+    "fingerprint": "Impronta SHA-256",
+    "subject": "Rilasciato a",
+    "issuer": "Rilasciato da",
+    "validFrom": "Valido dal",
+    "validTo": "Valido fino al",
+    "trust": "Autorizza e connetti",
+    "cancel": "Annulla"
+  },
+  "cleartext": {
+    "title": "Connessione non cifrata",
+    "body": "La connessione a {{host}} non è cifrata. Il tuo nome utente e la password dell'app verrebbero inviati in chiaro sulla rete.",
+    "warning": "Chiunque si trovi tra questo telefono e il server — gestore del Wi-Fi, provider internet, qualsiasi rete intermedia — può leggere la password e i dati del calendario. Una password dell'app Nextcloud dà accesso all'intero account, non solo al calendario.",
+    "remedy": "Opzioni più sicure: raggiungere il server tramite una VPN come Tailscale o WireGuard, oppure configurare un certificato gratuito con DuckDNS e Let's Encrypt.",
+    "connect": "Connetti comunque",
+    "cancel": "Annulla"
+  }
+}

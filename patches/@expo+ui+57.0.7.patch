@@ -1,0 +1,11 @@
+--- a/node_modules/@expo/ui/ios/ProgressView.swift
++++ b/node_modules/@expo/ui/ios/ProgressView.swift
+@@ -29,6 +29,8 @@ public struct ProgressView: ExpoSwiftUI.View {
+       #available(iOS 16.0, tvOS 16.0, *) {
+       SwiftUI.ProgressView(timerInterval: ClosedRange(uncheckedBounds: (lower: lower, upper: upper)), countsDown: props.countsDown ?? true) {
+         Children()
++      } currentValueLabel: {
++        EmptyView()
+       }
+     } else if let value = props.value {
+       SwiftUI.ProgressView(value: value) {

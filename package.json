@@ -1,0 +1,102 @@
+{
+  "name": "nextcloud-deck",
+  "version": "0.1.0",
+  "main": "expo-router/entry",
+  "enriched-markdown": {
+    "enableCodeHighlight": false,
+    "enableMath": false
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build:tls-trust": "cd android && ./gradlew :tls-trust:compileDebugKotlin",
+    "test": "jest",
+    "release": "release-it",
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.6",
+    "@expo/vector-icons": "^15.1.1",
+    "@morrowdigital/watermelondb-expo-plugin": "^2.3.3",
+    "@nozbe/watermelondb": "^0.28.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "9.1.0",
+    "dayjs": "^1.11.20",
+    "expo": "^57.0.0",
+    "expo-blob": "^57.0.1",
+    "expo-bottom-tabs": "^0.0.2",
+    "expo-build-properties": "~57.0.10",
+    "expo-camera": "~57.0.3",
+    "expo-clipboard": "~57.0.1",
+    "expo-constants": "~57.0.6",
+    "expo-crypto": "~57.0.1",
+    "expo-dev-client": "~57.0.9",
+    "expo-font": "~57.0.1",
+    "expo-haptics": "~57.0.1",
+    "expo-linking": "~57.0.3",
+    "expo-localization": "~57.0.1",
+    "expo-network": "~57.0.1",
+    "expo-router": "~57.0.7",
+    "expo-screen-orientation": "~57.0.1",
+    "expo-secure-store": "~57.0.1",
+    "expo-splash-screen": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-web-browser": "~57.0.1",
+    "i18next": "^26.3.1",
+    "lucide-react-native": "^1.25.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-i18next": "^17.0.8",
+    "react-native": "0.86.0",
+    "react-native-country-flag": "^2.0.2",
+    "react-native-enriched-markdown": "^1.0.2",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-mmkv": "^4.3.2",
+    "react-native-nitro-modules": "^0.36.1",
+    "react-native-reanimated": "4.5.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-webview": "15.0.0",
+    "react-native-worklets": "0.10.0",
+    "react-native-worklets-core": "^1.6.3",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@react-native/jest-preset": "0.86.0",
+    "@release-it/bumper": "^7.0.5",
+    "@release-it/conventional-changelog": "^10.0.6",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^29.5.14",
+    "@types/react": "~19.2.10",
+    "jest": "^29.7.0",
+    "jest-expo": "~57.0.2",
+    "patch-package": "^8.0.1",
+    "react-test-renderer": "19.2.3",
+    "release-it": "^19.2.4",
+    "typescript": "~6.0.3"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-native/extend-expect",
+      "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/__tests__/helpers/"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^lucide-react-native$": "<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|lucide-react-native)"
+    ]
+  },
+  "private": true,
+  "packageManager": "yarn@4.5.3+sha512.3003a14012e2987072d244c720506549c1aab73ee728208f1b2580a9fd67b92d61ba6b08fe93f6dce68fd771e3af1e59a0afa28dd242dd0940d73b95fedd4e90"
+}

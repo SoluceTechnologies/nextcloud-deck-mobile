@@ -1,0 +1,170 @@
+{
+  "common": {
+    "language": "Taal",
+    "cancel": "Annuleren",
+    "remove": "Verwijderen",
+    "close": "Sluiten",
+    "errorPermission": "Toegang geweigerd. Deze agenda is alleen-lezen of gedeeld zonder schrijfrechten.",
+    "errorNetwork": "Netwerkfout. Controleer je verbinding en probeer het opnieuw.",
+    "errorGeneric": "Er is iets misgegaan. Probeer het opnieuw.",
+    "errorAuth": "Verificatie mislukt. Meld je opnieuw aan.",
+    "errorNotFound": "Dit item bestaat niet meer op de server.",
+    "errorServer": "De server is tijdelijk niet beschikbaar. Probeer het later opnieuw.",
+    "errorRateLimited": "Te veel verzoeken. Wacht even en probeer het opnieuw.",
+    "errorRateLimitedRetry": "Te veel verzoeken. Probeer het opnieuw over {{seconds}}s.",
+    "back": "Terug"
+  },
+  "tabs": {
+    "settings": "Instellingen"
+  },
+  "setup": {
+    "brand": "Agenda",
+    "title": "Verbinden met Nextcloud",
+    "scanQr": "QR-code scannen",
+    "orManual": "of handmatig invoeren",
+    "serverUrl": "Server-URL",
+    "username": "Gebruikersnaam",
+    "appPassword": "App-wachtwoord",
+    "displayName": "Weergavenaam",
+    "optional": "(optioneel)",
+    "connect": "Verbinden",
+    "hint": "Genereer een app-wachtwoord in Nextcloud → Instellingen → Beveiliging → App-wachtwoorden.",
+    "footer": "Gemaakt met ♥ voor de community · Open source",
+    "placeholders": {
+      "serverUrl": "https://cloud.voorbeeld.com",
+      "username": "jan.jansen",
+      "appPassword": "xxxx-xxxx-xxxx-xxxx",
+      "displayName": "Werk"
+    },
+    "errors": {
+      "required": "Alle velden zijn verplicht.",
+      "invalidCreds": "Ongeldige gegevens. Controleer je app-wachtwoord.",
+      "serverNotFound": "Geen Nextcloud-server gevonden op dit adres. Controleer de URL, bijvoorbeeld https://cloud.voorbeeld.com",
+      "connect": "Kan geen verbinding maken: {{msg}}",
+      "qrOneTimeExpired": "Deze eenmalige inlogcode is al gebruikt of is verlopen. Genereer een nieuwe QR-code in Nextcloud en scan die opnieuw."
+    },
+    "qrCameraDenied": "Cameratoegang is geweigerd. Schakel het in bij je apparaatinstellingen om de QR-code te scannen.",
+    "qrOpenSettings": "Instellingen openen",
+    "qrInvalidCode": "Geen geldige Nextcloud-login-QR-code. Probeer opnieuw te scannen.",
+    "qrTryAgain": "Opnieuw proberen",
+    "qrHint": "Open je Nextcloud-dashboard → tik op je avatar → \"Aanmelden via QR-code\""
+  },
+  "settings": {
+    "title": "Instellingen",
+    "appearance": "Weergave",
+    "accessibility": {
+      "title": "Toegankelijkheid",
+      "haptics": "Haptische feedback",
+      "hapticsHint": "Trillen bij tikken en interacties.",
+      "reduceMotion": "Beweging verminderen",
+      "reduceMotionHint": "Animaties in de app minimaliseren."
+    },
+    "sections": {
+      "general": "Algemeen",
+      "alerts": "Meldingen",
+      "app": "Applicatie"
+    },
+    "theme": "Thema",
+    "themeSystem": "Systeem",
+    "themeLight": "Licht",
+    "themeDark": "Donker",
+    "weekStart": "Week begint op",
+    "sunday": "Zondag",
+    "monday": "Maandag",
+    "calendarZoom": "Agendazoom",
+    "reset": "Resetten",
+    "zoom": {
+      "compact": "Compact",
+      "normal": "Normaal",
+      "expanded": "Uitgebreid",
+      "large": "Groot"
+    },
+    "accounts": "Accounts",
+    "addAccount": "+ Account toevoegen",
+    "removeTitle": "Account verwijderen",
+    "removeMsg": "\"{{name}}\" van dit apparaat verwijderen?",
+    "version": "v{{version}}",
+    "about": {
+      "title": "Over",
+      "name": "Nextcloud Agenda",
+      "description": "Een open-source mobiele agenda-app voor Nextcloud.",
+      "github": "Bekijken op GitHub",
+      "reportBug": "Een bug melden"
+    },
+    "alerts": {
+      "timed": "Standaardmelding",
+      "allDay": "Hele dag",
+      "none": "Geen",
+      "atTime": "Op het tijdstip",
+      "before": {
+        "5": "5 minuten ervoor",
+        "10": "10 minuten ervoor",
+        "15": "15 minuten ervoor",
+        "30": "30 minuten ervoor",
+        "60": "1 uur ervoor",
+        "120": "2 uur ervoor",
+        "1440": "1 dag ervoor",
+        "2880": "2 dagen ervoor",
+        "10080": "1 week ervoor"
+      },
+      "allDayOpts": {
+        "1": "1 dag ervoor (9:00)",
+        "2": "2 dagen ervoor (9:00)",
+        "7": "1 week ervoor (9:00)",
+        "sameDay": "Op de dag zelf (9:00)"
+      },
+      "useDefault": "Standaard",
+      "timedHint": "Standaardmelding voor afspraken zonder eigen melding. Afspraken met een eigen melding behouden die.",
+      "allDayHint": "Standaardmelding voor hele-dag-afspraken zonder eigen melding, om 9:00 op de gekozen dag."
+    },
+    "account": {
+      "title": "Account",
+      "notFound": "Account niet gevonden.",
+      "displayName": "Weergavenaam",
+      "email": "E-mail",
+      "emailHint": "Wordt gebruikt als organisator van de afspraken die je aanmaakt.",
+      "server": "Server",
+      "serverUrl": "Serveradres",
+      "username": "Gebruikersnaam",
+      "connection": "Verbinding",
+      "reconnectHint": "Voer een nieuw app-wachtwoord in als het oude is ingetrokken.",
+      "appPassword": "App-wachtwoord",
+      "scanQr": "QR-code scannen",
+      "reconnect": "Opnieuw verbinden",
+      "save": "Opslaan",
+      "saved": "Wijzigingen opgeslagen.",
+      "reconnected": "Account opnieuw verbonden.",
+      "useThisAccount": "Dit account gebruiken",
+      "delete": "Account verwijderen",
+      "errors": {
+        "required": "Dit veld is verplicht.",
+        "invalidEmail": "Ongeldig e-mailadres.",
+        "accountMismatch": "Deze QR-code hoort bij een ander account."
+      },
+      "connectionLost": "De verbinding met deze server is verlopen. Maak opnieuw verbinding om te blijven synchroniseren.",
+      "use": "Gebruiken",
+      "editOnNextcloud": "Bewerken in Nextcloud"
+    },
+    "accountActive": "Actief"
+  },
+  "certTrust": {
+    "title": "Niet-vertrouwd certificaat",
+    "body": "De server {{host}} heeft een certificaat aangeboden dat niet is ondertekend door een bekende autoriteit.",
+    "warning": "Ga alleen verder als deze vingerafdruk overeenkomt met je server. Een verkeerde vingerafdruk betekent dat iemand je verbinding kan onderscheppen.",
+    "fingerprint": "SHA-256-vingerafdruk",
+    "subject": "Uitgegeven aan",
+    "issuer": "Uitgegeven door",
+    "validFrom": "Geldig vanaf",
+    "validTo": "Geldig tot",
+    "trust": "Vertrouwen en verbinden",
+    "cancel": "Annuleren"
+  },
+  "cleartext": {
+    "title": "Onversleutelde verbinding",
+    "body": "De verbinding met {{host}} is niet versleuteld. Je gebruikersnaam en app-wachtwoord zouden als platte tekst over het netwerk worden verzonden.",
+    "warning": "Iedereen tussen deze telefoon en de server — de wifibeheerder, je internetprovider, elk netwerk ertussen — kan je wachtwoord en agendagegevens meelezen. Een Nextcloud app-wachtwoord geeft toegang tot je hele account, niet alleen tot de agenda.",
+    "remedy": "Veiligere opties: de server bereiken via een VPN zoals Tailscale of WireGuard, of een gratis certificaat instellen met DuckDNS en Let's Encrypt.",
+    "connect": "Toch verbinden",
+    "cancel": "Annuleren"
+  }
+}
