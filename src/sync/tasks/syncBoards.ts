@@ -1,11 +1,13 @@
 import { Q, type Database } from '@nozbe/watermelondb';
 
 import type Board from '@/database/models/Board';
+import type Label from '@/database/models/Label';
 import { safeWrite } from '@/database/utils/safeTransaction';
 import { boardUnchanged, writeBoardRow } from '@/database/writers';
 import { fetchBoards } from '@/services/deck/boards';
 import { localWriteEpoch } from '@/sync/localWrites';
 import { reconcile } from '@/sync/reconcile';
+import { buildLabelOps } from '@/sync/tasks/syncLabels';
 import type { Account } from '@/types';
 
 /**
@@ -53,13 +55,40 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
         deleteMissing: full,
       });
 
-      const ops = [
-        ...plan.create.map((b) => boards.prepareCreate((r: Board) => writeBoardRow(r, b, account.id))),
-        ...plan.update.map(({ row, remote: b }) =>
-          row.prepareUpdate((r: Board) => writeBoardRow(r, b, account.id)),
-        ),
-        ...plan.remove.map((row) => row.prepareMarkAsDeleted()),
-      ];
+      const labelRows = await db
+        .get<Label>('labels')
+        .query(Q.where('account_id', account.id))
+        .fetch();
+
+      const localIdByRemote = new Map(fresh.map((row) => [row.remoteId, row.id]));
+
+      const ops: any[] = [];
+
+      for (const b of plan.create) {
+        const created = boards.prepareCreate((r: Board) => writeBoardRow(r, b, account.id));
+        ops.push(created);
+        localIdByRemote.set(b.remoteId, created.id);
+      }
+      for (const { row, remote: b } of plan.update) {
+        ops.push(row.prepareUpdate((r: Board) => writeBoardRow(r, b, account.id)));
+      }
+      for (const row of plan.remove) {
+        ops.push(row.prepareMarkAsDeleted());
+      }
+
+      for (const b of remote) {
+        const boardLocalId = localIdByRemote.get(b.remoteId);
+        if (!boardLocalId) continue;
+        ops.push(
+          ...buildLabelOps({
+            db,
+            accountId: account.id,
+            boardLocalId,
+            remote: b.labels,
+            rows: labelRows.filter((r) => r.boardId === boardLocalId),
+          }),
+        );
+      }
 
       if (ops.length > 0) await db.batch(ops);
     },

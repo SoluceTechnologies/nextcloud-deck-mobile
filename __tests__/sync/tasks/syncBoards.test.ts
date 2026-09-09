@@ -39,18 +39,24 @@ function board(over: Partial<DeckBoard> = {}): DeckBoard {
   };
 }
 
-function makeDb(rows: any[]) {
+function makeDb(boardRows: any[], labelRows: any[] = []) {
   const batch = jest.fn(async () => {});
-  const collection = {
+  const make = (rows: any[], tag: string) => ({
     query: jest.fn(() => ({ fetch: jest.fn(async () => rows) })),
     prepareCreate: jest.fn((writer: (r: any) => void) => {
-      const r: any = { _op: 'create' };
+      const r: any = { _op: 'create', id: `${tag}-new`, _tag: tag };
       writer(r);
       return r;
     }),
-  };
+  });
+  const boards = make(boardRows, 'board');
+  const labels = make(labelRows, 'label');
   return {
-    db: { get: jest.fn(() => collection), batch, write: jest.fn(async (fn: any) => fn()) } as any,
+    db: {
+      get: jest.fn((table: string) => (table === 'boards' ? boards : labels)),
+      batch,
+      write: jest.fn(async (fn: any) => fn()),
+    } as any,
     batch,
   };
 }
@@ -176,5 +182,18 @@ describe('syncBoards', () => {
     const ops = calls[0]?.[0];
     expect(ops).toHaveLength(1);
     expect(ops[0]).toMatchObject({ _op: 'create', remoteId: '9' });
+  });
+
+  it('creates the labels carried by a new board', async () => {
+    mockFetchBoards.mockResolvedValue([
+      board({ remoteId: '9', labels: [{ remoteId: '3', title: 'Urgent', color: '#ff0000' }] }),
+    ]);
+    const { db, batch } = makeDb([]);
+
+    await syncBoards({ db, account, full: false });
+
+    const calls = (batch as any).mock.calls;
+    const ops = calls[0]?.[0] as any[];
+    expect(ops?.some((op: any) => op._tag === 'label' && op.title === 'Urgent')).toBe(true);
   });
 });
