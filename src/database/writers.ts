@@ -62,6 +62,7 @@ export function boardUnchanged(row: Row, remote: DeckBoard): boolean {
     row.canManage === remote.canManage &&
     row.canShare === remote.canShare &&
     row.lastModified === remote.lastModified &&
+    (row.etag ?? null) === remote.etag &&
     row.aclJson === JSON.stringify(remote.acl) &&
     row.usersJson === JSON.stringify(remote.users)
   );

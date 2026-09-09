@@ -86,6 +86,61 @@ describe('writeCardRow', () => {
     expect(row.stackId).toBe('other-stack');
     expect(row.order).toBe(0);
   });
+
+  it('protects description while applying other server changes', () => {
+    const row: any = { description: 'my local text', color: '#000000' };
+    writeCardRow(row, remoteCard({ description: 'server text', color: '#ff0000' }), {
+      ...ctx,
+      protectedFields: new Set(['description']),
+    });
+
+    expect(row.description).toBe('my local text');
+    expect(row.color).toBe('#ff0000');
+  });
+
+  it('protects color while applying other server changes', () => {
+    const row: any = { color: '#000000', title: 'local title' };
+    writeCardRow(row, remoteCard({ color: '#ff0000', title: 'server title' }), {
+      ...ctx,
+      protectedFields: new Set(['color']),
+    });
+
+    expect(row.color).toBe('#000000');
+    expect(row.title).toBe('server title');
+  });
+
+  it('protects archived while applying other server changes', () => {
+    const row: any = { archived: true, description: 'local desc' };
+    writeCardRow(row, remoteCard({ archived: false, description: 'server desc' }), {
+      ...ctx,
+      protectedFields: new Set(['archived']),
+    });
+
+    expect(row.archived).toBe(true);
+    expect(row.description).toBe('server desc');
+  });
+
+  it('protects doneAt while applying other server changes', () => {
+    const row: any = { doneAt: 100, color: '#000000' };
+    writeCardRow(row, remoteCard({ doneAt: 200, color: '#ff0000' }), {
+      ...ctx,
+      protectedFields: new Set(['doneAt']),
+    });
+
+    expect(row.doneAt).toBe(100);
+    expect(row.color).toBe('#ff0000');
+  });
+
+  it('protects startdate while applying other server changes', () => {
+    const row: any = { startdate: 500, title: 'local title' };
+    writeCardRow(row, remoteCard({ startdate: 600, title: 'server title' }), {
+      ...ctx,
+      protectedFields: new Set(['startdate']),
+    });
+
+    expect(row.startdate).toBe(500);
+    expect(row.title).toBe('server title');
+  });
 });
 
 describe('cardUnchanged', () => {
@@ -159,6 +214,12 @@ describe('board writers', () => {
     writeBoardRow(row, remoteBoard, 'acc-1');
     expect(boardUnchanged(row, remoteBoard)).toBe(true);
     expect(boardUnchanged(row, { ...remoteBoard, title: 'Ops 2' })).toBe(false);
+  });
+
+  it('detects when only etag differs', () => {
+    const row: any = {};
+    writeBoardRow(row, remoteBoard, 'acc-1');
+    expect(boardUnchanged(row, { ...remoteBoard, etag: 'e2' })).toBe(false);
   });
 });
 
