@@ -14,7 +14,7 @@ export const useAccountStore = create<AccountState>()(
   persist(
     (set) => ({
       activeAccountId: null,
-      capabilities: { talkEnabled: false, calendarApp: 'unknown' },
+      capabilities: { deckApp: 'unknown', deckVersion: '', canCreateBoards: false },
       setActiveAccountId: (id) => set({ activeAccountId: id }),
       setCapabilities: (caps) => set({ capabilities: caps }),
     }),

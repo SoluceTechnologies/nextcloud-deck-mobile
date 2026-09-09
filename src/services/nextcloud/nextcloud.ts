@@ -1,4 +1,4 @@
-import type { Account, CalendarAppStatus, ServerCapabilities } from '@/types';
+import type { Account, ServerCapabilities } from '@/types';
 import { httpErrorFrom } from '../shared/errors';
 import { trustedFetch } from '../shared/trustedFetch';
 
@@ -128,31 +128,15 @@ export async function fetchUserInfo(
   }
 }
 
-export async function fetchCalendarApp(
-  account: Pick<Account, 'baseUrl' | 'username' | 'appPassword'>
-): Promise<CalendarAppStatus> {
-  try {
-    const url = `${account.baseUrl}/ocs/v2.php/core/navigation/apps`;
-    const res = await trustedFetch(url, {
-      headers: {
-        Authorization: basicAuth(account),
-        'OCS-APIRequest': 'true',
-        Accept: 'application/json',
-      },
-    });
-    if (!res.ok) return 'unknown';
-    const json = await res.json();
-    const apps = json?.ocs?.data;
-    if (!Array.isArray(apps)) return 'unknown';
-    return apps.some((a) => a?.id === 'calendar') ? 'available' : 'unconfigured';
-  } catch {
-    return 'unknown';
-  }
-}
+const UNKNOWN_CAPABILITIES: ServerCapabilities = {
+  deckApp: 'unknown',
+  deckVersion: '',
+  canCreateBoards: false,
+};
 
-async function fetchServerCaps(
+export async function fetchCapabilities(
   account: Pick<Account, 'baseUrl' | 'username' | 'appPassword'>
-): Promise<Omit<ServerCapabilities, 'calendarApp'>> {
+): Promise<ServerCapabilities> {
   try {
     const url = `${account.baseUrl}/ocs/v2.php/cloud/capabilities`;
     const res = await trustedFetch(url, {
@@ -162,22 +146,18 @@ async function fetchServerCaps(
         Accept: 'application/json',
       },
     });
-    if (!res.ok) return { talkEnabled: false };
+    if (!res.ok) return UNKNOWN_CAPABILITIES;
+
     const json = await res.json();
-    const apps: Record<string, unknown> = json?.ocs?.data?.capabilities ?? {};
+    const deck = json?.ocs?.data?.capabilities?.deck;
+    if (!deck) return { deckApp: 'unavailable', deckVersion: '', canCreateBoards: false };
 
-    return { talkEnabled: 'spreed' in apps };
+    return {
+      deckApp: 'available',
+      deckVersion: typeof deck.version === 'string' ? deck.version : '',
+      canCreateBoards: deck.canCreateBoards === true,
+    };
   } catch {
-    return { talkEnabled: false };
+    return UNKNOWN_CAPABILITIES;
   }
-}
-
-export async function fetchCapabilities(
-  account: Pick<Account, 'baseUrl' | 'username' | 'appPassword'>
-): Promise<ServerCapabilities> {
-  const [caps, calendarApp] = await Promise.all([
-    fetchServerCaps(account),
-    fetchCalendarApp(account),
-  ]);
-  return { ...caps, calendarApp };
 }

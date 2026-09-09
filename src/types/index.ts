@@ -9,9 +9,10 @@ export type Account = {
   email?: string;
 };
 
-export type CalendarAppStatus = 'unknown' | 'available' | 'unconfigured';
+export type DeckAppStatus = 'unknown' | 'available' | 'unavailable';
 
 export type ServerCapabilities = {
-  talkEnabled: boolean;
-  calendarApp: CalendarAppStatus;
+  deckApp: DeckAppStatus;
+  deckVersion: string;
+  canCreateBoards: boolean;
 };

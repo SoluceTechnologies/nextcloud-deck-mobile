@@ -8,7 +8,7 @@ describe('accountStore', () => {
   beforeEach(() => {
     useAccountStore.setState({
       activeAccountId: null,
-      capabilities: { talkEnabled: false, calendarApp: 'unknown' },
+      capabilities: { deckApp: 'unknown', deckVersion: '', canCreateBoards: false },
     });
   });
 
@@ -24,7 +24,7 @@ describe('accountStore', () => {
   });
 
   it('sets capabilities', () => {
-    useAccountStore.getState().setCapabilities({ talkEnabled: true, calendarApp: 'available' });
-    expect(useAccountStore.getState().capabilities.talkEnabled).toBe(true);
+    useAccountStore.getState().setCapabilities({ deckApp: 'available', deckVersion: '1.14.2', canCreateBoards: true });
+    expect(useAccountStore.getState().capabilities.deckApp).toBe('available');
   });
 });
