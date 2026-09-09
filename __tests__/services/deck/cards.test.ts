@@ -2,11 +2,15 @@ import {
   buildCardPutBody,
   createCard,
   updateCard,
+  deleteCard,
   reorderCard,
   setCardArchived,
   assignLabelToCard,
+  removeLabelFromCard,
   assignUserToCard,
+  unassignUserFromCard,
   addDependentCard,
+  removeDependentCard,
   cloneCard,
   createLabel,
   type CardWriteState,
@@ -178,6 +182,56 @@ describe('dependencies and clone use the OCS API', () => {
   });
 });
 
+describe('deleteCard', () => {
+  it('sends a DELETE request to the card', async () => {
+    mockFetch.mockResolvedValue(ok({}));
+
+    await deleteCard(account, ref);
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards/7/stacks/5/cards/42',
+    );
+    expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
+  });
+});
+
+describe('removeLabelFromCard', () => {
+  it('removes a label by id with the correct endpoint', async () => {
+    mockFetch.mockResolvedValue(ok({}));
+
+    await removeLabelFromCard(account, ref, '3');
+
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/cards\/42\/removeLabel$/);
+    expect(mockFetch.mock.calls[0][1].method).toBe('PUT');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ labelId: 3 });
+  });
+});
+
+describe('unassignUserFromCard', () => {
+  it('unassigns a user with its participant type', async () => {
+    mockFetch.mockResolvedValue(ok({}));
+
+    await unassignUserFromCard(account, ref, { participant: 'jane', assigneeType: 1 });
+
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/cards\/42\/unassignUser$/);
+    expect(mockFetch.mock.calls[0][1].method).toBe('PUT');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ userId: 'jane', type: 1 });
+  });
+});
+
+describe('removeDependentCard', () => {
+  it('sends a DELETE request to the OCS API', async () => {
+    mockFetch.mockResolvedValue(ok({}));
+
+    await removeDependentCard(account, '42', '43');
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'https://cloud.example.com/ocs/v2.php/apps/deck/api/v1.1/cards/42/dependentCards/43',
+    );
+    expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
+  });
+});
+
 describe('createLabel', () => {
   it('posts the title and the wire-format colour', async () => {
     mockFetch.mockResolvedValue(ok({ id: 8, title: 'Urgent', color: 'ff0000' }));
@@ -189,5 +243,17 @@ describe('createLabel', () => {
     );
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ title: 'Urgent', color: 'ff0000' });
     expect(label).toEqual({ remoteId: '8', title: 'Urgent', color: '#ff0000' });
+  });
+
+  it('uses the default label colour when colour is null', async () => {
+    mockFetch.mockResolvedValue(ok({ id: 9, title: 'Default', color: '31cc7c' }));
+
+    const label = await createLabel(account, '7', { title: 'Default', color: null });
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards/7/labels',
+    );
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ title: 'Default', color: '31cc7c' });
+    expect(label).toEqual({ remoteId: '9', title: 'Default', color: '#31cc7c' });
   });
 });
