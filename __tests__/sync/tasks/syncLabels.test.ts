@@ -74,4 +74,20 @@ describe('buildLabelOps', () => {
     const ops = buildLabelOps({ ...base, remote: [{ ...label, color: null }], rows: [] });
     expect(ops[0]).toMatchObject({ color: undefined });
   });
+
+  it('does not delete offline labels with empty remoteId', () => {
+    const offlineLabel1 = row({ remoteId: '' });
+    const offlineLabel2 = row({ remoteId: '' });
+    const remoteLabel = { remoteId: '99', title: 'Remote', color: '#0000ff' };
+
+    const ops = buildLabelOps({
+      ...base,
+      remote: [remoteLabel],
+      rows: [offlineLabel1, offlineLabel2]
+    });
+
+    // Should only create the remote label, not delete the offline labels
+    expect(ops.length).toBe(1);
+    expect(ops[0]).toMatchObject({ _op: 'create', remoteId: '99', title: 'Remote' });
+  });
 });

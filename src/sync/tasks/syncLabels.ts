@@ -42,9 +42,15 @@ export function buildLabelOps({
   const labels = db.get<Label>('labels');
   const ctx = { accountId, boardLocalId };
 
+  // Filter out labels awaiting their first push: they carry remoteId = '' until the create
+  // flushes to the server, but they cannot match any remote label and are already protected
+  // by the outbox. Passing them to reconcile would risk marking them deleted if another
+  // offline label collides on that empty key.
+  const synced = rows.filter((r) => r.remoteId);
+
   const plan = reconcile({
     remote,
-    rows,
+    rows: synced,
     remoteKey: (l) => l.remoteId,
     rowKey: (r) => r.remoteId,
     unchanged: labelUnchanged,
