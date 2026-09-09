@@ -37,6 +37,13 @@ jest.mock('@/services/shared/nativeTlsTrust', () => {
         const h = {};
         if (res.headers && typeof res.headers.forEach === 'function') {
           res.headers.forEach((v, k) => { h[k] = v; });
+        } else if (res.headers && typeof res.headers.get === 'function') {
+          // Handle mock headers with .get method (for tests)
+          const headerNames = ['etag', 'content-type', 'content-length', 'retry-after', 'cache-control', 'expires'];
+          for (const name of headerNames) {
+            const val = res.headers.get(name);
+            if (val) h[name] = val;
+          }
         }
         const status = res.status ?? (res.ok === false ? 400 : 200);
         return {
