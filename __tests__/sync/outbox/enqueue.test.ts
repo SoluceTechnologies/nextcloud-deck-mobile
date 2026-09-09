@@ -1,25 +1,34 @@
+import type { Model } from '@nozbe/watermelondb';
+
 import { mutate, protectedFieldsOf, entityRefOf, OUTBOX_QUEUED, OUTBOX_FAILED } from '../../../src/sync/outbox/enqueue';
 import type { Intent } from '../../../src/sync/outbox/types';
 import { localWriteEpoch } from '../../../src/sync/localWrites';
+
+/** A stand-in for a WatermelonDB record prepared via prepareCreate/prepareUpdate/prepareMarkAsDeleted. */
+function fakePreparedOp(preparedState: string): Model {
+  return { _preparedState: preparedState } as unknown as Model;
+}
 
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
 
 function makeDb() {
-  const created: any[] = [];
+  const batches: any[][] = [];
   const collection = {
-    create: jest.fn(async (writer: (row: any) => void) => {
-      const row: any = {};
+    prepareCreate: jest.fn((writer: (row: any) => void) => {
+      const row: any = { _preparedState: 'create' };
       writer(row);
-      created.push(row);
       return row;
     }),
   };
-  return {
-    db: { get: jest.fn(() => collection), write: jest.fn(async (fn: any) => fn()) } as any,
-    created,
-  };
+  const db = {
+    get: jest.fn(() => collection),
+    batch: jest.fn(async (records: any[]) => {
+      batches.push(records);
+    }),
+  } as any;
+  return { db, batches };
 }
 
 describe('constants', () => {
@@ -74,6 +83,13 @@ describe('entityRefOf', () => {
     });
   });
 
+  it('addresses a label intent by its local label id, not the board it also carries', () => {
+    expect(entityRefOf({ kind: 'createLabel', labelId: 'l1', boardId: 'b1' })).toEqual({
+      entityType: 'label',
+      entityId: 'l1',
+    });
+  });
+
   it('addresses a board intent by its local board id', () => {
     expect(
       entityRefOf({ kind: 'updateBoard', boardId: 'b1', title: 'Ops', color: null, archived: false }),
@@ -82,36 +98,56 @@ describe('entityRefOf', () => {
 });
 
 describe('mutate', () => {
-  it('applies the optimistic write and enqueues in the same transaction', async () => {
-    const { db, created } = makeDb();
-    const order: string[] = [];
+  it('batches the prepared local operation with the outbox row in a single call', async () => {
+    const { db, batches } = makeDb();
+    const localOp = fakePreparedOp('update');
 
     await mutate({
       db,
       accountId: 'acc-1',
       intent: { kind: 'setCardArchived', cardId: 'c1', archived: true },
-      applyLocal: async () => {
-        order.push('local');
-      },
+      applyLocal: () => localOp,
     });
 
-    expect(order).toEqual(['local']);
-    expect(created).toHaveLength(1);
-    expect(created[0]).toMatchObject({
-      accountId: 'acc-1',
-      kind: 'setCardArchived',
-      entityType: 'card',
-      entityId: 'c1',
-      state: OUTBOX_QUEUED,
-      attempts: 0,
-      nextAttemptAt: 0,
-      serverValuesJson: '{}',
-    });
-    expect(JSON.parse(created[0].payloadJson)).toEqual({
+    // One batch, containing exactly the local op and the outbox row together.
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toEqual([
+      localOp,
+      expect.objectContaining({
+        accountId: 'acc-1',
+        kind: 'setCardArchived',
+        entityType: 'card',
+        entityId: 'c1',
+        state: OUTBOX_QUEUED,
+        attempts: 0,
+        nextAttemptAt: 0,
+        serverValuesJson: '{}',
+      }),
+    ]);
+    expect(JSON.parse(batches[0][1].payloadJson)).toEqual({
       kind: 'setCardArchived',
       cardId: 'c1',
       archived: true,
     });
+  });
+
+  it('batches every operation applyLocal returns, plus the outbox row', async () => {
+    const { db, batches } = makeDb();
+    const opA = fakePreparedOp('create');
+    const opB = fakePreparedOp('update');
+
+    await mutate({
+      db,
+      accountId: 'acc-1',
+      intent: { kind: 'setCardArchived', cardId: 'c1', archived: true },
+      applyLocal: async () => [opA, opB],
+    });
+
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toHaveLength(3);
+    expect(batches[0][0]).toBe(opA);
+    expect(batches[0][1]).toBe(opB);
+    expect(batches[0][2]).toMatchObject({ state: OUTBOX_QUEUED });
   });
 
   it('advances the local write epoch so a sync in flight backs off', async () => {
@@ -122,14 +158,14 @@ describe('mutate', () => {
       db,
       accountId: 'acc-1',
       intent: { kind: 'setCardArchived', cardId: 'c1', archived: false },
-      applyLocal: () => undefined,
+      applyLocal: () => fakePreparedOp('update'),
     });
 
     expect(localWriteEpoch()).toBe(before + 1);
   });
 
-  it('does not enqueue when the optimistic write throws', async () => {
-    const { db, created } = makeDb();
+  it('does not enqueue when the local operation cannot be prepared', async () => {
+    const { db, batches } = makeDb();
 
     await expect(
       mutate({
@@ -142,6 +178,7 @@ describe('mutate', () => {
       }),
     ).rejects.toThrow('local write failed');
 
-    expect(created).toHaveLength(0);
+    // Never reached db.batch() at all — not the local op, not the outbox row.
+    expect(batches).toHaveLength(0);
   });
 });
