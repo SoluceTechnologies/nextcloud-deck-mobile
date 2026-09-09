@@ -3,7 +3,10 @@ import {
   fetchStacks,
   createBoard,
   updateBoard,
+  deleteBoard,
   createStack,
+  updateStack,
+  deleteStack,
 } from '../../../src/services/deck/boards';
 
 const account = {
@@ -130,5 +133,48 @@ describe('createStack', () => {
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ title: 'Doing', order: 3 });
     expect(stack.remoteId).toBe('5');
     expect(stack.boardRemoteId).toBe('7');
+  });
+});
+
+describe('deleteBoard', () => {
+  it('deletes a board with DELETE method', async () => {
+    mockFetch.mockResolvedValue(ok(null));
+
+    await deleteBoard(account, '7');
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards/7',
+    );
+    expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
+  });
+});
+
+describe('updateStack', () => {
+  it('updates a stack with PUT method and returns the normalized stack', async () => {
+    mockFetch.mockResolvedValue(
+      ok({ id: 5, title: 'In Progress', order: 2, lastModified: 1, cards: [] }),
+    );
+
+    const stack = await updateStack(account, '7', '5', { title: 'In Progress', order: 2 });
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards/7/stacks/5',
+    );
+    expect(mockFetch.mock.calls[0][1].method).toBe('PUT');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ title: 'In Progress', order: 2 });
+    expect(stack.boardRemoteId).toBe('7');
+  });
+});
+
+describe('deleteStack', () => {
+  it('deletes a stack with DELETE method and correct URL', async () => {
+    mockFetch.mockResolvedValue(ok(null));
+
+    await deleteStack(account, '7', '5');
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards/7/stacks/5',
+    );
+    expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
   });
 });
