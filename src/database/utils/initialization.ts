@@ -94,7 +94,7 @@ export class DatabaseInitializer {
       console.log('Attempting database recovery...');
 
       const recoveryPromise = db.write(async () => {
-        const collections = ['boards'];
+        const collections = ['boards', 'cards'];
         for (const collectionName of collections) {
           try {
             await db.collections.get(collectionName).query().fetch();

@@ -18,7 +18,18 @@ export const useDatabase = () => useContext(DatabaseContext);
 
 export async function ClearDatabaseForAccount(accountId: string) {
   const db = getDatabaseInstance();
-  const tablesWithAccount = ['events', 'calendars'];
+  const tablesWithAccount = [
+    'cards',
+    'card_labels',
+    'card_assignees',
+    'comments',
+    'attachments',
+    'stacks',
+    'labels',
+    'boards',
+    'outbox',
+    'recent_boards',
+  ];
 
   await safeWrite(db, async () => {
     for (const table of tablesWithAccount) {
