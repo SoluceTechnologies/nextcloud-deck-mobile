@@ -171,11 +171,13 @@
     "cancel": "Cancel"
   },
   "sync": {
-    "title": "Synchronisation",
+    "title": "Sync",
     "queued": "Queued changes",
     "failed": "Failed changes",
     "empty": "Everything is in sync.",
     "retry": "Retry",
-    "discard": "Discard"
+    "discard": "Discard",
+    "discardTitle": "Discard Change?",
+    "discardMsg": "This change will be permanently lost and cannot be recovered."
   }
 }

@@ -1,5 +1,6 @@
 import { Q } from '@nozbe/watermelondb';
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useDatabase } from '@/database/DatabaseProvider';
@@ -7,7 +8,7 @@ import type OutboxEntry from '@/database/models/OutboxEntry';
 import { safeWrite } from '@/database/utils/safeTransaction';
 import { useAccountStore } from '@/stores/accountStore';
 import { OUTBOX_FAILED, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
-import { Item, List, SectionHeader } from '@/ui/components';
+import { Item, List, SectionHeader, Stack } from '@/ui/components';
 
 export function SyncStatus() {
   const { t } = useTranslation();
@@ -48,6 +49,19 @@ export function SyncStatus() {
   const discard = (entry: OutboxEntry) =>
     safeWrite(database, () => entry.destroyPermanently(), 10000, 'syncStatus:discard');
 
+  // This screen is the only place a permanently-failed edit surfaces, and
+  // discarding it is unrecoverable — it needs its own labelled control, not
+  // a tap anywhere on the row, and a confirmation before it runs.
+  const confirmDiscard = (entry: OutboxEntry) =>
+    Alert.alert(t('sync.discardTitle'), t('sync.discardMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('sync.discard'),
+        style: 'destructive',
+        onPress: () => void discard(entry).catch(() => undefined),
+      },
+    ]);
+
   if (entries.length === 0) {
     return (
       <List>
@@ -73,12 +87,14 @@ export function SyncStatus() {
                 title={entry.kind}
                 description={entry.lastError ?? ''}
                 trailing={
-                  <Item
-                    title={t('sync.retry')}
-                    onPress={() => void retry(entry).catch(() => undefined)}
-                  />
+                  <Stack direction="horizontal" gap={16}>
+                    <Item
+                      title={t('sync.retry')}
+                      onPress={() => void retry(entry).catch(() => undefined)}
+                    />
+                    <Item title={t('sync.discard')} onPress={() => confirmDiscard(entry)} />
+                  </Stack>
                 }
-                onPress={() => void discard(entry).catch(() => undefined)}
               />
             ))}
           </List>

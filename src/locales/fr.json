@@ -176,6 +176,8 @@
     "failed": "Modifications en échec",
     "empty": "Tout est synchronisé.",
     "retry": "Réessayer",
-    "discard": "Abandonner"
+    "discard": "Abandonner",
+    "discardTitle": "Abandonner la modification ?",
+    "discardMsg": "Cette modification sera définitivement perdue et ne pourra pas être récupérée."
   }
 }
