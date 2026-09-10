@@ -82,7 +82,7 @@ function makeRow(tag: string, over: Record<string, unknown>) {
 function makeDb(tables: Record<string, any[]>) {
   const batch = jest.fn(async () => {});
   const collections: Record<string, any> = {};
-  for (const name of ['boards', 'stacks', 'cards', 'outbox', 'card_labels', 'card_assignees']) {
+  for (const name of ['boards', 'stacks', 'cards', 'outbox', 'labels', 'card_labels', 'card_assignees']) {
     collections[name] = {
       query: jest.fn(() => ({ fetch: jest.fn(async () => tables[name] ?? []) })),
       prepareCreate: prepared(name),
@@ -265,5 +265,20 @@ describe('syncBoardContent', () => {
 
     const outboxUpdate = ops.find((o: any) => o._op === 'update' && o._tag === 'outbox');
     expect(JSON.parse(outboxUpdate.serverValuesJson)).toEqual({ title: 'server title' });
+  });
+
+  it('links the labels carried by a card', async () => {
+    mockFetchStacks.mockResolvedValue([
+      stack([card({ labels: [{ remoteId: '3', title: 'Urgent', color: null }] })]),
+    ]);
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      labels: [makeRow('labels', { id: 'label-local', boardId: 'b-local', remoteId: '3' })],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    const ops = (batch as any).mock.calls[0][0];
+    expect(ops.some((o: any) => o._tag === 'card_labels' && o.labelId === 'label-local')).toBe(true);
   });
 });

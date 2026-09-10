@@ -2,6 +2,9 @@ import { Q, type Database, type Model } from '@nozbe/watermelondb';
 
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
+import type CardAssignee from '@/database/models/CardAssignee';
+import type CardLabel from '@/database/models/CardLabel';
+import type Label from '@/database/models/Label';
 import type OutboxEntry from '@/database/models/OutboxEntry';
 import type Stack from '@/database/models/Stack';
 import { safeWrite } from '@/database/utils/safeTransaction';
@@ -18,6 +21,7 @@ import type { DeckCard } from '@/services/deck/types';
 import { localWriteEpoch } from '@/sync/localWrites';
 import { loadPendingCards, mergeServerValues, pendingEntityIds } from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
+import { buildCardRelationOps } from '@/sync/tasks/cardRelations';
 import type { Account } from '@/types';
 
 /**
@@ -77,6 +81,21 @@ export async function syncBoardContent({
         .fetch();
       const pending = await loadPendingCards(db, account.id);
 
+      const labelRows = await db
+        .get<Label>('labels')
+        .query(Q.where('account_id', account.id), Q.where('board_id', boardLocalId))
+        .fetch();
+      const labelLocalIdByRemote = new Map(labelRows.map((r) => [r.remoteId, r.id]));
+
+      const cardLabelRows = await db
+        .get<CardLabel>('card_labels')
+        .query(Q.where('account_id', account.id))
+        .fetch();
+      const cardAssigneeRows = await db
+        .get<CardAssignee>('card_assignees')
+        .query(Q.where('account_id', account.id))
+        .fetch();
+
       const ops: Model[] = [];
       const stackCtx = { accountId: account.id, boardLocalId };
 
@@ -133,14 +152,16 @@ export async function syncBoardContent({
         ),
       });
 
+      const cardLocalIdByRemote = new Map(cardRows.map((r) => [r.remoteId, r.id]));
+
       for (const c of cardPlan.create) {
         const stackLocalId = stackLocalIdByRemote.get(c.stackRemoteId);
         if (!stackLocalId) continue;
-        ops.push(
-          cards.prepareCreate((r: Card) =>
-            writeCardRow(r, c, { accountId: account.id, boardLocalId, stackLocalId }),
-          ),
+        const created = cards.prepareCreate((r: Card) =>
+          writeCardRow(r, c, { accountId: account.id, boardLocalId, stackLocalId }),
         );
+        ops.push(created);
+        cardLocalIdByRemote.set(c.remoteId, created.id);
       }
 
       for (const { row, remote: c } of cardPlan.update) {
@@ -170,8 +191,30 @@ export async function syncBoardContent({
         }
       }
 
+      for (const c of remoteCards) {
+        const cardLocalId = cardLocalIdByRemote.get(c.remoteId);
+        if (!cardLocalId) continue;
+        ops.push(
+          ...buildCardRelationOps({
+            db,
+            accountId: account.id,
+            cardLocalId,
+            remote: c,
+            labelLocalIdByRemote,
+            labelRows: cardLabelRows.filter((r) => r.cardId === cardLocalId),
+            assigneeRows: cardAssigneeRows.filter((r) => r.cardId === cardLocalId),
+          }),
+        );
+      }
+
       for (const row of cardPlan.remove) {
         ops.push(row.prepareMarkAsDeleted());
+        for (const join of cardLabelRows.filter((r) => r.cardId === row.id)) {
+          ops.push(join.prepareMarkAsDeleted());
+        }
+        for (const join of cardAssigneeRows.filter((r) => r.cardId === row.id)) {
+          ops.push(join.prepareMarkAsDeleted());
+        }
       }
 
       if (ops.length > 0) await db.batch(ops);
