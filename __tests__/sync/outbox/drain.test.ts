@@ -183,4 +183,44 @@ describe('drainOutbox', () => {
     expect(mockExecute).not.toHaveBeenCalled();
     expect(row.destroyed).toBe(true);
   });
+
+  it('shares one pass between two overlapping calls for the same account, so each queued intent runs once', async () => {
+    const first = entryRow('1', archive);
+    const second = entryRow('2', { kind: 'createCard', cardId: 'c2' });
+    mockExecute.mockResolvedValue(undefined);
+    const db = makeDb([first, second]);
+
+    // Neither call is awaited before the other starts: this is the scheduler
+    // tick and a reconnect (or two mount-time effects) racing each other.
+    const [a, b] = [drainOutbox({ db, account }), drainOutbox({ db, account })];
+    await Promise.all([a, b]);
+
+    // Only the first call actually read the queue; the second returned the
+    // same in-flight pass instead of fetching (and sending) it again.
+    expect(db.get).toHaveBeenCalledTimes(1);
+    expect(mockExecute).toHaveBeenCalledTimes(2);
+    expect(first.destroyed).toBe(true);
+    expect(second.destroyed).toBe(true);
+  });
+
+  it('releases the in-flight guard when a pass rejects, so the next call for that account still runs', async () => {
+    const failingDb = {
+      get: jest.fn(() => ({
+        query: jest.fn(() => ({
+          fetch: jest.fn(async () => {
+            throw new Error('read failed');
+          }),
+        })),
+      })),
+    } as any;
+
+    await expect(drainOutbox({ db: failingDb, account })).rejects.toThrow('read failed');
+
+    const row = entryRow('1', archive);
+    mockExecute.mockResolvedValue(undefined);
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(row.destroyed).toBe(true);
+  });
 });

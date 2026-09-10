@@ -81,6 +81,19 @@ describe('useDeckSync', () => {
     expect(drainOutbox).toHaveBeenCalled();
   });
 
+  it('drains exactly once on an online mount, not once per effect', () => {
+    // `online` defaults to true (src/services/shared/network.ts), so this is
+    // the ordinary "launch the app while online" case. Both effects run
+    // after the initial commit regardless of their dependency arrays; only
+    // the mount effect should actually drain.
+    setAccounts([account]);
+    act(() => useAccountStore.getState().setActiveAccountId('acc-1'));
+
+    renderHook(() => useDeckSync());
+
+    expect(drainOutbox).toHaveBeenCalledTimes(1);
+  });
+
   it('stops the scheduler on unmount', () => {
     setAccounts([account]);
     act(() => useAccountStore.getState().setActiveAccountId('acc-1'));

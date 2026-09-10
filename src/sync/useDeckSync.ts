@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { getDatabaseInstance } from '@/database/DatabaseProvider';
@@ -59,9 +59,16 @@ export function useDeckSync(): void {
     };
   }, [account]);
 
-  // A reconnection is the moment queued work becomes sendable again.
+  // A reconnection is the moment queued work becomes sendable again. Every
+  // effect re-runs after the initial commit regardless of its dependency
+  // array, so without tracking the previous value this would also fire on
+  // mount — where effect 1 above has already drained once — and double-send
+  // whatever was still queued from a previous session.
+  const wasOnlineRef = useRef(online);
   useEffect(() => {
-    if (!account || !online) return;
+    const wasOnline = wasOnlineRef.current;
+    wasOnlineRef.current = online;
+    if (!account || !online || wasOnline) return;
     void drainOutbox({ db: getDatabaseInstance(), account }).catch(() => undefined);
   }, [account, online]);
 }

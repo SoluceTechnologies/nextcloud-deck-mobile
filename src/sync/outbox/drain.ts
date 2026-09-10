@@ -32,7 +32,23 @@ export type DrainParams = {
   onConflict?: (info: { cardId: string; fields: string[] }) => void;
 };
 
-export async function drainOutbox({ db, account, now, onConflict }: DrainParams): Promise<void> {
+// The scheduler tick and a reconnect can genuinely overlap - a drain is slow
+// and asynchronous - so a second call for an account already draining shares
+// the in-flight pass instead of reading the queue again and sending every
+// row twice. `finally` clears the guard on both success and failure so a
+// rejected drain never wedges the account's queue.
+const inFlight = new Map<string, Promise<void>>();
+
+export function drainOutbox(params: DrainParams): Promise<void> {
+  const existing = inFlight.get(params.account.id);
+  if (existing) return existing;
+
+  const run = drainOnce(params).finally(() => inFlight.delete(params.account.id));
+  inFlight.set(params.account.id, run);
+  return run;
+}
+
+async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise<void> {
   const clock = now ?? (() => Date.now());
   const collection = db.get<OutboxEntry>('outbox');
 
