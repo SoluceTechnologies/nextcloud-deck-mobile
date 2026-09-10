@@ -195,7 +195,7 @@ describe('syncBoardContent', () => {
     const { db, batch } = makeDb({
       boards: [boardRow],
       stacks: [makeRow('stacks', { boardId: 'b-local', remoteId: '5', title: 'Doing', order: 0, lastModified: 4000 })],
-      cards: [makeRow('cards', { id: 'cards-1', boardId: 'b-local', remoteId: '', lastModified: 0 })],
+      cards: [makeRow('cards', { id: 'cards-1', boardId: 'b-local', remoteId: '99', lastModified: 0 })],
       outbox: [
         makeRow('outbox', {
           entityType: 'card',

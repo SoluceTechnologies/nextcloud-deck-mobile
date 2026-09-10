@@ -1,4 +1,4 @@
-import { Q, type Database } from '@nozbe/watermelondb';
+import { Q, type Database, type Model } from '@nozbe/watermelondb';
 
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
@@ -20,6 +20,11 @@ import { loadPendingCards, mergeServerValues, pendingEntityIds } from '@/sync/ou
 import { reconcile } from '@/sync/reconcile';
 import type { Account } from '@/types';
 
+/**
+ * Deck compares `If-Modified-Since` against `last_modified > since`, on the server
+ * clock and at second resolution. Rewinding two seconds re-sends a handful of
+ * already-known rows rather than missing one written in the same second.
+ */
 const OVERLAP_MS = 2000;
 
 export type SyncBoardContentParams = {
@@ -72,7 +77,7 @@ export async function syncBoardContent({
         .fetch();
       const pending = await loadPendingCards(db, account.id);
 
-      const ops: any[] = [];
+      const ops: Model[] = [];
       const stackCtx = { accountId: account.id, boardLocalId };
 
       // Stacks always come back whole, even on a delta call, so this pass is
