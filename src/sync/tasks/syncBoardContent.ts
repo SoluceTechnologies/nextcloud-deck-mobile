@@ -31,6 +31,33 @@ import type { Account } from '@/types';
  */
 const OVERLAP_MS = 2000;
 
+async function loadCardRelationContext(
+  db: Database,
+  accountId: string,
+  boardLocalId: string,
+): Promise<{
+  labelLocalIdByRemote: Map<string, string>;
+  cardLabelRows: CardLabel[];
+  cardAssigneeRows: CardAssignee[];
+}> {
+  const labelRows = await db
+    .get<Label>('labels')
+    .query(Q.where('account_id', accountId), Q.where('board_id', boardLocalId))
+    .fetch();
+  const labelLocalIdByRemote = new Map(labelRows.map((r) => [r.remoteId, r.id]));
+
+  const cardLabelRows = await db
+    .get<CardLabel>('card_labels')
+    .query(Q.where('account_id', accountId))
+    .fetch();
+  const cardAssigneeRows = await db
+    .get<CardAssignee>('card_assignees')
+    .query(Q.where('account_id', accountId))
+    .fetch();
+
+  return { labelLocalIdByRemote, cardLabelRows, cardAssigneeRows };
+}
+
 export type SyncBoardContentParams = {
   db: Database;
   account: Account;
@@ -80,21 +107,11 @@ export async function syncBoardContent({
         .query(Q.where('account_id', account.id), Q.where('board_id', boardLocalId))
         .fetch();
       const pending = await loadPendingCards(db, account.id);
-
-      const labelRows = await db
-        .get<Label>('labels')
-        .query(Q.where('account_id', account.id), Q.where('board_id', boardLocalId))
-        .fetch();
-      const labelLocalIdByRemote = new Map(labelRows.map((r) => [r.remoteId, r.id]));
-
-      const cardLabelRows = await db
-        .get<CardLabel>('card_labels')
-        .query(Q.where('account_id', account.id))
-        .fetch();
-      const cardAssigneeRows = await db
-        .get<CardAssignee>('card_assignees')
-        .query(Q.where('account_id', account.id))
-        .fetch();
+      const { labelLocalIdByRemote, cardLabelRows, cardAssigneeRows } = await loadCardRelationContext(
+        db,
+        account.id,
+        boardLocalId,
+      );
 
       const ops: Model[] = [];
       const stackCtx = { accountId: account.id, boardLocalId };
