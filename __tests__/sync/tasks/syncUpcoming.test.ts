@@ -1,16 +1,19 @@
 // __tests__/sync/tasks/syncUpcoming.test.ts
 import { syncUpcoming } from '../../../src/sync/tasks/syncUpcoming';
 import { fetchUpcoming, flattenUpcoming } from '../../../src/services/deck/overview';
+import { reconcile } from '../../../src/sync/reconcile';
 import type { Account } from '../../../src/types';
 import type { DeckCard } from '../../../src/services/deck/types';
 
 jest.mock('../../../src/services/deck/overview');
+jest.mock('../../../src/sync/reconcile');
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
 
 const mockFetchUpcoming = fetchUpcoming as jest.Mock;
 const mockFlattenUpcoming = flattenUpcoming as jest.Mock;
+const mockReconcile = reconcile as jest.Mock;
 
 const account: Account = {
   id: 'acc-1',
@@ -95,6 +98,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Default flatten behavior: return the overdue array
   mockFlattenUpcoming.mockImplementation((upcoming: any) => upcoming.overdue || []);
+  // Mock reconcile to delegate to real implementation while capturing arguments
+  const realReconcile = jest.requireActual('../../../src/sync/reconcile').reconcile;
+  mockReconcile.mockImplementation(realReconcile);
 });
 
 describe('syncUpcoming', () => {
@@ -231,5 +237,37 @@ describe('syncUpcoming', () => {
     expect(ops).toHaveLength(1);
     expect(ops.some((o: any) => o._op === 'delete')).toBe(false);
     expect(ops[0]).toMatchObject({ _tag: 'cards', _op: 'create', remoteId: '42' });
+  });
+
+  it('filters local cards with empty remoteId before passing rows to reconcile', async () => {
+    // This test uses jest.mock to spy on the reconcile arguments directly,
+    // capturing what syncUpcoming passes as the rows parameter.
+    // The assertion is about what reconcile is asked to consider,
+    // independent of what it returns or what syncUpcoming does with the result.
+    const remoteCard = card();
+    mockFetchUpcoming.mockResolvedValue(groups([remoteCard]));
+    mockFlattenUpcoming.mockImplementation((upcoming: any) => upcoming.overdue || []);
+    const { db } = makeDb({
+      boards: [boardRow],
+      stacks: [stackRow],
+      cards: [
+        // Local card with empty remoteId (offline-created): should be filtered out
+        makeRow('cards', { id: 'offline-card', remoteId: '', boardId: 'b-local', stackId: 's-local' }),
+        // Local card with real remoteId (synced): should be included
+        makeRow('cards', { id: 'synced-card', remoteId: '99', boardId: 'b-local', stackId: 's-local' }),
+      ],
+    });
+
+    await syncUpcoming({ db, account });
+
+    // Assert reconcile was called
+    expect(mockReconcile).toHaveBeenCalledTimes(1);
+    // Capture the rows argument passed to reconcile
+    const reconcileCall = mockReconcile.mock.calls[0][0];
+    const rowsArg = reconcileCall.rows;
+
+    // Assert: rows should exclude the offline card but include the synced one
+    expect(rowsArg).toHaveLength(1);
+    expect(rowsArg[0]).toMatchObject({ id: 'synced-card', remoteId: '99' });
   });
 });
