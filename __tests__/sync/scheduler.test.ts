@@ -1,5 +1,8 @@
 import { createSyncScheduler } from '../../src/sync/scheduler';
+import { createTaskRunner } from '../../src/sync/runTask';
 import type { SyncTask } from '../../src/sync/dueTasks';
+import type { Database } from '@nozbe/watermelondb';
+import type { Account } from '@/types';
 
 function setup(over: Partial<Parameters<typeof createSyncScheduler>[0]> = {}) {
   const ran: SyncTask[] = [];
@@ -98,5 +101,59 @@ describe('createSyncScheduler', () => {
     jest.advanceTimersByTime(90_000);
     await Promise.resolve();
     expect(ran.length).toBe(afterStop);
+  });
+});
+
+describe('createTaskRunner', () => {
+  it('routes boards tasks to syncBoards', async () => {
+    const syncBoardsMock = jest.fn().mockResolvedValue(undefined);
+    jest.spyOn(require('../../src/sync/tasks/syncBoards'), 'syncBoards').mockImplementation(syncBoardsMock);
+
+    const db = {} as Database;
+    const account = {} as Account;
+    const runner = createTaskRunner(db, account);
+
+    await runner({ kind: 'boards', full: true });
+
+    expect(syncBoardsMock).toHaveBeenCalledWith({
+      db,
+      account,
+      full: true,
+    });
+  });
+
+  it('routes upcoming tasks to syncUpcoming', async () => {
+    const syncUpcomingMock = jest.fn().mockResolvedValue(undefined);
+    jest.spyOn(require('../../src/sync/tasks/syncUpcoming'), 'syncUpcoming').mockImplementation(syncUpcomingMock);
+
+    const db = {} as Database;
+    const account = {} as Account;
+    const runner = createTaskRunner(db, account);
+
+    await runner({ kind: 'upcoming' });
+
+    expect(syncUpcomingMock).toHaveBeenCalledWith({ db, account });
+  });
+
+  it('routes boardContent tasks to syncBoardContent', async () => {
+    const syncBoardContentMock = jest.fn().mockResolvedValue(undefined);
+    jest.spyOn(require('../../src/sync/tasks/syncBoardContent'), 'syncBoardContent').mockImplementation(syncBoardContentMock);
+
+    const db = {} as Database;
+    const account = {} as Account;
+    const runner = createTaskRunner(db, account);
+
+    await runner({
+      kind: 'boardContent',
+      boardRemoteId: 'board-123',
+      full: false,
+    });
+
+    expect(syncBoardContentMock).toHaveBeenCalledWith({
+      db,
+      account,
+      boardRemoteId: 'board-123',
+      full: false,
+    });
   });
 });
