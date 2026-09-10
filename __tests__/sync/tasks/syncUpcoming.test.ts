@@ -140,8 +140,12 @@ describe('syncUpcoming', () => {
   });
 
   it('never removes a local card, because the response is a filtered subset', async () => {
-    mockFetchUpcoming.mockResolvedValue(groups([]));
-    mockFlattenUpcoming.mockImplementation((upcoming: any) => []);
+    // The remote payload is non-empty but does not mention the existing local
+    // card ('42'): a real delta, not the vacuous [] that short-circuits before
+    // syncUpcoming ever reads cardRows.
+    const remoteCard = card({ remoteId: '43' });
+    mockFetchUpcoming.mockResolvedValue(groups([remoteCard]));
+    mockFlattenUpcoming.mockImplementation((upcoming: any) => upcoming.overdue || []);
     const { db, batch } = makeDb({
       boards: [boardRow],
       stacks: [stackRow],
@@ -150,7 +154,12 @@ describe('syncUpcoming', () => {
 
     await syncUpcoming({ db, account });
 
-    expect(batch).not.toHaveBeenCalled();
+    expect(batch).toHaveBeenCalledTimes(1);
+    const calls = (batch.mock.calls as any);
+    const ops = calls[0][0];
+    expect(ops).toHaveLength(1);
+    expect(ops.some((o: any) => o._op === 'delete')).toBe(false);
+    expect(ops[0]).toMatchObject({ _tag: 'cards', _op: 'create', remoteId: '43' });
   });
 
   it('respects the protected fields of a queued mutation', async () => {
@@ -196,8 +205,11 @@ describe('syncUpcoming', () => {
   });
 
   it('does not remove offline-created cards with empty remoteId even when absent from server response', async () => {
-    mockFetchUpcoming.mockResolvedValue(groups([]));
-    mockFlattenUpcoming.mockImplementation((upcoming: any) => []);
+    // A placeable remote card keeps this run past the `placeable.length === 0`
+    // early return, so it genuinely reaches the syncedCardRows filter and reconcile.
+    const remoteCard = card();
+    mockFetchUpcoming.mockResolvedValue(groups([remoteCard]));
+    mockFlattenUpcoming.mockImplementation((upcoming: any) => upcoming.overdue || []);
     const { db, batch } = makeDb({
       boards: [boardRow],
       stacks: [stackRow],
@@ -209,8 +221,15 @@ describe('syncUpcoming', () => {
 
     await syncUpcoming({ db, account });
 
-    // Without the filter, these cards would collide on the empty remoteId key
-    // and reconcile would mark one as deleted. With the filter, batch should not be called.
-    expect(batch).not.toHaveBeenCalled();
+    // The two offline rows collide on the empty remoteId key; without the filter,
+    // reconcile's duplicate-key loop pushes the second one onto `remove`. Assert on
+    // what is actually batched: no delete-shaped op, and exactly one op for the
+    // one placeable card.
+    expect(batch).toHaveBeenCalledTimes(1);
+    const calls = (batch.mock.calls as any);
+    const ops = calls[0][0];
+    expect(ops).toHaveLength(1);
+    expect(ops.some((o: any) => o._op === 'delete')).toBe(false);
+    expect(ops[0]).toMatchObject({ _tag: 'cards', _op: 'create', remoteId: '42' });
   });
 });
