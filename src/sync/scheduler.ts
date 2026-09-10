@@ -62,7 +62,7 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
   return {
     start() {
       if (timer !== null) return;
-      setTimeout(() => void runNow(), 0);
+      void runNow();
       timer = setInterval(() => void runNow(), intervalMs);
     },
     stop() {
