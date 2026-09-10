@@ -37,12 +37,16 @@ describe('resolveConflict', () => {
 
   it('compares null and undefined as the same absence', () => {
     const intent = patch(['duedate'], {});
-    expect(resolveConflict(intent, { duedate: null }).conflictedFields).toEqual([]);
+    const result = resolveConflict(intent, { duedate: null });
+    expect(result.conflictedFields).toEqual([]);
+    expect((result.intent as Extract<Intent, { kind: 'patchCard' }> | null)?.fields).toEqual(['duedate']);
   });
 
   it('treats absent key as equal to explicit null (mirror case)', () => {
     const intent = patch(['duedate'], { duedate: null });
-    expect(resolveConflict(intent, {}).conflictedFields).toEqual([]);
+    const result = resolveConflict(intent, { duedate: undefined });
+    expect(result.conflictedFields).toEqual([]);
+    expect((result.intent as Extract<Intent, { kind: 'patchCard' }> | null)?.fields).toEqual(['duedate']);
   });
 
   it('never reports a conflict for a granular intent', () => {
