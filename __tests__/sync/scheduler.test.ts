@@ -1,6 +1,9 @@
 import { createSyncScheduler } from '../../src/sync/scheduler';
 import { createTaskRunner } from '../../src/sync/runTask';
 import type { SyncTask } from '../../src/sync/dueTasks';
+import * as syncBoardsModule from '../../src/sync/tasks/syncBoards';
+import * as syncUpcomingModule from '../../src/sync/tasks/syncUpcoming';
+import * as syncBoardContentModule from '../../src/sync/tasks/syncBoardContent';
 import type { Database } from '@nozbe/watermelondb';
 import type { Account } from '@/types';
 
@@ -88,26 +91,63 @@ describe('createSyncScheduler', () => {
     const { scheduler, ran } = setup();
 
     scheduler.start();
-    await Promise.resolve();
+    // start() fires the immediate pass synchronously (running flips to true
+    // before start() returns); drain it via the public isRunning() flag
+    // rather than a fixed number of awaits, since the exact microtask count
+    // per pass is a Babel-transform detail, not a contract. That leaves the
+    // baseline free of the immediate pass, so growth below can only come
+    // from the interval.
+    while (scheduler.isRunning()) {
+      await Promise.resolve();
+    }
     const afterStart = ran.length;
+    expect(afterStart).toBeGreaterThan(0);
 
-    jest.advanceTimersByTime(30_000);
-    await Promise.resolve();
-    await Promise.resolve();
+    // advanceTimersByTime fires all due timers back-to-back with no
+    // microtask flush between them, so a tick landing while the prior pass
+    // is still in its own await chain gets dropped by the running guard.
+    // advanceTimersByTimeAsync flushes microtasks between due timers, so the
+    // interval's runNow() actually completes and is observed here as a
+    // second, distinct pass.
+    await jest.advanceTimersByTimeAsync(30_000);
     expect(ran.length).toBeGreaterThan(afterStart);
 
     scheduler.stop();
     const afterStop = ran.length;
-    jest.advanceTimersByTime(90_000);
-    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(90_000);
     expect(ran.length).toBe(afterStop);
+  });
+
+  it('does not double up when start() is called twice', async () => {
+    const { scheduler, ran } = setup();
+
+    scheduler.start();
+    while (scheduler.isRunning()) {
+      await Promise.resolve();
+    }
+    scheduler.start(); // guarded no-op: must not create a second timer
+    const afterStart = ran.length;
+
+    await jest.advanceTimersByTimeAsync(30_000);
+
+    // With these deps, dueTasks always returns exactly ['boards', 'upcoming']
+    // (see 'runs the due tasks on demand' above), so one interval pass adds
+    // exactly 2 entries. A second timer from the duplicate start() would
+    // double that to 4.
+    expect(ran.length - afterStart).toBe(2);
+
+    scheduler.stop();
   });
 });
 
 describe('createTaskRunner', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('routes boards tasks to syncBoards', async () => {
     const syncBoardsMock = jest.fn().mockResolvedValue(undefined);
-    jest.spyOn(require('../../src/sync/tasks/syncBoards'), 'syncBoards').mockImplementation(syncBoardsMock);
+    jest.spyOn(syncBoardsModule, 'syncBoards').mockImplementation(syncBoardsMock);
 
     const db = {} as Database;
     const account = {} as Account;
@@ -124,7 +164,7 @@ describe('createTaskRunner', () => {
 
   it('routes upcoming tasks to syncUpcoming', async () => {
     const syncUpcomingMock = jest.fn().mockResolvedValue(undefined);
-    jest.spyOn(require('../../src/sync/tasks/syncUpcoming'), 'syncUpcoming').mockImplementation(syncUpcomingMock);
+    jest.spyOn(syncUpcomingModule, 'syncUpcoming').mockImplementation(syncUpcomingMock);
 
     const db = {} as Database;
     const account = {} as Account;
@@ -137,7 +177,7 @@ describe('createTaskRunner', () => {
 
   it('routes boardContent tasks to syncBoardContent', async () => {
     const syncBoardContentMock = jest.fn().mockResolvedValue(undefined);
-    jest.spyOn(require('../../src/sync/tasks/syncBoardContent'), 'syncBoardContent').mockImplementation(syncBoardContentMock);
+    jest.spyOn(syncBoardContentModule, 'syncBoardContent').mockImplementation(syncBoardContentMock);
 
     const db = {} as Database;
     const account = {} as Account;
