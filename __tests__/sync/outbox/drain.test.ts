@@ -1,0 +1,186 @@
+// __tests__/sync/outbox/drain.test.ts
+import { drainOutbox, backoffMs, MAX_ATTEMPTS } from '../../../src/sync/outbox/drain';
+import { executeIntent, DeferredIntentError } from '../../../src/sync/outbox/handlers';
+import { HttpError } from '../../../src/services/shared/errors';
+import type { Account } from '../../../src/types';
+import type { Intent } from '../../../src/sync/outbox/types';
+
+jest.mock('../../../src/sync/outbox/handlers', () => {
+  const actual = jest.requireActual('../../../src/sync/outbox/handlers');
+  return { ...actual, executeIntent: jest.fn() };
+});
+jest.mock('../../../src/database/utils/safeTransaction', () => ({
+  safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
+}));
+
+const mockExecute = executeIntent as jest.Mock;
+
+const account: Account = {
+  id: 'acc-1',
+  displayName: 'Work',
+  baseUrl: 'https://cloud.example.com',
+  username: 'john',
+  appPassword: 'x',
+  davUserId: 'john',
+};
+
+function entryRow(id: string, intent: Intent, over: Record<string, unknown> = {}) {
+  const row: any = {
+    id,
+    accountId: 'acc-1',
+    entityId: (intent as any).cardId ?? 'e1',
+    kind: intent.kind,
+    payloadJson: JSON.stringify(intent),
+    serverValuesJson: '{}',
+    createdAt: Number(id),
+    attempts: 0,
+    nextAttemptAt: 0,
+    state: 'queued',
+    lastError: undefined,
+    destroyed: false,
+  };
+  row.destroyPermanently = jest.fn(async () => {
+    row.destroyed = true;
+  });
+  row.update = jest.fn(async (writer: (r: any) => void) => writer(row));
+  Object.assign(row, over);
+  return row;
+}
+
+function makeDb(rows: any[]) {
+  return {
+    get: jest.fn(() => ({ query: jest.fn(() => ({ fetch: jest.fn(async () => rows) })) })),
+    write: jest.fn(async (fn: any) => fn()),
+  } as any;
+}
+
+const archive: Intent = { kind: 'setCardArchived', cardId: 'c1', archived: true };
+
+beforeEach(() => jest.clearAllMocks());
+
+describe('backoffMs', () => {
+  it('grows exponentially from one second', () => {
+    expect(backoffMs(0)).toBe(1000);
+    expect(backoffMs(1)).toBe(2000);
+    expect(backoffMs(4)).toBe(16000);
+  });
+
+  it('never exceeds five minutes', () => {
+    expect(backoffMs(20)).toBe(300000);
+  });
+});
+
+describe('drainOutbox', () => {
+  it('sends a queued intent and removes the entry', async () => {
+    const row = entryRow('1', archive);
+    mockExecute.mockResolvedValue(undefined);
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(mockExecute).toHaveBeenCalledWith(expect.anything(), archive);
+    expect(row.destroyed).toBe(true);
+  });
+
+  it('drops redundant entries without sending them', async () => {
+    const first = entryRow('1', archive);
+    const second = entryRow('2', { kind: 'setCardArchived', cardId: 'c1', archived: false });
+    mockExecute.mockResolvedValue(undefined);
+
+    await drainOutbox({ db: makeDb([first, second]), account });
+
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(first.destroyed).toBe(true);
+    expect(second.destroyed).toBe(true);
+  });
+
+  it('drops the conflicting field and reports it', async () => {
+    const row = entryRow(
+      '1',
+      { kind: 'patchCard', cardId: 'c1', fields: ['title', 'duedate'], base: { title: 'a', duedate: null } },
+      { serverValuesJson: JSON.stringify({ title: 'someone else' }) },
+    );
+    const onConflict = jest.fn();
+    mockExecute.mockResolvedValue(undefined);
+
+    await drainOutbox({ db: makeDb([row]), account, onConflict });
+
+    expect(mockExecute.mock.calls[0][1]).toMatchObject({ fields: ['duedate'] });
+    expect(onConflict).toHaveBeenCalledWith({ cardId: 'c1', fields: ['title'] });
+  });
+
+  it('abandons an intent whose every field is in conflict', async () => {
+    const row = entryRow(
+      '1',
+      { kind: 'patchCard', cardId: 'c1', fields: ['title'], base: { title: 'a' } },
+      { serverValuesJson: JSON.stringify({ title: 'theirs' }) },
+    );
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(row.destroyed).toBe(true);
+  });
+
+  it('stops at a deferred intent and leaves it queued', async () => {
+    const first = entryRow('1', { kind: 'createCard', cardId: 'c1' });
+    const second = entryRow('2', { kind: 'setCardArchived', cardId: 'c2', archived: true });
+    mockExecute.mockRejectedValueOnce(new DeferredIntentError('card'));
+
+    await drainOutbox({ db: makeDb([first, second]), account });
+
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(first.destroyed).toBe(false);
+    expect(first.state).toBe('queued');
+  });
+
+  it('marks a permanent HTTP failure as failed instead of retrying forever', async () => {
+    const row = entryRow('1', archive);
+    mockExecute.mockRejectedValue(new HttpError(403, 'setCardArchived'));
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(row.state).toBe('failed');
+    expect(row.destroyed).toBe(false);
+    expect(row.lastError).toContain('403');
+  });
+
+  it('backs off after a transient failure and stops the pass', async () => {
+    const first = entryRow('1', archive);
+    const second = entryRow('2', { kind: 'setCardArchived', cardId: 'c2', archived: true });
+    mockExecute.mockRejectedValue(new Error('Network request failed'));
+
+    await drainOutbox({ db: makeDb([first, second]), account, now: () => 5000 });
+
+    expect(first.attempts).toBe(1);
+    expect(first.nextAttemptAt).toBe(6000);
+    expect(first.state).toBe('queued');
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the maximum number of attempts', async () => {
+    const row = entryRow('1', archive, { attempts: MAX_ATTEMPTS - 1 });
+    mockExecute.mockRejectedValue(new Error('Network request failed'));
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(row.state).toBe('failed');
+  });
+
+  it('skips an entry whose backoff has not elapsed', async () => {
+    const row = entryRow('1', archive, { attempts: 2, nextAttemptAt: 10_000 });
+
+    await drainOutbox({ db: makeDb([row]), account, now: () => 5000 });
+
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(row.destroyed).toBe(false);
+  });
+
+  it('destroys an entry whose payload will not parse, instead of retrying it forever', async () => {
+    const row = entryRow('1', archive, { payloadJson: '{not valid json' });
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(row.destroyed).toBe(true);
+  });
+});
