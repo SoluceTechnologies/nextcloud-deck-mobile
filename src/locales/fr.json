@@ -169,5 +169,13 @@
     "remedy": "Options plus sûres : joindre le serveur via un VPN comme Tailscale ou WireGuard, ou installer un certificat gratuit avec DuckDNS et Let's Encrypt.",
     "connect": "Se connecter quand même",
     "cancel": "Annuler"
+  },
+  "sync": {
+    "title": "Synchronisation",
+    "queued": "Modifications en attente",
+    "failed": "Modifications en échec",
+    "empty": "Tout est synchronisé.",
+    "retry": "Réessayer",
+    "discard": "Abandonner"
   }
 }

@@ -35,6 +35,7 @@ describe('SettingsScreen', () => {
     expect(getByText('Appearance')).toBeTruthy();
     expect(getByText('Accessibility')).toBeTruthy();
     expect(getByText('Accounts')).toBeTruthy();
+    expect(getByText('Synchronisation')).toBeTruthy();
     expect(getByText('About')).toBeTruthy();
   });
 
@@ -49,6 +50,7 @@ describe('SettingsScreen', () => {
     ['Appearance', '/(tabs)/settings/appearance'],
     ['Accessibility', '/(tabs)/settings/accessibility'],
     ['Accounts', '/(tabs)/settings/accounts'],
+    ['Synchronisation', '/(tabs)/settings/sync'],
     ['About', '/(tabs)/settings/about'],
   ])('navigates to the %s page', (label, route) => {
     const { getByText } = render(<SettingsScreen />, { wrapper });

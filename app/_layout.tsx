@@ -11,6 +11,7 @@ import { useAppInitialization } from '@/hooks/useAppInitialization';
 import '@/utils/i18n';
 import { useCapabilitiesSync } from '@/hooks/useCapabilitiesSync';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
+import { useDeckSync } from '@/sync/useDeckSync';
 import { isTablet } from '@/utils/device';
 
 function useOrientationLock() {
@@ -32,6 +33,7 @@ export default function RootLayout() {
   const { isAppReady } = useAppInitialization();
   useCapabilitiesSync();
   useLanguageSync();
+  useDeckSync();
   useOrientationLock();
 
   const onLayoutRootView = useCallback(() => {

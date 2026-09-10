@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  Accessibility, ChevronRight, Info, Palette, UserRound,
+  Accessibility, ChevronRight, Info, Palette, RefreshCw, UserRound,
 } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
@@ -80,6 +80,11 @@ export default function SettingsScreen() {
                 title={t('settings.accounts')}
                 icon={<UserRound />}
                 onPress={() => router.push('/(tabs)/settings/accounts')}
+              />
+              <SettingsLink
+                title={t('sync.title')}
+                icon={<RefreshCw />}
+                onPress={() => router.push('/(tabs)/settings/sync')}
               />
               <SettingsLink
                 title={t('settings.about.title')}
