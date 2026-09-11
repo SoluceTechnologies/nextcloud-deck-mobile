@@ -60,6 +60,23 @@ describe('reconcile', () => {
     expect(result.remove).toEqual([]);
   });
 
+  // The mirror of the case above: a protected row can also be temporarily
+  // absent from `rows` (a queued removal already deleted it locally, and the
+  // server has not caught up). The remote key must not be read as "never
+  // seen" and recreated — the same protection that blocks a remove must also
+  // block a create.
+  it('does not plan a create for a key a protected row already holds', () => {
+    const result = reconcile(
+      params({
+        remote: [{ id: 'k1', value: 'x' }],
+        rows: [],
+        deleteMissing: true,
+        protectedRowIds: new Set(['k1']),
+      }),
+    );
+    expect(result.create).toEqual([]);
+  });
+
   it('keeps the first row and removes the duplicates of one key', () => {
     const first = { key: 'a', value: 'x' };
     const dup = { key: 'a', value: 'x' };

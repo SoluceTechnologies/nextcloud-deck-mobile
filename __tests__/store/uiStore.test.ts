@@ -60,4 +60,34 @@ describe('uiStore', () => {
 
     expect(useUiStore.getState().conflicts).toEqual([]);
   });
+
+  it('does not report the same card and field twice', () => {
+    useUiStore.getState().reportConflict({ accountId: 'a1', cardId: 'c1', fields: ['title'] });
+    useUiStore.getState().reportConflict({ accountId: 'a1', cardId: 'c1', fields: ['title'] });
+
+    expect(useUiStore.getState().conflicts).toHaveLength(1);
+  });
+
+  it('dedupes regardless of field order', () => {
+    useUiStore.getState().reportConflict({ accountId: 'a1', cardId: 'c1', fields: ['title', 'description'] });
+    useUiStore.getState().reportConflict({ accountId: 'a1', cardId: 'c1', fields: ['description', 'title'] });
+
+    expect(useUiStore.getState().conflicts).toHaveLength(1);
+  });
+
+  it('reports separately per account even for the same card and fields', () => {
+    useUiStore.getState().reportConflict({ accountId: 'a1', cardId: 'c1', fields: ['title'] });
+    useUiStore.getState().reportConflict({ accountId: 'a2', cardId: 'c1', fields: ['title'] });
+
+    expect(useUiStore.getState().conflicts).toHaveLength(2);
+  });
+
+  it('keeps only the most recent 50 conflicts', () => {
+    for (let i = 0; i < 60; i += 1) {
+      useUiStore.getState().reportConflict({ accountId: 'a1', cardId: `c${i}`, fields: ['title'] });
+    }
+
+    expect(useUiStore.getState().conflicts).toHaveLength(50);
+    expect(useUiStore.getState().conflicts[0].cardId).toBe('c59');
+  });
 });

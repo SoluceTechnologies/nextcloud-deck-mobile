@@ -16,7 +16,7 @@ export type ReconcileParams<TRemote, TRow> = {
    * "deleted" when the response was a full snapshot.
    */
   deleteMissing: boolean;
-  /** Row keys that a queued mutation owns; never removed. */
+  /** Row keys that a queued mutation owns; neither removed nor recreated. */
   protectedRowIds?: ReadonlySet<string>;
 };
 
@@ -43,7 +43,10 @@ export function reconcile<TRemote, TRow>(
 
     const row = byKey.get(key);
     if (!row) {
-      result.create.push(remote);
+      // Mirrors the deleteMissing guard below: a protected key with no row
+      // yet is a removal that has not reached the server, not an absence to
+      // fill back in.
+      if (!params.protectedRowIds?.has(key)) result.create.push(remote);
       continue;
     }
     if (!params.unchanged(row, remote)) result.update.push({ row, remote });

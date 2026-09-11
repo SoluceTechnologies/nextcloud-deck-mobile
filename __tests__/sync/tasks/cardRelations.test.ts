@@ -186,6 +186,32 @@ describe('buildCardRelationOps', () => {
     expect(ops).toEqual([]);
   });
 
+  // Tranche A protects a row a queued mutation owns from deletion. The reverse
+  // direction is the actual gap: a queued removeLabel deletes the join row
+  // locally right away, and a board pass landing before the server catches up
+  // must not read "the server still reports it" as "recreate it".
+  it('does not recreate a join a queued removeLabel has just deleted', () => {
+    const ops = buildCardRelationOps({
+      ...base,
+      pending: pendingWith('c-local', [{ kind: 'removeLabel', cardId: 'c-local', labelId: 'label-local' }]),
+      remote: card({ labels: [{ remoteId: '3', title: 'Urgent', color: null }] }), // server still reports the label the user removed offline
+      labelRows: [], // the join was deleted optimistically
+    });
+    expect(ops).toEqual([]);
+  });
+
+  it('does not recreate an assignee join a queued unassignUser has just deleted', () => {
+    const ops = buildCardRelationOps({
+      ...base,
+      pending: pendingWith('c-local', [
+        { kind: 'unassignUser', cardId: 'c-local', participant: 'jane', assigneeType: 0 },
+      ]),
+      remote: card({ assignees: [{ participant: 'jane', displayName: 'Jane', assigneeType: 0 }] }), // server still reports the assignee the user removed offline
+      assigneeRows: [], // the join was deleted optimistically
+    });
+    expect(ops).toEqual([]);
+  });
+
   it('still unlinks a label with no pending intent, alongside one that is protected', () => {
     const ops = buildCardRelationOps({
       ...base,
