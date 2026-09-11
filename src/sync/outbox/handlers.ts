@@ -57,9 +57,21 @@ async function cardRefOf(ctx: HandlerContext, cardLocalId: string): Promise<{ re
   };
 }
 
-/** The card as the server must see it: complete, and read now, not at enqueue time. */
-function writeStateOf(card: Card): CardWriteState {
-  return {
+/**
+ * The card as the server must see it: complete, and read now, not at enqueue time.
+ *
+ * `PUT /cards/{id}` replaces the card, so every column travels — a missing key is
+ * an erasure, which is why this cannot simply be narrowed to the intent's fields.
+ * The row already holds the server's own value for every column no queued intent
+ * owns, and the user's edit for the ones this intent still owns. The exception is
+ * a field the conflict check dropped: the row holds the shielded optimistic value
+ * there, and sending it would overwrite the edit we just reported as protected, so
+ * `serverOverrides` puts the server's value back. Matched on key presence, never on
+ * truthiness — a cleared due date (`null`) and an unarchived card (`false`) are
+ * values, not absences.
+ */
+function writeStateOf(card: Card, serverOverrides: Record<string, unknown>): CardWriteState {
+  const state: Record<string, unknown> = {
     title: card.title,
     description: card.description,
     type: card.type,
@@ -71,9 +83,20 @@ function writeStateOf(card: Card): CardWriteState {
     color: card.color ?? null,
     archived: card.archived,
   };
+
+  for (const field of Object.keys(state)) {
+    if (field in serverOverrides) state[field] = serverOverrides[field];
+  }
+
+  return state as CardWriteState;
 }
 
-export async function executeIntent(ctx: HandlerContext, intent: Intent): Promise<void> {
+export async function executeIntent(
+  ctx: HandlerContext,
+  intent: Intent,
+  /** The server's own value for each field the conflict check took off `intent.fields`. */
+  serverOverrides: Record<string, unknown> = {},
+): Promise<void> {
   const { db, account } = ctx;
 
   switch (intent.kind) {
@@ -113,7 +136,7 @@ export async function executeIntent(ctx: HandlerContext, intent: Intent): Promis
 
     case 'patchCard': {
       const { ref, card } = await cardRefOf(ctx, intent.cardId);
-      await updateCard(account, ref, writeStateOf(card));
+      await updateCard(account, ref, writeStateOf(card, serverOverrides));
       return;
     }
 

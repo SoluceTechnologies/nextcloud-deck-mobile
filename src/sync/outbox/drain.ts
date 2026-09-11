@@ -109,7 +109,15 @@ async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise
     }
 
     try {
-      await executeIntent({ db, account }, resolved.intent);
+      // A dropped field keeps its shielded optimistic value on the card row, so
+      // the handler is given the server's value for it: `patchCard` replaces the
+      // whole card, and without this the field the conflict check just protected
+      // would be overwritten by the very request that reported it as protected.
+      await executeIntent(
+        { db, account },
+        resolved.intent,
+        Object.fromEntries(resolved.conflictedFields.map((f) => [f, serverValues[f]])),
+      );
       await safeWrite(db, () => row.destroyPermanently(), 10000, 'outbox:sent');
     } catch (error) {
       if (error instanceof DeferredIntentError) {

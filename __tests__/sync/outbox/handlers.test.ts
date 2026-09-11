@@ -113,6 +113,50 @@ describe('executeIntent', () => {
     );
   });
 
+  // `PUT /cards/{id}` replaces the card, so the body always carries every
+  // column — but a field the conflict check dropped still holds the shielded
+  // optimistic value on the local row, and sending it would overwrite the very
+  // edit the user was just told had been protected.
+  it('puts the server value back for a field the conflict check dropped', async () => {
+    const card = cardRow({ title: 'my offline title', description: 'my offline body' });
+    const db = makeDb({ 'c-local': card, 's-local': stackRow, 'b-local': boardRow });
+
+    await executeIntent(
+      { db, account },
+      { kind: 'patchCard', cardId: 'c-local', fields: ['description'], base: { title: 'Pay the rent' } },
+      { title: 'their title' },
+    );
+
+    expect((cardsApi.updateCard as jest.Mock).mock.calls[0][2]).toEqual({
+      title: 'their title',
+      description: 'my offline body',
+      type: 'plain',
+      owner: 'john',
+      order: 2,
+      duedate: 1000,
+      startdate: null,
+      doneAt: null,
+      color: '#ff0000',
+      archived: false,
+    });
+  });
+
+  it('restores a server value of null or false instead of reading it as absent', async () => {
+    const card = cardRow({ duedate: 5000, archived: true });
+    const db = makeDb({ 'c-local': card, 's-local': stackRow, 'b-local': boardRow });
+
+    await executeIntent(
+      { db, account },
+      { kind: 'patchCard', cardId: 'c-local', fields: ['title'], base: {} },
+      { duedate: null, archived: false },
+    );
+
+    expect((cardsApi.updateCard as jest.Mock).mock.calls[0][2]).toMatchObject({
+      duedate: null,
+      archived: false,
+    });
+  });
+
   it('defers when the card has no remote id yet', async () => {
     const card = cardRow({ remoteId: '', pending: true });
     const db = makeDb({ 'c-local': card, 's-local': stackRow, 'b-local': boardRow });

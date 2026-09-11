@@ -77,7 +77,7 @@ describe('drainOutbox', () => {
 
     await drainOutbox({ db: makeDb([row]), account });
 
-    expect(mockExecute).toHaveBeenCalledWith(expect.anything(), archive);
+    expect(mockExecute).toHaveBeenCalledWith(expect.anything(), archive, {});
     expect(row.destroyed).toBe(true);
   });
 
@@ -106,6 +106,22 @@ describe('drainOutbox', () => {
 
     expect(mockExecute.mock.calls[0][1]).toMatchObject({ fields: ['duedate'] });
     expect(onConflict).toHaveBeenCalledWith({ cardId: 'c1', fields: ['title'] });
+  });
+
+  // Narrowing `fields` is inert unless the request body follows it: the dropped
+  // field's server value has to reach the handler, or the PUT sends the local
+  // value anyway and destroys the edit `onConflict` just reported as protected.
+  it('hands the handler the server value of every field it dropped', async () => {
+    const row = entryRow(
+      '1',
+      { kind: 'patchCard', cardId: 'c1', fields: ['title', 'duedate'], base: { title: 'a', duedate: null } },
+      { serverValuesJson: JSON.stringify({ title: 'someone else' }) },
+    );
+    mockExecute.mockResolvedValue(undefined);
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(mockExecute.mock.calls[0][2]).toEqual({ title: 'someone else' });
   });
 
   it('abandons an intent whose every field is in conflict', async () => {
