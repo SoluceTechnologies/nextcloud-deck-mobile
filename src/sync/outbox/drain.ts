@@ -8,7 +8,7 @@ import type { Account } from '@/types';
 import { coalesceIntents, type CoalesceEntry } from './coalesce';
 import { resolveConflict } from './conflict';
 import { OUTBOX_FAILED, OUTBOX_QUEUED } from './enqueue';
-import { DeferredIntentError, executeIntent } from './handlers';
+import { executeIntent } from './handlers';
 import type { Intent } from './types';
 
 export const MAX_ATTEMPTS = 10;
@@ -120,12 +120,14 @@ async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise
       );
       await safeWrite(db, () => row.destroyPermanently(), 10000, 'outbox:sent');
     } catch (error) {
-      if (error instanceof DeferredIntentError) {
-        // Its prerequisite is still in the queue behind a failure; the whole
-        // pass stops so FIFO order is never broken.
-        return;
-      }
-
+      // A DeferredIntentError means the prerequisite create has not landed yet.
+      // It is counted and backed off like any other transient failure, for two
+      // reasons: the pass still ends here, so a deferred intent is never
+      // reordered past the create it waits on; and a prerequisite that fails
+      // permanently no longer wedges the account's queue invisibly — the
+      // dependent reaches MAX_ATTEMPTS, becomes FAILED, and finally shows up in
+      // SyncStatus where it can be retried or discarded. `isPermanent` only ever
+      // fires on an HttpError, so a deferral can only fail on the attempt count.
       const attempts = row.attempts + 1;
       const permanent = isPermanent(error) || attempts >= MAX_ATTEMPTS;
       // Backoff counts from the attempts *before* this failure (0 on the first

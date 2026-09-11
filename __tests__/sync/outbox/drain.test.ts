@@ -137,16 +137,35 @@ describe('drainOutbox', () => {
     expect(row.destroyed).toBe(true);
   });
 
-  it('stops at a deferred intent and leaves it queued', async () => {
+  it('stops at a deferred intent, leaves it queued, and counts the deferral', async () => {
     const first = entryRow('1', { kind: 'createCard', cardId: 'c1' });
     const second = entryRow('2', { kind: 'setCardArchived', cardId: 'c2', archived: true });
     mockExecute.mockRejectedValueOnce(new DeferredIntentError('card'));
 
-    await drainOutbox({ db: makeDb([first, second]), account });
+    await drainOutbox({ db: makeDb([first, second]), account, now: () => 5000 });
 
+    // The pass ends here, so a deferred intent is never reordered past the
+    // create it waits on — but the deferral is recorded and backed off, so the
+    // rows behind it are reachable on the next pass instead of never.
     expect(mockExecute).toHaveBeenCalledTimes(1);
     expect(first.destroyed).toBe(false);
     expect(first.state).toBe('queued');
+    expect(first.attempts).toBe(1);
+    expect(first.nextAttemptAt).toBe(6000);
+  });
+
+  // A prerequisite create that fails permanently is never retried, so its
+  // dependents defer forever. Uncounted, they stay queued, never reach
+  // MAX_ATTEMPTS, and so never surface in SyncStatus — the only screen that can
+  // retry or discard them. The queue wedges with no affordance to unstick it.
+  it('fails a row that has exhausted its attempts on deferrals alone', async () => {
+    const row = entryRow('1', archive, { attempts: MAX_ATTEMPTS - 1 });
+    mockExecute.mockRejectedValue(new DeferredIntentError('stack'));
+
+    await drainOutbox({ db: makeDb([row]), account });
+
+    expect(row.state).toBe('failed');
+    expect(row.lastError).toContain('Deferred');
   });
 
   it('marks a permanent HTTP failure as failed instead of retrying forever', async () => {
