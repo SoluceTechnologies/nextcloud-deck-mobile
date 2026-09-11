@@ -83,7 +83,7 @@ export function useAppInitialization() {
             });
           void fetchCapabilities(activeAccount)
             .then((caps) => {
-              if (mounted && caps) setCapabilities(caps);
+              if (mounted && caps) setCapabilities(caps, activeAccount.id);
             })
             .catch((e) => {
               console.warn('[useAppInitialization] fetchCapabilities failed:', String(e));

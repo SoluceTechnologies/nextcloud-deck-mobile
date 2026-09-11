@@ -7,6 +7,9 @@ import { useTranslation } from 'react-i18next';
 import type { SFSymbol } from 'sf-symbols-typescript';
 import type { AndroidSymbol } from 'expo-symbols';
 import { nativeTabsEnabled } from '@/utils/nativeTabs';
+import { useActiveAccount } from '@/hooks/useAccounts';
+import { useAccountStore } from '@/stores/accountStore';
+import { DeckUnavailable, useDeckAvailability } from '@/features/board/components/DeckUnavailable';
 
 type IconState<T> = { default: T; selected: T };
 
@@ -102,5 +105,17 @@ function JsTabsLayout() {
 }
 
 export default function TabsLayout() {
+  const status = useDeckAvailability();
+  const activeAccountId = useAccountStore((s) => s.activeAccountId);
+  const account = useActiveAccount(activeAccountId);
+
+  // 'unknown' covers both "the capability call has not answered yet" and "the
+  // last answer was for a different account" (see useDeckAvailability) — the
+  // cached data is still worth showing either way, so only a definite
+  // 'unavailable' for the CURRENT account blocks the app.
+  if (status === 'unavailable' && account) {
+    return <DeckUnavailable baseUrl={account.baseUrl} />;
+  }
+
   return nativeTabsEnabled() ? <NativeTabsLayout /> : <JsTabsLayout />;
 }

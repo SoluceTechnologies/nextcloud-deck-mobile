@@ -179,5 +179,9 @@
     "discard": "Discard",
     "discardTitle": "Discard Change?",
     "discardMsg": "This change will be permanently lost and cannot be recovered."
+  },
+  "deck": {
+    "unavailableTitle": "Deck is not available",
+    "unavailableHint": "The Deck app is not enabled on this server. Ask an administrator to install it, or switch to another account."
   }
 }

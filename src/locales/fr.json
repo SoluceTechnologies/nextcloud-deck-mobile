@@ -179,5 +179,9 @@
     "discard": "Abandonner",
     "discardTitle": "Abandonner la modification ?",
     "discardMsg": "Cette modification sera définitivement perdue et ne pourra pas être récupérée."
+  },
+  "deck": {
+    "unavailableTitle": "Deck n'est pas disponible",
+    "unavailableHint": "L'application Deck n'est pas activée sur ce serveur. Demandez à un administrateur de l'installer, ou changez de compte."
   }
 }

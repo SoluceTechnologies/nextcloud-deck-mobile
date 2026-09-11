@@ -18,7 +18,7 @@ export function useCapabilitiesSync(): void {
     }
     let active = true;
     fetchCapabilities(account)
-      .then((caps) => { if (active) setCapabilities(caps); })
+      .then((caps) => { if (active) setCapabilities(caps, account.id); })
       .catch(() => undefined);
     return () => { active = false; };
   }, [account?.id, setCapabilities]);

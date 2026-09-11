@@ -17,9 +17,10 @@ function keyPaths(obj: Record<string, unknown>, prefix = ''): string[] {
 // The "tabs" keys are translated for en and fr only as of the Deck bootstrap;
 // de/es/it/ru still carry only their pre-existing "tabs.settings" key and fall
 // back to English for the rest until someone translates them. The "sync"
-// keys are likewise en/fr-only as of wiring the sync engine into the app.
+// keys are likewise en/fr-only as of wiring the sync engine into the app, and
+// "deck" is en/fr-only as of the Deck-unavailable gate.
 const withoutPendingTranslations = (paths: string[]) =>
-  paths.filter((path) => !path.startsWith('tabs.') && !path.startsWith('sync.'));
+  paths.filter((path) => !path.startsWith('tabs.') && !path.startsWith('sync.') && !path.startsWith('deck.'));
 
 describe('locale parity', () => {
   const base = withoutPendingTranslations(keyPaths(en)).sort();

@@ -9,6 +9,7 @@ describe('accountStore', () => {
     useAccountStore.setState({
       activeAccountId: null,
       capabilities: { deckApp: 'unknown', deckVersion: '', canCreateBoards: false },
+      capabilitiesAccountId: null,
     });
   });
 
@@ -24,7 +25,12 @@ describe('accountStore', () => {
   });
 
   it('sets capabilities', () => {
-    useAccountStore.getState().setCapabilities({ deckApp: 'available', deckVersion: '1.14.2', canCreateBoards: true });
+    useAccountStore.getState().setCapabilities({ deckApp: 'available', deckVersion: '1.14.2', canCreateBoards: true }, 'acc-1');
     expect(useAccountStore.getState().capabilities.deckApp).toBe('available');
+  });
+
+  it('records which account the capabilities were measured against', () => {
+    useAccountStore.getState().setCapabilities({ deckApp: 'unavailable', deckVersion: '', canCreateBoards: false }, 'acc-1');
+    expect(useAccountStore.getState().capabilitiesAccountId).toBe('acc-1');
   });
 });
