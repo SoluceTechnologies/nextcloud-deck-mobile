@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../helpers/theme';
 import BoardsScreen from '../../app/(tabs)/boards/index';
+import { DECK_PALETTE } from '../../src/features/board/palette';
 
 jest.mock('../../src/database/hooks/useBoards', () => ({
   useBoards: jest.fn(() => [
@@ -11,10 +12,18 @@ jest.mock('../../src/database/hooks/useBoards', () => ({
   useAccountCards: jest.fn(() => []),
   useBoardCards: jest.fn(() => []),
 }));
+// Every action call in the screen is `void actions.x(...).catch(...)`, so each mock
+// must resolve like the real (async) BoardActions methods do.
+const mockCreate = jest.fn(() => Promise.resolve());
+const mockUpdate = jest.fn(() => Promise.resolve());
+const mockRename = jest.fn(() => Promise.resolve());
+const mockRecolor = jest.fn(() => Promise.resolve());
+const mockSetArchived = jest.fn(() => Promise.resolve());
+const mockRemove = jest.fn(() => Promise.resolve());
 jest.mock('../../src/features/board/hooks/useBoardActions', () => ({
   useBoardActions: () => ({
-    create: jest.fn(), rename: jest.fn(), recolor: jest.fn(),
-    setArchived: jest.fn(), remove: jest.fn(),
+    create: mockCreate, update: mockUpdate, rename: mockRename, recolor: mockRecolor,
+    setArchived: mockSetArchived, remove: mockRemove,
   }),
 }));
 jest.mock('../../src/utils/haptics', () => ({ haptic: jest.fn(), ImpactFeedbackStyle: { Light: 'light' } }));
@@ -68,4 +77,27 @@ it('opens the actions sheet on a long press, after a haptic', () => {
 
   expect(haptic).toHaveBeenCalled();
   expect(screen.getByText('boards.actions.rename')).toBeTruthy();
+});
+
+// Two independent updateBoard intents (one from rename, one from recolor) can race
+// and silently drop one of the two edits — the sheet must submit both as one update.
+it('renaming and recolouring through the sheet sends a single update call with both changes', () => {
+  renderScreen();
+  fireEvent(screen.getByText('Commercial'), 'longPress');
+  fireEvent.press(screen.getByText('boards.actions.rename'));
+
+  fireEvent.changeText(
+    screen.getByPlaceholderText('boards.form.titlePlaceholder'),
+    'Commercial Team',
+  );
+  fireEvent.press(screen.getByTestId(`color-swatch-${DECK_PALETTE[1]}`));
+  fireEvent.press(screen.getByText('boards.form.save'));
+
+  expect(mockUpdate).toHaveBeenCalledTimes(1);
+  expect(mockUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 'b1' }),
+    { title: 'Commercial Team', color: DECK_PALETTE[1] },
+  );
+  expect(mockRename).not.toHaveBeenCalled();
+  expect(mockRecolor).not.toHaveBeenCalled();
 });

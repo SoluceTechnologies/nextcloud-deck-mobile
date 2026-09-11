@@ -6,6 +6,7 @@ import { mutate } from '@/sync/outbox/enqueue';
 
 export type BoardActions = {
   create(input: { title: string; color: string | null }): Promise<void>;
+  update(board: Board, changes: { title?: string; color?: string | null }): Promise<void>;
   rename(board: Board, title: string): Promise<void>;
   recolor(board: Board, color: string | null): Promise<void>;
   setArchived(board: Board, archived: boolean): Promise<void>;
@@ -51,7 +52,10 @@ export function useBoardActions(accountId: string | null): BoardActions {
       });
     };
 
-    const rename: BoardActions['rename'] = async (board, title) => {
+    // Rename and recolour go through here together so a submit that changes both fields
+    // enqueues one updateBoard intent instead of two independent, un-sequenced ones — two
+    // intents built from stale sibling-field snapshots can race and silently drop one edit.
+    const update: BoardActions['update'] = async (board, changes) => {
       if (!accountId) return;
       await mutate({
         db,
@@ -59,35 +63,20 @@ export function useBoardActions(accountId: string | null): BoardActions {
         intent: {
           kind: 'updateBoard',
           boardId: board.id,
-          title,
-          color: board.color ?? null,
+          title: changes.title ?? board.title,
+          color: changes.color !== undefined ? changes.color : (board.color ?? null),
           archived: board.archived,
         },
         applyLocal: () =>
           board.prepareUpdate((r) => {
-            r.title = title;
+            if (changes.title !== undefined) r.title = changes.title;
+            if (changes.color !== undefined) r.color = changes.color ?? undefined;
           }),
       });
     };
 
-    const recolor: BoardActions['recolor'] = async (board, color) => {
-      if (!accountId) return;
-      await mutate({
-        db,
-        accountId,
-        intent: {
-          kind: 'updateBoard',
-          boardId: board.id,
-          title: board.title,
-          color,
-          archived: board.archived,
-        },
-        applyLocal: () =>
-          board.prepareUpdate((r) => {
-            r.color = color ?? undefined;
-          }),
-      });
-    };
+    const rename: BoardActions['rename'] = (board, title) => update(board, { title });
+    const recolor: BoardActions['recolor'] = (board, color) => update(board, { color });
 
     const setArchived: BoardActions['setArchived'] = async (board, archived) => {
       if (!accountId) return;
@@ -120,6 +109,6 @@ export function useBoardActions(accountId: string | null): BoardActions {
       });
     };
 
-    return { create, rename, recolor, setArchived, remove };
+    return { create, update, rename, recolor, setArchived, remove };
   }, [db, accountId]);
 }

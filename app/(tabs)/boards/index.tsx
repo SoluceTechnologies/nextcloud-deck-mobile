@@ -152,8 +152,12 @@ export default function BoardsScreen() {
           onOpen={() => router.push(`/boards/${actionsTarget.board.id}`)}
           onRename={() => openEdit(actionsTarget.board)}
           onRecolor={() => openEdit(actionsTarget.board)}
-          onArchive={() => actions.setArchived(actionsTarget.board, !actionsTarget.board.archived)}
-          onDelete={() => actions.remove(actionsTarget.board)}
+          onArchive={() =>
+            void actions
+              .setArchived(actionsTarget.board, !actionsTarget.board.archived)
+              .catch(() => undefined)
+          }
+          onDelete={() => void actions.remove(actionsTarget.board).catch(() => undefined)}
         />
       ) : null}
 
@@ -163,11 +167,19 @@ export default function BoardsScreen() {
         onClose={() => setFormVisible(false)}
         onSubmit={(input) => {
           if (!formBoard) {
-            actions.create(input);
+            void actions.create(input).catch(() => undefined);
             return;
           }
-          if (input.title !== formBoard.title) actions.rename(formBoard, input.title);
-          if (input.color !== (formBoard.color ?? null)) actions.recolor(formBoard, input.color);
+
+          // One update carrying both fields — never two independent updateBoard
+          // intents, which can race and silently drop one of the two edits.
+          const changes: { title?: string; color?: string | null } = {};
+          if (input.title !== formBoard.title) changes.title = input.title;
+          if (input.color !== (formBoard.color ?? null)) changes.color = input.color;
+
+          if (Object.keys(changes).length > 0) {
+            void actions.update(formBoard, changes).catch(() => undefined);
+          }
         }}
       />
     </ViewContainer>

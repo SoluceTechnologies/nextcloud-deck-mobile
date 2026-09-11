@@ -58,6 +58,33 @@ it('renames through updateBoard and leaves the colour alone', async () => {
   expect(call.intent.color).toBe('#ff0000');
 });
 
+it('update applies a rename and a recolour as a single mutate call', async () => {
+  const prepareUpdate = jest.fn((fn: (r: any) => void) => { const r: any = {}; fn(r); return r; });
+  const board: any = { id: 'b1', title: 'Old', color: '#ff0000', archived: false, prepareUpdate };
+
+  const { result } = renderHook(() => useBoardActions('a1'));
+  await act(() => result.current.update(board, { title: 'New', color: '#00ff00' }));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent.kind).toBe('updateBoard');
+  expect(call.intent.title).toBe('New');
+  expect(call.intent.color).toBe('#00ff00');
+});
+
+it('update with only a colour change clears the colour and keeps the title', async () => {
+  const prepareUpdate = jest.fn((fn: (r: any) => void) => { const r: any = {}; fn(r); return r; });
+  const board: any = { id: 'b1', title: 'Keep', color: '#ff0000', archived: false, prepareUpdate };
+
+  const { result } = renderHook(() => useBoardActions('a1'));
+  await act(() => result.current.update(board, { color: null }));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent.title).toBe('Keep');
+  expect(call.intent.color).toBeNull();
+});
+
 it('archives through updateBoard rather than deleting', async () => {
   const update = jest.fn((fn: (r: any) => void) => { const r: any = {}; fn(r); return r; });
   const board: any = { id: 'b1', title: 'B', color: null, archived: false, prepareUpdate: update };
