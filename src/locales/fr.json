@@ -178,7 +178,10 @@
     "retry": "Réessayer",
     "discard": "Abandonner",
     "discardTitle": "Abandonner la modification ?",
-    "discardMsg": "Cette modification sera définitivement perdue et ne pourra pas être récupérée."
+    "discardMsg": "Cette modification sera définitivement perdue et ne pourra pas être récupérée.",
+    "conflicts": "Conflits",
+    "conflictTitle": "Modification du serveur conservée",
+    "dismiss": "Ignorer"
   },
   "deck": {
     "unavailableTitle": "Deck n'est pas disponible",

@@ -8,6 +8,7 @@ import { SyncStatus } from '@/features/settings/components/SyncStatus';
 import { useDatabase } from '@/database/DatabaseProvider';
 import { safeWrite } from '@/database/utils/safeTransaction';
 import { useAccountStore } from '@/stores/accountStore';
+import { useUiStore } from '@/stores/uiStore';
 import { OUTBOX_FAILED, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
 import i18n from '@/utils/i18n';
 
@@ -63,6 +64,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUseDatabase.mockReturnValue(makeDatabase([]));
   act(() => useAccountStore.getState().setActiveAccountId('acc-1'));
+  act(() => useUiStore.setState({ conflicts: [] }));
 });
 
 describe('SyncStatus', () => {
@@ -158,5 +160,31 @@ describe('SyncStatus', () => {
 
     expect(failedRow.destroyPermanently).not.toHaveBeenCalled();
     expect(mockSafeWrite).not.toHaveBeenCalled();
+  });
+
+  it('shows a conflict reported for the active account, and clears it on dismiss', () => {
+    act(() => {
+      useUiStore.getState().reportConflict({ accountId: 'acc-1', cardId: 'card-1', fields: ['title'] });
+    });
+
+    const { getByText } = render(<SyncStatus />, { wrapper });
+
+    expect(getByText('Conflicts')).toBeTruthy();
+    expect(getByText('title')).toBeTruthy();
+
+    fireEvent.press(getByText('Dismiss'));
+
+    expect(useUiStore.getState().conflicts).toEqual([]);
+  });
+
+  it('ignores a conflict reported for a different account', () => {
+    act(() => {
+      useUiStore.getState().reportConflict({ accountId: 'acc-2', cardId: 'card-1', fields: ['title'] });
+    });
+
+    const { getByText, queryByText } = render(<SyncStatus />, { wrapper });
+
+    expect(queryByText('Conflicts')).toBeNull();
+    expect(getByText('Everything is in sync.')).toBeTruthy();
   });
 });

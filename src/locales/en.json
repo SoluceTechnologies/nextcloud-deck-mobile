@@ -178,7 +178,10 @@
     "retry": "Retry",
     "discard": "Discard",
     "discardTitle": "Discard Change?",
-    "discardMsg": "This change will be permanently lost and cannot be recovered."
+    "discardMsg": "This change will be permanently lost and cannot be recovered.",
+    "conflicts": "Conflicts",
+    "conflictTitle": "Kept the server's change",
+    "dismiss": "Dismiss"
   },
   "deck": {
     "unavailableTitle": "Deck is not available",

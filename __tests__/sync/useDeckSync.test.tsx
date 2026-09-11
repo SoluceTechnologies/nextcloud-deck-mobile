@@ -5,6 +5,7 @@ import { useDeckSync } from '../../src/sync/useDeckSync';
 import { drainOutbox } from '../../src/sync/outbox/drain';
 import { createSyncScheduler } from '../../src/sync/scheduler';
 import { useAccountStore } from '../../src/stores/accountStore';
+import { useUiStore } from '../../src/stores/uiStore';
 import { setAccounts } from '../../src/hooks/useAccounts';
 
 jest.mock('../../src/sync/outbox/drain', () => ({ drainOutbox: jest.fn(async () => {}) }));
@@ -79,6 +80,21 @@ describe('useDeckSync', () => {
     renderHook(() => useDeckSync());
 
     expect(drainOutbox).toHaveBeenCalled();
+  });
+
+  it('routes a conflict the drain reports into the ui store', () => {
+    setAccounts([account]);
+    act(() => useAccountStore.getState().setActiveAccountId('acc-1'));
+    act(() => useUiStore.setState({ conflicts: [] }));
+
+    renderHook(() => useDeckSync());
+
+    const { onConflict } = (drainOutbox as jest.Mock).mock.calls[0][0];
+    act(() => onConflict({ cardId: 'card-1', fields: ['title'] }));
+
+    expect(useUiStore.getState().conflicts).toEqual([
+      { accountId: 'acc-1', cardId: 'card-1', fields: ['title'] },
+    ]);
   });
 
   it('drains exactly once on an online mount, not once per effect', () => {

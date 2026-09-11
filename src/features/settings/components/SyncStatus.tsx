@@ -7,6 +7,7 @@ import { useDatabase } from '@/database/DatabaseProvider';
 import type OutboxEntry from '@/database/models/OutboxEntry';
 import { safeWrite } from '@/database/utils/safeTransaction';
 import { useAccountStore } from '@/stores/accountStore';
+import { useUiStore } from '@/stores/uiStore';
 import { OUTBOX_FAILED, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
 import { Item, List, SectionHeader, Stack } from '@/ui/components';
 
@@ -14,6 +15,9 @@ export function SyncStatus() {
   const { t } = useTranslation();
   const database = useDatabase();
   const accountId = useAccountStore((s) => s.activeAccountId);
+  const allConflicts = useUiStore((s) => s.conflicts);
+  const clearConflicts = useUiStore((s) => s.clearConflicts);
+  const conflicts = allConflicts.filter((c) => c.accountId === accountId);
   const [entries, setEntries] = useState<OutboxEntry[]>([]);
 
   useEffect(() => {
@@ -62,7 +66,7 @@ export function SyncStatus() {
       },
     ]);
 
-  if (entries.length === 0) {
+  if (entries.length === 0 && conflicts.length === 0) {
     return (
       <List>
         <Item title={t('sync.empty')} />
@@ -72,32 +76,54 @@ export function SyncStatus() {
 
   return (
     <>
-      <SectionHeader title={t('sync.queued')} trailing={undefined} />
-      <List>
-        <Item title={String(queued.length)} description={t('sync.queued')} />
-      </List>
-
-      {failed.length > 0 ? (
+      {conflicts.length > 0 ? (
         <>
-          <SectionHeader title={t('sync.failed')} />
+          <SectionHeader
+            title={t('sync.conflicts')}
+            trailing={<Item title={t('sync.dismiss')} onPress={clearConflicts} />}
+          />
           <List>
-            {failed.map((entry) => (
+            {conflicts.map((conflict, index) => (
               <Item
-                key={entry.id}
-                title={entry.kind}
-                description={entry.lastError ?? ''}
-                trailing={
-                  <Stack direction="horizontal" gap={16}>
-                    <Item
-                      title={t('sync.retry')}
-                      onPress={() => void retry(entry).catch(() => undefined)}
-                    />
-                    <Item title={t('sync.discard')} onPress={() => confirmDiscard(entry)} />
-                  </Stack>
-                }
+                key={index}
+                title={t('sync.conflictTitle')}
+                description={conflict.fields.join(', ')}
               />
             ))}
           </List>
+        </>
+      ) : null}
+
+      {entries.length > 0 ? (
+        <>
+          <SectionHeader title={t('sync.queued')} trailing={undefined} />
+          <List>
+            <Item title={String(queued.length)} description={t('sync.queued')} />
+          </List>
+
+          {failed.length > 0 ? (
+            <>
+              <SectionHeader title={t('sync.failed')} />
+              <List>
+                {failed.map((entry) => (
+                  <Item
+                    key={entry.id}
+                    title={entry.kind}
+                    description={entry.lastError ?? ''}
+                    trailing={
+                      <Stack direction="horizontal" gap={16}>
+                        <Item
+                          title={t('sync.retry')}
+                          onPress={() => void retry(entry).catch(() => undefined)}
+                        />
+                        <Item title={t('sync.discard')} onPress={() => confirmDiscard(entry)} />
+                      </Stack>
+                    }
+                  />
+                ))}
+              </List>
+            </>
+          ) : null}
         </>
       ) : null}
     </>

@@ -2,7 +2,7 @@ import { useUiStore } from '../../src/stores/uiStore';
 
 describe('uiStore', () => {
   beforeEach(() => {
-    useUiStore.setState({ activeBoardRemoteId: null, recentBoardRemoteIds: [] });
+    useUiStore.setState({ activeBoardRemoteId: null, recentBoardRemoteIds: [], conflicts: [] });
   });
 
   it('setActiveBoardRemoteId sets the active board', () => {
@@ -36,5 +36,28 @@ describe('uiStore', () => {
 
     expect(useUiStore.getState().recentBoardRemoteIds).toEqual(['b6', 'b5', 'b4', 'b3', 'b2']);
     expect(useUiStore.getState().recentBoardRemoteIds).not.toContain('b1');
+  });
+
+  it('reportConflict appends a conflict', () => {
+    useUiStore.getState().reportConflict({ accountId: 'acc-1', cardId: 'c1', fields: ['title'] });
+
+    expect(useUiStore.getState().conflicts).toEqual([
+      { accountId: 'acc-1', cardId: 'c1', fields: ['title'] },
+    ]);
+  });
+
+  it('reportConflict accumulates rather than replacing an earlier conflict', () => {
+    useUiStore.getState().reportConflict({ accountId: 'acc-1', cardId: 'c1', fields: ['title'] });
+    useUiStore.getState().reportConflict({ accountId: 'acc-1', cardId: 'c2', fields: ['order'] });
+
+    expect(useUiStore.getState().conflicts).toHaveLength(2);
+  });
+
+  it('clearConflicts empties the list', () => {
+    useUiStore.getState().reportConflict({ accountId: 'acc-1', cardId: 'c1', fields: ['title'] });
+
+    useUiStore.getState().clearConflicts();
+
+    expect(useUiStore.getState().conflicts).toEqual([]);
   });
 });

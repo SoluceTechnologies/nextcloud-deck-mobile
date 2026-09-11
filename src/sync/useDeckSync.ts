@@ -22,6 +22,14 @@ export function useDeckSync(): void {
 
   const account = accounts.find((a) => a.id === activeAccountId) ?? null;
 
+  // The per-field conflict resolution in the drain resolves a conflict and
+  // then tells no one; this is the one place both call sites can route it to
+  // something the user can actually see (SyncStatus).
+  const onConflict = (info: { cardId: string; fields: string[] }) => {
+    if (!account) return;
+    useUiStore.getState().reportConflict({ accountId: account.id, ...info });
+  };
+
   useEffect(() => {
     if (!account) return;
 
@@ -36,7 +44,7 @@ export function useDeckSync(): void {
 
     const drain = () => {
       if (!getIsOnline()) return;
-      void drainOutbox({ db, account }).catch((e) =>
+      void drainOutbox({ db, account, onConflict }).catch((e) =>
         console.warn('[sync] outbox drain failed:', String(e)),
       );
     };
@@ -69,6 +77,6 @@ export function useDeckSync(): void {
     const wasOnline = wasOnlineRef.current;
     wasOnlineRef.current = online;
     if (!account || !online || wasOnline) return;
-    void drainOutbox({ db: getDatabaseInstance(), account }).catch(() => undefined);
+    void drainOutbox({ db: getDatabaseInstance(), account, onConflict }).catch(() => undefined);
   }, [account, online]);
 }
