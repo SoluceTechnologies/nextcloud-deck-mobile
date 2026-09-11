@@ -197,6 +197,14 @@
     "updated": "Updated {{when}}",
     "empty": "No boards yet",
     "emptyFiltered": "No board matches that filter",
+    "sortTitle": "Sort by title",
+    "sortRecent": "Sort by recent",
+    "form": {
+      "newTitle": "New board",
+      "renameTitle": "Rename board",
+      "titlePlaceholder": "Board name",
+      "save": "Save"
+    },
     "actions": {
       "open": "Open",
       "rename": "Rename",

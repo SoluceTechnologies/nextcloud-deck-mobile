@@ -197,6 +197,14 @@
     "updated": "Modifié {{when}}",
     "empty": "Aucun tableau",
     "emptyFiltered": "Aucun tableau ne correspond à ce filtre",
+    "sortTitle": "Trier par titre",
+    "sortRecent": "Trier par récence",
+    "form": {
+      "newTitle": "Nouveau tableau",
+      "renameTitle": "Renommer le tableau",
+      "titlePlaceholder": "Nom du tableau",
+      "save": "Enregistrer"
+    },
     "actions": {
       "open": "Ouvrir",
       "rename": "Renommer",

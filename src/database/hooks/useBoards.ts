@@ -28,6 +28,28 @@ export function useBoards(accountId: string | null): Board[] {
   return boards;
 }
 
+/** Every card of the account, across all boards — the Boards tab needs this to
+ * summarize each board's done/total counts without an N+1 subscription per board. */
+export function useAccountCards(accountId: string | null): Card[] {
+  const database = useDatabase();
+  const [cards, setCards] = useState<Card[]>([]);
+
+  useEffect(() => {
+    if (!accountId) {
+      setCards([]);
+      return;
+    }
+    const subscription = database
+      .get<Card>('cards')
+      .query(Q.where('account_id', accountId))
+      .observeWithColumns(CARD_OBSERVED_COLUMNS)
+      .subscribe((rows) => setCards([...rows]));
+    return () => subscription.unsubscribe();
+  }, [accountId, database]);
+
+  return cards;
+}
+
 export function useBoardCards(accountId: string | null, boardLocalId: string | null): Card[] {
   const database = useDatabase();
   const [cards, setCards] = useState<Card[]>([]);

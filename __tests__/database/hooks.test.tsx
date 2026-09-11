@@ -1,7 +1,7 @@
 // __tests__/database/hooks.test.tsx
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 
-import { useBoards, useBoardCards } from '../../src/database/hooks/useBoards';
+import { useBoards, useBoardCards, useAccountCards } from '../../src/database/hooks/useBoards';
 import { useBoardStacks } from '../../src/database/hooks/useBoardContent';
 import { useCard } from '../../src/database/hooks/useCard';
 import { useDatabase } from '../../src/database/DatabaseProvider';
@@ -133,6 +133,23 @@ describe('useBoardCards', () => {
       'comments_count',
       'pending',
     ]);
+  });
+});
+
+describe('useAccountCards', () => {
+  it('returns nothing and queries nothing without an account', () => {
+    const { db, query } = makeDb([]);
+    mockUseDatabase.mockReturnValue(db);
+    const { result } = renderHook(() => useAccountCards(null));
+    expect(result.current).toEqual([]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('emits every card of the account', async () => {
+    const { db } = makeDb([{ id: 'c1' }, { id: 'c2' }]);
+    mockUseDatabase.mockReturnValue(db);
+    const { result } = renderHook(() => useAccountCards('a1'));
+    await waitFor(() => expect(result.current).toHaveLength(2));
   });
 });
 
