@@ -31,6 +31,12 @@ function notModified() {
   return { ok: false, status: 304, headers: { get: () => null }, text: async () => '' };
 }
 
+// A 200 that carries no body at all. `deckRequest` cannot parse it into a list,
+// so it is no more an answer than a 304 is.
+function emptyBody() {
+  return { ok: true, status: 200, headers: { get: () => null }, text: async () => '' };
+}
+
 beforeEach(() => jest.clearAllMocks());
 
 describe('fetchBoards', () => {
@@ -70,6 +76,11 @@ describe('fetchBoards', () => {
     mockFetch.mockResolvedValue(ok([]));
     await expect(fetchBoards(account)).resolves.toEqual([]);
   });
+
+  it('returns null when a 200 carries no body', async () => {
+    mockFetch.mockResolvedValue(emptyBody());
+    await expect(fetchBoards(account)).resolves.toBeNull();
+  });
 });
 
 describe('fetchStacks', () => {
@@ -105,6 +116,11 @@ describe('fetchStacks', () => {
   it('still returns an empty list when the board really has no stacks', async () => {
     mockFetch.mockResolvedValue(ok([]));
     await expect(fetchStacks(account, '7')).resolves.toEqual([]);
+  });
+
+  it('returns null when a 200 carries no body', async () => {
+    mockFetch.mockResolvedValue(emptyBody());
+    await expect(fetchStacks(account, '7')).resolves.toBeNull();
   });
 });
 

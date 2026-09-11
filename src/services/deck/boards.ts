@@ -19,8 +19,10 @@ export async function fetchBoards(
     sinceMs,
     context: 'fetchBoards',
   });
-  if (result.notModified) return null;
-  return (result.data ?? []).map(normalizeBoard);
+  // A body-less 200 is no more an answer than a 304 is: `deckRequest` reports
+  // both as `null` data, and neither means "the server has zero boards".
+  if (result.notModified || result.data === null) return null;
+  return result.data.map(normalizeBoard);
 }
 
 /** `null` on 304, for the reason given on `fetchBoards`. */
@@ -34,8 +36,8 @@ export async function fetchStacks(
     sinceMs,
     context: 'fetchStacks',
   });
-  if (result.notModified) return null;
-  return (result.data ?? []).map((raw) => normalizeStack(raw, boardRemoteId));
+  if (result.notModified || result.data === null) return null;
+  return result.data.map((raw) => normalizeStack(raw, boardRemoteId));
 }
 
 export async function createBoard(
