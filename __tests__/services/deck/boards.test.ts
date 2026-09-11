@@ -27,6 +27,10 @@ function ok(body: unknown) {
   };
 }
 
+function notModified() {
+  return { ok: false, status: 304, headers: { get: () => null }, text: async () => '' };
+}
+
 beforeEach(() => jest.clearAllMocks());
 
 describe('fetchBoards', () => {
@@ -41,9 +45,9 @@ describe('fetchBoards', () => {
       'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards?details=true',
     );
     expect(boards).toHaveLength(1);
-    expect(boards[0].remoteId).toBe('7');
-    expect(boards[0].color).toBe('#0082c9');
-    expect(boards[0].lastModified).toBe(100000);
+    expect(boards![0].remoteId).toBe('7');
+    expect(boards![0].color).toBe('#0082c9');
+    expect(boards![0].lastModified).toBe(100000);
   });
 
   it('sends If-Modified-Since when a since is given', async () => {
@@ -54,14 +58,17 @@ describe('fetchBoards', () => {
     );
   });
 
-  it('returns an empty list on 304', async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 304,
-      headers: { get: () => null },
-      text: async () => '',
-    });
-    await expect(fetchBoards(account, 1)).resolves.toEqual([]);
+  // A 304 says "nothing changed", which is not the same answer as an empty
+  // list: collapsing the two hands an authoritative reconcile a snapshot that
+  // claims every row is gone. `null` is the not-modified signal.
+  it('returns null on 304, not an empty list', async () => {
+    mockFetch.mockResolvedValue(notModified());
+    await expect(fetchBoards(account, 1)).resolves.toBeNull();
+  });
+
+  it('still returns an empty list when the server really has no boards', async () => {
+    mockFetch.mockResolvedValue(ok([]));
+    await expect(fetchBoards(account)).resolves.toEqual([]);
   });
 });
 
@@ -84,9 +91,20 @@ describe('fetchStacks', () => {
     expect(mockFetch.mock.calls[0][0]).toBe(
       'https://cloud.example.com/index.php/apps/deck/api/v1.1/boards/7/stacks',
     );
-    expect(stacks[0].boardRemoteId).toBe('7');
-    expect(stacks[0].cards[0].boardRemoteId).toBe('7');
-    expect(stacks[0].cards[0].stackRemoteId).toBe('5');
+    expect(stacks).not.toBeNull();
+    expect(stacks![0].boardRemoteId).toBe('7');
+    expect(stacks![0].cards[0].boardRemoteId).toBe('7');
+    expect(stacks![0].cards[0].stackRemoteId).toBe('5');
+  });
+
+  it('returns null on 304, not an empty list', async () => {
+    mockFetch.mockResolvedValue(notModified());
+    await expect(fetchStacks(account, '7', 1)).resolves.toBeNull();
+  });
+
+  it('still returns an empty list when the board really has no stacks', async () => {
+    mockFetch.mockResolvedValue(ok([]));
+    await expect(fetchStacks(account, '7')).resolves.toEqual([]);
   });
 });
 

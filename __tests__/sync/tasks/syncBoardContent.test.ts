@@ -100,6 +100,9 @@ function makeDb(tables: Record<string, any[]>) {
 
 const boardRow = makeRow('boards', { id: 'b-local', remoteId: '7' });
 
+const mockFetch = jest.fn();
+(globalThis as any).fetch = mockFetch;
+
 beforeEach(() => jest.clearAllMocks());
 
 describe('syncBoardContent', () => {
@@ -181,6 +184,30 @@ describe('syncBoardContent', () => {
 
     const ops = (batch as any).mock.calls[0]?.[0] ?? [];
     expect(ops.filter((o: any) => o._op === 'delete' && o._tag === 'stacks')).toEqual([]);
+  });
+
+  // The real fetcher runs here: the response status is the thing under test,
+  // and a 304 on a conditional GET must not read as "this board has no stacks"
+  // — the stack reconcile is authoritative and would delete the whole board.
+  it('deletes nothing when the stacks endpoint answers 304', async () => {
+    const boards = jest.requireActual('../../../src/services/deck/boards');
+    mockFetchStacks.mockImplementation(boards.fetchStacks);
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 304,
+      headers: { get: () => null },
+      text: async () => '',
+    });
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      stacks: [makeRow('stacks', { boardId: 'b-local', remoteId: '5' })],
+      cards: [makeRow('cards', { boardId: 'b-local', remoteId: '42', lastModified: 9000 })],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: false });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'delete')).toEqual([]);
   });
 
   it('keeps a card missing from a delta response', async () => {

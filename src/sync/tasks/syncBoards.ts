@@ -33,6 +33,10 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
 
   const epoch = localWriteEpoch();
   const remote = await fetchBoards(account, sinceMs);
+  // 304: nothing changed since the cursor, so there is nothing to reconcile.
+  // `deleteMissing` is false on this path today, but treating "no news" as an
+  // empty snapshot is the same latent bug the stacks pass had.
+  if (remote === null) return;
 
   await safeWrite(
     db,

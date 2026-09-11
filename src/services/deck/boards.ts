@@ -5,25 +5,36 @@ import type { DeckBoard, DeckStack } from './types';
 /** Deck rejects an empty colour on create; this is the Nextcloud default blue. */
 const DEFAULT_BOARD_COLOR = '0082c9';
 
-export async function fetchBoards(account: DeckAccount, sinceMs?: number): Promise<DeckBoard[]> {
+/**
+ * `null` means the server answered 304: nothing changed since `sinceMs`. It is a
+ * different answer from `[]`, which means the collection really is empty, and the
+ * two must never collapse — an authoritative reconcile fed `[]` deletes every row.
+ */
+export async function fetchBoards(
+  account: DeckAccount,
+  sinceMs?: number,
+): Promise<DeckBoard[] | null> {
   const result = await deckRequest<Record<string, any>[]>(account, {
     path: '/boards?details=true',
     sinceMs,
     context: 'fetchBoards',
   });
+  if (result.notModified) return null;
   return (result.data ?? []).map(normalizeBoard);
 }
 
+/** `null` on 304, for the reason given on `fetchBoards`. */
 export async function fetchStacks(
   account: DeckAccount,
   boardRemoteId: string,
   sinceMs?: number,
-): Promise<DeckStack[]> {
+): Promise<DeckStack[] | null> {
   const result = await deckRequest<Record<string, any>[]>(account, {
     path: `/boards/${boardRemoteId}/stacks`,
     sinceMs,
     context: 'fetchStacks',
   });
+  if (result.notModified) return null;
   return (result.data ?? []).map((raw) => normalizeStack(raw, boardRemoteId));
 }
 

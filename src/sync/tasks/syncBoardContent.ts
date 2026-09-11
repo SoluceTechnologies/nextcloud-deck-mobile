@@ -94,6 +94,9 @@ export async function syncBoardContent({
 
   const epoch = localWriteEpoch();
   const remoteStacks = await fetchStacks(account, boardRemoteId, sinceMs);
+  // 304: nothing changed since the cursor. Reconciling against it would treat
+  // "no news" as an empty snapshot and delete every stack on the board.
+  if (remoteStacks === null) return;
 
   await safeWrite(
     db,
