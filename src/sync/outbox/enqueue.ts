@@ -28,8 +28,9 @@ export function entityRefOf(intent: Intent): { entityType: string; entityId: str
   if ('cardId' in intent) return { entityType: 'card', entityId: intent.cardId };
   if ('stackId' in intent) return { entityType: 'stack', entityId: intent.stackId };
   if ('labelId' in intent) return { entityType: 'label', entityId: intent.labelId };
-  // Only createBoard | updateBoard survive the three guards above, and both carry boardId —
-  // no cast needed, and a future Intent variant missing all four id fields would fail to compile.
+  // Only createBoard | updateBoard | deleteBoard survive the three guards above, and all three
+  // carry boardId — no cast needed, and a future Intent variant missing all four id fields would
+  // fail to compile.
   return { entityType: 'board', entityId: intent.boardId };
 }
 

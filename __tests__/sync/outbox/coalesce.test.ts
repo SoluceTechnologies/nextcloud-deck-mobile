@@ -99,6 +99,25 @@ describe('coalesceIntents', () => {
     expect(result.drop).toEqual(['1', '2', '3']);
   });
 
+  it('cancels a board create followed by a delete, sending nothing at all', () => {
+    const result = coalesceIntents([
+      e('1', { kind: 'createBoard', boardId: 'b1' }),
+      e('2', { kind: 'updateBoard', boardId: 'b1', title: 'Ops', color: null, archived: false }),
+      e('3', { kind: 'deleteBoard', boardId: 'b1', boardRemoteId: '' }),
+    ]);
+    expect(result.send).toEqual([]);
+    expect(result.drop).toEqual(['1', '2', '3']);
+  });
+
+  it('sends only the delete when a stack update precedes it without a create', () => {
+    const result = coalesceIntents([
+      e('1', { kind: 'updateStack', stackId: 's1', title: 'Doing', order: 1 }),
+      e('2', { kind: 'deleteStack', stackId: 's1', boardRemoteId: '7', stackRemoteId: '5' }),
+    ]);
+    expect(result.drop).toEqual(['1']);
+    expect(result.send.map((s) => s.id)).toEqual(['2']);
+  });
+
   it('preserves the relative order of the intents it keeps', () => {
     const entries = [
       e('1', { kind: 'createCard', cardId: 'c1' }),

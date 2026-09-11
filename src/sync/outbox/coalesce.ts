@@ -13,14 +13,29 @@ export type CoalesceResult = {
  * Collapses the queue of one entity. Called on entries that share an
  * `entity_id`, in FIFO order.
  */
+/** The create whose presence earlier in the same queue means this delete's row never reached the server. */
+function createKindOf(deleteKind: Intent['kind']): Intent['kind'] | null {
+  switch (deleteKind) {
+    case 'deleteCard':
+      return 'createCard';
+    case 'deleteStack':
+      return 'createStack';
+    case 'deleteBoard':
+      return 'createBoard';
+    default:
+      return null;
+  }
+}
+
 export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
-  const deleteIndex = entries.findIndex((e) => e.intent.kind === 'deleteCard');
+  const deleteIndex = entries.findIndex((e) => createKindOf(e.intent.kind) !== null);
 
   if (deleteIndex !== -1) {
+    const createKind = createKindOf(entries[deleteIndex].intent.kind);
     const before = entries.slice(0, deleteIndex);
-    const wasCreatedHere = before.some((e) => e.intent.kind === 'createCard');
+    const wasCreatedHere = before.some((e) => e.intent.kind === createKind);
     if (wasCreatedHere) {
-      // The card never reached the server, so there is nothing to delete there.
+      // The row never reached the server, so there is nothing to delete there.
       return { send: [], drop: entries.map((e) => e.id) };
     }
     return {

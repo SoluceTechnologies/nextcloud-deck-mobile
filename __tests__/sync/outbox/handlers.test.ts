@@ -342,4 +342,15 @@ describe('executeIntent', () => {
       archived: true,
     });
   });
+
+  it('deletes a board using the remote id carried in the payload', async () => {
+    const db = makeDb({});
+
+    await executeIntent(
+      { db, account },
+      { kind: 'deleteBoard', boardId: 'b-local', boardRemoteId: '7' },
+    );
+
+    expect(boardsApi.deleteBoard).toHaveBeenCalledWith(account, '7');
+  });
 });

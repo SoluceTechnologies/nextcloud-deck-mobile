@@ -5,7 +5,14 @@ import type Card from '@/database/models/Card';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import { safeWrite } from '@/database/utils/safeTransaction';
-import { createBoard, createStack, deleteStack, updateBoard, updateStack } from '@/services/deck/boards';
+import {
+  createBoard,
+  createStack,
+  deleteBoard,
+  deleteStack,
+  updateBoard,
+  updateStack,
+} from '@/services/deck/boards';
 import {
   addDependentCard,
   assignLabelToCard,
@@ -272,5 +279,10 @@ export async function executeIntent(
       });
       return;
     }
+
+    case 'deleteBoard':
+      // The local row is already destroyed, so the payload carries the remote id.
+      await deleteBoard(account, intent.boardRemoteId);
+      return;
   }
 }

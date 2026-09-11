@@ -66,6 +66,12 @@ describe('protectedFieldsOf', () => {
       protectedFieldsOf({ kind: 'assignLabel', cardId: 'c1', labelId: 'l1' }),
     ).toEqual([]);
   });
+
+  it('protects nothing for a board deletion', () => {
+    expect(
+      protectedFieldsOf({ kind: 'deleteBoard', boardId: 'b1', boardRemoteId: '7' }),
+    ).toEqual([]);
+  });
 });
 
 describe('entityRefOf', () => {

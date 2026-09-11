@@ -37,6 +37,7 @@ export type Intent =
       title: string;
       color: string | null;
       archived: boolean;
-    };
+    }
+  | { kind: 'deleteBoard'; boardId: string; boardRemoteId: string };
 
 export type IntentKind = Intent['kind'];
