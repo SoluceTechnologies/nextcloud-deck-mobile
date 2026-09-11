@@ -186,5 +186,16 @@
   "deck": {
     "unavailableTitle": "Deck is not available",
     "unavailableHint": "The Deck app is not enabled on this server. Ask an administrator to install it, or switch to another account."
+  },
+  "boards": {
+    "title": "Boards",
+    "filter": "Filter boards",
+    "openSection": "OPEN BOARDS",
+    "count_one": "{{count}} BOARD",
+    "count_other": "{{count}} BOARDS",
+    "shared": "Shared",
+    "updated": "Updated {{when}}",
+    "empty": "No boards yet",
+    "emptyFiltered": "No board matches that filter"
   }
 }

@@ -186,5 +186,16 @@
   "deck": {
     "unavailableTitle": "Deck n'est pas disponible",
     "unavailableHint": "L'application Deck n'est pas activée sur ce serveur. Demandez à un administrateur de l'installer, ou changez de compte."
+  },
+  "boards": {
+    "title": "Tableaux",
+    "filter": "Filtrer les tableaux",
+    "openSection": "TABLEAUX OUVERTS",
+    "count_one": "{{count}} TABLEAU",
+    "count_other": "{{count}} TABLEAUX",
+    "shared": "Partagé",
+    "updated": "Modifié {{when}}",
+    "empty": "Aucun tableau",
+    "emptyFiltered": "Aucun tableau ne correspond à ce filtre"
   }
 }

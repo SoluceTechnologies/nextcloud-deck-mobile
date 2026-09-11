@@ -9,11 +9,21 @@ interface ItemProps {
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
   disabled?: boolean;
   children?: React.ReactNode;
 }
 
-function Item({ title, description, leading, trailing, onPress, disabled, children }: ItemProps) {
+function Item({
+  title,
+  description,
+  leading,
+  trailing,
+  onPress,
+  onLongPress,
+  disabled,
+  children,
+}: ItemProps) {
   const body = children ?? (
     <View style={styles.content}>
       {typeof title === 'string' ? <Typography variant="body1">{title}</Typography> : title}
@@ -38,7 +48,7 @@ function Item({ title, description, leading, trailing, onPress, disabled, childr
   if (!onPress) return inner;
 
   return (
-    <AnimatedPressable onPress={onPress} disabled={disabled} scaleTo={0.98}>
+    <AnimatedPressable onPress={onPress} onLongPress={onLongPress} disabled={disabled} scaleTo={0.98}>
       {inner}
     </AnimatedPressable>
   );
