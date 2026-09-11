@@ -196,6 +196,17 @@
     "shared": "Partagé",
     "updated": "Modifié {{when}}",
     "empty": "Aucun tableau",
-    "emptyFiltered": "Aucun tableau ne correspond à ce filtre"
+    "emptyFiltered": "Aucun tableau ne correspond à ce filtre",
+    "actions": {
+      "open": "Ouvrir",
+      "rename": "Renommer",
+      "color": "Changer la couleur",
+      "archive": "Archiver",
+      "unarchive": "Désarchiver",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer ce tableau ?",
+      "deleteMessage": "« {{title}} » et toutes ses cartes seront supprimés pour toutes les personnes qui y ont accès.",
+      "cancel": "Annuler"
+    }
   }
 }

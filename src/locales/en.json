@@ -196,6 +196,17 @@
     "shared": "Shared",
     "updated": "Updated {{when}}",
     "empty": "No boards yet",
-    "emptyFiltered": "No board matches that filter"
+    "emptyFiltered": "No board matches that filter",
+    "actions": {
+      "open": "Open",
+      "rename": "Rename",
+      "color": "Change colour",
+      "archive": "Archive",
+      "unarchive": "Unarchive",
+      "delete": "Delete",
+      "deleteTitle": "Delete this board?",
+      "deleteMessage": "\"{{title}}\" and all its cards will be deleted for everyone with access.",
+      "cancel": "Cancel"
+    }
   }
 }
