@@ -1,11 +1,10 @@
 // __tests__/database/hooks.test.tsx
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { renderHook, waitFor, act } from '@testing-library/react-native';
 
 import { useBoards, useBoardCards } from '../../src/database/hooks/useBoards';
 import { useBoardStacks } from '../../src/database/hooks/useBoardContent';
 import { useCard } from '../../src/database/hooks/useCard';
 import { useDatabase } from '../../src/database/DatabaseProvider';
-import { STACK_OBSERVED_COLUMNS } from '../../src/database/observedColumns';
 
 jest.mock('../../src/database/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
 
@@ -22,16 +21,27 @@ function makeDb(rows: any[]) {
   return { db: { get: jest.fn(() => ({ query })) }, query, observeWithColumns };
 }
 
-/** `useCard` skips `.query()` entirely and observes a single row via `findAndObserve`. */
+/**
+ * `useCard` skips `.query()` entirely and observes a single row via `findAndObserve`.
+ * The `observer` returned here is the live `{ next, error, complete }` object the hook
+ * itself passed to `.subscribe(...)`, so a test can drive any of the three signals
+ * (e.g. `observer.complete()` to simulate a server-side delete reconciling).
+ */
 function makeCardDb(row: any) {
   const unsubscribe = jest.fn();
-  const subscribe = jest.fn((observer: { next: (r: any) => void }) => {
-    observer.next(row);
+  const observer: { next: (r: any) => void; error: (e: unknown) => void; complete: () => void } = {
+    next: () => {},
+    error: () => {},
+    complete: () => {},
+  };
+  const subscribe = jest.fn((obs: typeof observer) => {
+    Object.assign(observer, obs);
+    obs.next(row);
     return { unsubscribe };
   });
   const findAndObserve = jest.fn(() => ({ subscribe }));
   const get = jest.fn(() => ({ findAndObserve }));
-  return { db: { get }, get, findAndObserve, unsubscribe };
+  return { db: { get }, get, findAndObserve, unsubscribe, observer };
 }
 
 beforeEach(() => jest.clearAllMocks());
@@ -62,7 +72,15 @@ describe('useBoards', () => {
 
     renderHook(() => useBoards('acc-1'));
 
-    expect(observeWithColumns).toHaveBeenCalledWith(expect.arrayContaining(['title', 'color']));
+    expect(observeWithColumns).toHaveBeenCalledWith([
+      'title',
+      'color',
+      'archived',
+      'shared',
+      'can_edit',
+      'can_manage',
+      'last_modified',
+    ]);
   });
 });
 
@@ -77,6 +95,16 @@ describe('useBoardCards', () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  it('returns nothing without an account', () => {
+    const { db, query } = makeDb([]);
+    mockUseDatabase.mockReturnValue(db);
+
+    const { result } = renderHook(() => useBoardCards(null, 'b-local'));
+
+    expect(result.current).toEqual([]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it('sorts the cards by their board position', async () => {
     const { db } = makeDb([{ order: 2 }, { order: 0 }, { order: 1 }]);
     mockUseDatabase.mockReturnValue(db);
@@ -84,6 +112,27 @@ describe('useBoardCards', () => {
     const { result } = renderHook(() => useBoardCards('acc-1', 'b-local'));
 
     await waitFor(() => expect(result.current.map((c: any) => c.order)).toEqual([0, 1, 2]));
+  });
+
+  it('observes exactly the declared card columns', () => {
+    const { db, observeWithColumns } = makeDb([]);
+    mockUseDatabase.mockReturnValue(db);
+
+    renderHook(() => useBoardCards('acc-1', 'b-local'));
+
+    expect(observeWithColumns).toHaveBeenCalledWith([
+      'stack_id',
+      'title',
+      'order',
+      'color',
+      'archived',
+      'done_at',
+      'duedate',
+      'startdate',
+      'attachment_count',
+      'comments_count',
+      'pending',
+    ]);
   });
 });
 
@@ -93,6 +142,16 @@ describe('useBoardStacks', () => {
     mockUseDatabase.mockReturnValue(db);
 
     const { result } = renderHook(() => useBoardStacks('acc-1', null));
+
+    expect(result.current).toEqual([]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('returns nothing and queries nothing without an account', () => {
+    const { db, query } = makeDb([]);
+    mockUseDatabase.mockReturnValue(db);
+
+    const { result } = renderHook(() => useBoardStacks(null, 'b-local'));
 
     expect(result.current).toEqual([]);
     expect(query).not.toHaveBeenCalled();
@@ -113,7 +172,7 @@ describe('useBoardStacks', () => {
 
     renderHook(() => useBoardStacks('acc-1', 'b-local'));
 
-    expect(observeWithColumns).toHaveBeenCalledWith(STACK_OBSERVED_COLUMNS);
+    expect(observeWithColumns).toHaveBeenCalledWith(['title', 'order']);
   });
 });
 
@@ -136,6 +195,19 @@ describe('useCard', () => {
     const { result } = renderHook(() => useCard('c-1'));
 
     await waitFor(() => expect(result.current).toEqual(row));
+  });
+
+  it('resets to null when the row is deleted (subscription completes)', () => {
+    const row = { id: 'c-1', title: 'Card One' };
+    const { db, observer } = makeCardDb(row);
+    mockUseDatabase.mockReturnValue(db);
+
+    const { result } = renderHook(() => useCard('c-1'));
+    expect(result.current).toEqual(row);
+
+    act(() => observer.complete());
+
+    expect(result.current).toBeNull();
   });
 
   it('unsubscribes when unmounted', () => {

@@ -17,8 +17,10 @@ export function useCard(cardLocalId: string | null): Card | null {
       .findAndObserve(cardLocalId)
       .subscribe({
         next: setCard,
-        // The row disappears when a snapshot pass reconciles a server-side delete.
+        // No row matches this id on the initial fetch (e.g. a bad id, or already gone).
         error: () => setCard(null),
+        // The row was found, then deleted — e.g. a snapshot pass reconciles a server-side delete.
+        complete: () => setCard(null),
       });
     return () => subscription.unsubscribe();
   }, [cardLocalId, database]);
