@@ -216,5 +216,12 @@
       "deleteMessage": "\"{{title}}\" and all its cards will be deleted for everyone with access.",
       "cancel": "Cancel"
     }
+  },
+  "card": {
+    "overdue": "{{count}}d overdue",
+    "dueToday": "Due today",
+    "dueTomorrow": "Due tomorrow",
+    "dueOn": "Due {{when}}",
+    "noTitle": "Untitled"
   }
 }

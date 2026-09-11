@@ -216,5 +216,12 @@
       "deleteMessage": "« {{title}} » et toutes ses cartes seront supprimés pour toutes les personnes qui y ont accès.",
       "cancel": "Annuler"
     }
+  },
+  "card": {
+    "overdue": "{{count}} j de retard",
+    "dueToday": "Échéance aujourd'hui",
+    "dueTomorrow": "Échéance demain",
+    "dueOn": "Échéance {{when}}",
+    "noTitle": "Sans titre"
   }
 }

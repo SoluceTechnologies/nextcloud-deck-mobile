@@ -18,15 +18,17 @@ function keyPaths(obj: Record<string, unknown>, prefix = ''): string[] {
 // de/es/it/ru still carry only their pre-existing "tabs.settings" key and fall
 // back to English for the rest until someone translates them. The "sync"
 // keys are likewise en/fr-only as of wiring the sync engine into the app,
-// "deck" is en/fr-only as of the Deck-unavailable gate, and "boards" is
-// en/fr-only as of the board list row.
+// "deck" is en/fr-only as of the Deck-unavailable gate, "boards" is
+// en/fr-only as of the board list row, and "card" is en/fr-only as of the
+// card tile.
 const withoutPendingTranslations = (paths: string[]) =>
   paths.filter(
     (path) =>
       !path.startsWith('tabs.') &&
       !path.startsWith('sync.') &&
       !path.startsWith('deck.') &&
-      !path.startsWith('boards.'),
+      !path.startsWith('boards.') &&
+      !path.startsWith('card.'),
   );
 
 describe('locale parity', () => {
