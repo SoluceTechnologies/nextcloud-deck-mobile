@@ -3,11 +3,39 @@ import type { Database, Model } from '@nozbe/watermelondb';
 import type CardAssignee from '@/database/models/CardAssignee';
 import type CardLabel from '@/database/models/CardLabel';
 import type { DeckAssignee, DeckCard } from '@/services/deck/types';
+import type { PendingCards } from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
 
 /** A user and a group can share a name; the type is part of the identity. */
 export function assigneeKey(participant: string, assigneeType: number): string {
   return `${participant}|${assigneeType}`;
+}
+
+/**
+ * The label and assignee keys a queued mutation currently owns for this card.
+ * A row matching one of these must survive `deleteMissing`, the same way a
+ * pending `patchCard`/`moveCard`/`setCardArchived` shields its card columns
+ * (`loadPendingCards`) — a join row an `assignLabel`/`assignUser` intent just
+ * created locally has not reached the server yet, so its absence from the
+ * remote snapshot means "not synced", not "removed".
+ */
+export function pendingRelationIds(
+  pending: PendingCards,
+  cardLocalId: string,
+): { labelIds: ReadonlySet<string>; assigneeKeys: ReadonlySet<string> } {
+  const labelIds = new Set<string>();
+  const assigneeKeys = new Set<string>();
+
+  for (const { intent } of pending.get(cardLocalId)?.entries ?? []) {
+    if (intent.kind === 'assignLabel' || intent.kind === 'removeLabel') {
+      labelIds.add(intent.labelId);
+    }
+    if (intent.kind === 'assignUser' || intent.kind === 'unassignUser') {
+      assigneeKeys.add(assigneeKey(intent.participant, intent.assigneeType));
+    }
+  }
+
+  return { labelIds, assigneeKeys };
 }
 
 export type BuildCardRelationOpsParams = {
@@ -19,6 +47,8 @@ export type BuildCardRelationOpsParams = {
   labelLocalIdByRemote: Map<string, string>;
   labelRows: CardLabel[];
   assigneeRows: CardAssignee[];
+  /** Queued intents by card, so a join row a mutation owns is never deleted. */
+  pending: PendingCards;
 };
 
 export function buildCardRelationOps({
@@ -29,10 +59,16 @@ export function buildCardRelationOps({
   labelLocalIdByRemote,
   labelRows,
   assigneeRows,
+  pending,
 }: BuildCardRelationOpsParams): Model[] {
   const cardLabels = db.get<CardLabel>('card_labels');
   const cardAssignees = db.get<CardAssignee>('card_assignees');
   const ops: Model[] = [];
+
+  const { labelIds: protectedLabelIds, assigneeKeys: protectedAssigneeKeys } = pendingRelationIds(
+    pending,
+    cardLocalId,
+  );
 
   // A label the board pass has not cached yet cannot be linked; the next pass
   // will pick it up once the label row exists.
@@ -47,6 +83,7 @@ export function buildCardRelationOps({
     rowKey: (row) => row.labelId,
     unchanged: () => true,
     deleteMissing: true,
+    protectedRowIds: protectedLabelIds,
   });
 
   for (const labelId of labelPlan.create) {
@@ -67,6 +104,7 @@ export function buildCardRelationOps({
     rowKey: (row) => assigneeKey(row.participant, row.assigneeType),
     unchanged: (row, a) => row.displayName === a.displayName,
     deleteMissing: true,
+    protectedRowIds: protectedAssigneeKeys,
   });
 
   for (const a of assigneePlan.create) {

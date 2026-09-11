@@ -1,5 +1,7 @@
-import { buildCardRelationOps, assigneeKey } from '../../../src/sync/tasks/cardRelations';
+import { buildCardRelationOps, assigneeKey, pendingRelationIds } from '../../../src/sync/tasks/cardRelations';
 import type { DeckCard } from '../../../src/services/deck/types';
+import type { PendingCards } from '../../../src/sync/outbox/pending';
+import type { Intent } from '../../../src/sync/outbox/types';
 
 function makeDb() {
   const make = (tag: string) => ({
@@ -55,6 +57,12 @@ function card(over: Partial<DeckCard> = {}): DeckCard {
   };
 }
 
+function pendingWith(cardLocalId: string, intents: Intent[]): PendingCards {
+  return new Map([
+    [cardLocalId, { fields: new Set(), entries: intents.map((intent) => ({ entry: {} as any, intent })) }],
+  ]) as any;
+}
+
 const base = {
   db: makeDb(),
   accountId: 'acc-1',
@@ -62,6 +70,7 @@ const base = {
   labelLocalIdByRemote: new Map([['3', 'label-local']]),
   labelRows: [],
   assigneeRows: [],
+  pending: new Map() as PendingCards,
 };
 
 describe('assigneeKey', () => {
@@ -146,5 +155,84 @@ describe('buildCardRelationOps', () => {
       ],
     });
     expect(ops).toEqual([{ _op: 'delete', _tag: 'card_assignees' }]);
+  });
+
+  // A label assigned offline writes its join row locally before the create/assign
+  // intent ever reaches the server. A board pass that lands in between must not
+  // read "the server does not report it yet" as "the user unassigned it" — the
+  // join row is owned by a queued mutation, exactly like a card column pending a
+  // patchCard.
+  it('does not unlink a label a queued assignLabel intent owns, even though the server has not reported it yet', () => {
+    const ops = buildCardRelationOps({
+      ...base,
+      pending: pendingWith('c-local', [{ kind: 'assignLabel', cardId: 'c-local', labelId: 'label-local' }]),
+      remote: card(), // the server's snapshot does not carry the label yet
+      labelRows: [joinRow('card_labels', { cardId: 'c-local', labelId: 'label-local' })],
+    });
+    expect(ops).toEqual([]);
+  });
+
+  it('does not unassign a user a queued assignUser intent owns, even though the server has not reported it yet', () => {
+    const ops = buildCardRelationOps({
+      ...base,
+      pending: pendingWith('c-local', [
+        { kind: 'assignUser', cardId: 'c-local', participant: 'jane', assigneeType: 0 },
+      ]),
+      remote: card(),
+      assigneeRows: [
+        joinRow('card_assignees', { participant: 'jane', assigneeType: 0, displayName: 'Jane' }),
+      ],
+    });
+    expect(ops).toEqual([]);
+  });
+
+  it('still unlinks a label with no pending intent, alongside one that is protected', () => {
+    const ops = buildCardRelationOps({
+      ...base,
+      pending: pendingWith('c-local', [{ kind: 'assignLabel', cardId: 'c-local', labelId: 'label-local' }]),
+      remote: card(),
+      labelLocalIdByRemote: new Map([
+        ['3', 'label-local'],
+        ['9', 'label-other'],
+      ]),
+      labelRows: [
+        joinRow('card_labels', { cardId: 'c-local', labelId: 'label-local' }),
+        joinRow('card_labels', { cardId: 'c-local', labelId: 'label-other' }),
+      ],
+    });
+    expect(ops).toEqual([{ _op: 'delete', _tag: 'card_labels' }]);
+  });
+});
+
+describe('pendingRelationIds', () => {
+  it('collects the labelId of a pending assignLabel or removeLabel intent', () => {
+    const pending = pendingWith('c-local', [
+      { kind: 'assignLabel', cardId: 'c-local', labelId: 'label-a' },
+      { kind: 'removeLabel', cardId: 'c-local', labelId: 'label-b' },
+    ]);
+    expect(pendingRelationIds(pending, 'c-local').labelIds).toEqual(new Set(['label-a', 'label-b']));
+  });
+
+  it('collects the assignee key of a pending assignUser or unassignUser intent', () => {
+    const pending = pendingWith('c-local', [
+      { kind: 'assignUser', cardId: 'c-local', participant: 'jane', assigneeType: 0 },
+      { kind: 'unassignUser', cardId: 'c-local', participant: 'group1', assigneeType: 1 },
+    ]);
+    expect(pendingRelationIds(pending, 'c-local').assigneeKeys).toEqual(
+      new Set([assigneeKey('jane', 0), assigneeKey('group1', 1)]),
+    );
+  });
+
+  it('ignores intents that do not touch labels or assignees', () => {
+    const pending = pendingWith('c-local', [{ kind: 'setCardArchived', cardId: 'c-local', archived: true }]);
+    const result = pendingRelationIds(pending, 'c-local');
+    expect(result.labelIds.size).toBe(0);
+    expect(result.assigneeKeys.size).toBe(0);
+  });
+
+  it('returns empty sets for a card with nothing pending', () => {
+    const result = pendingRelationIds(new Map(), 'c-local');
+    expect(result.labelIds.size).toBe(0);
+    expect(result.assigneeKeys.size).toBe(0);
   });
 });

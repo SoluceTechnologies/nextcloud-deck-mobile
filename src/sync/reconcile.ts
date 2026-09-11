@@ -29,7 +29,7 @@ export function reconcile<TRemote, TRow>(
   for (const row of params.rows) {
     const key = params.rowKey(row);
     if (byKey.has(key)) {
-      result.remove.push(row);
+      if (!params.protectedRowIds?.has(key)) result.remove.push(row);
       continue;
     }
     byKey.set(key, row);

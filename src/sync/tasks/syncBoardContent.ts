@@ -229,6 +229,7 @@ export async function syncBoardContent({
             labelLocalIdByRemote,
             labelRows: cardLabelRows.filter((r) => r.cardId === cardLocalId),
             assigneeRows: cardAssigneeRows.filter((r) => r.cardId === cardLocalId),
+            pending,
           }),
         );
       }

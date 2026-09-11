@@ -70,6 +70,24 @@ describe('reconcile', () => {
     expect(result.update).toEqual([]);
   });
 
+  // The dedup loop runs before, and independently of, the deleteMissing loop
+  // below it. A caller that protects a key relies on that protection holding
+  // everywhere reconcile can produce a `remove`, not just in one of the two
+  // loops that can.
+  it('does not remove a duplicate row whose key is protected', () => {
+    const first = { key: 'a', value: 'x' };
+    const dup = { key: 'a', value: 'x' };
+    const result = reconcile(
+      params({
+        remote: [{ id: 'a', value: 'x' }],
+        rows: [first, dup],
+        deleteMissing: true,
+        protectedRowIds: new Set(['a']),
+      }),
+    );
+    expect(result.remove).toEqual([]);
+  });
+
   it('ignores a duplicated remote entity', () => {
     const result = reconcile(
       params({ remote: [{ id: 'a', value: '1' }, { id: 'a', value: '1' }] }),

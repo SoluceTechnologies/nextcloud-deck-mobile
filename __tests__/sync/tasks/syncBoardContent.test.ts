@@ -329,4 +329,32 @@ describe('syncBoardContent', () => {
     const ops = (batch as any).mock.calls[0][0];
     expect(ops.some((o: any) => o._tag === 'card_labels' && o.labelId === 'label-local')).toBe(true);
   });
+
+  // A label assigned offline creates its join row and queues assignLabel before
+  // the server has ever seen it. The board pass that lands before the outbox
+  // drains must not read "the server does not report this label" as "the user
+  // removed it" — the join row is owned by a queued mutation.
+  it('does not unlink a label a queued assignLabel intent owns, before the server reports it', async () => {
+    mockFetchStacks.mockResolvedValue([stack([card()])]); // the remote card carries no labels yet
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      labels: [makeRow('labels', { id: 'label-local', boardId: 'b-local', remoteId: '3' })],
+      cards: [makeRow('cards', { id: 'cards-1', boardId: 'b-local', remoteId: '42', lastModified: 5000 })],
+      card_labels: [makeRow('card_labels', { id: 'cl-1', cardId: 'cards-1', labelId: 'label-local' })],
+      outbox: [
+        makeRow('outbox', {
+          entityType: 'card',
+          entityId: 'cards-1',
+          state: 'queued',
+          serverValuesJson: '{}',
+          payloadJson: JSON.stringify({ kind: 'assignLabel', cardId: 'cards-1', labelId: 'label-local' }),
+        }),
+      ],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.some((o: any) => o._op === 'delete' && o._tag === 'card_labels')).toBe(false);
+  });
 });
