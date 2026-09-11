@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../../helpers/theme';
 import { lightTheme } from '../../../src/theme';
-import { CardTile } from '../../../src/features/board/components/CardTile';
+import { CardTile, toCardTileCard } from '../../../src/features/board/components/CardTile';
 
 // Wrapped in a jest.fn so the memoisation tests can tell whether CardTileImpl's
 // body actually ran: a hook only executes when the function component itself
@@ -24,6 +24,14 @@ const data = (over: Partial<any> = {}) => ({
   },
   labels: over.labels ?? [],
   assignees: over.assignees ?? [],
+});
+
+it('toCardTileCard normalizes undefined color, duedate, and doneAt to null', () => {
+  const model: any = { id: 'c1', title: 'Payer le loyer', attachmentCount: 0, commentsCount: 0 };
+  expect(toCardTileCard(model)).toEqual({
+    id: 'c1', title: 'Payer le loyer', color: null, duedate: null, doneAt: null,
+    attachmentCount: 0, commentsCount: 0,
+  });
 });
 
 it('shows the card title', () => {
@@ -133,21 +141,28 @@ it('does not re-render when a new data object carries identical primitives', () 
   expect(mockUseTranslation.mock.calls.length).toBe(callsAfterMount);
 });
 
-// Comparing by identity (or by `lastModified`) would also have bailed out
-// here, since WatermelonDB keeps one JS instance per row (its identity map)
-// and an optimistic local write mutates that instance without bumping
-// `lastModified` — the tile would keep showing stale content forever. Value
-// comparison catches a genuine content change instead.
-it('re-renders and shows the new title when the card content changes', () => {
+// WatermelonDB keeps one JS instance per row (its identity map), so an
+// optimistic local write mutates `model` in place rather than replacing it.
+// If `card` were that live instance, prev.data.card and next.data.card would
+// be the same object read twice — both already showing 'After' by the time
+// the comparator runs, so it would bail and the tile would stay stale.
+// toCardTileCard takes a fresh copy of the fields on every call, so the two
+// renders compare two different snapshots instead of one object with itself.
+it('re-renders and shows the new title when the underlying model is mutated', () => {
   const onPress = jest.fn();
-  const initial = data();
-  const { rerender } = render(<CardTile data={initial as never} onPress={onPress} />, {
-    wrapper: ThemeWrapper,
-  });
+  const model: any = {
+    id: 'c1', title: 'Before', color: null, duedate: null, doneAt: null,
+    attachmentCount: 0, commentsCount: 0,
+  };
+  const { rerender } = render(
+    <CardTile data={{ card: toCardTileCard(model), labels: [], assignees: [] } as never} onPress={onPress} />,
+    { wrapper: ThemeWrapper },
+  );
 
-  const changedCard = { ...initial.card };
-  changedCard.title = 'Changed';
-  rerender(<CardTile data={{ ...initial, card: changedCard } as never} onPress={onPress} />);
+  model.title = 'After';
+  rerender(
+    <CardTile data={{ card: toCardTileCard(model), labels: [], assignees: [] } as never} onPress={onPress} />,
+  );
 
-  expect(screen.getByText('Changed')).toBeTruthy();
+  expect(screen.getByText('After')).toBeTruthy();
 });

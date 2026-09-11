@@ -8,11 +8,34 @@ import dayjs from 'dayjs';
 import type Card from '@/database/models/Card';
 import { AnimatedPressable, Avatar, Typography } from '@/ui/components';
 
+export type CardTileCard = {
+  id: string;
+  title: string;
+  color: string | null;
+  duedate: number | null;
+  doneAt: number | null;
+  attachmentCount: number;
+  commentsCount: number;
+};
+
 export type CardTileData = {
-  card: Card;
+  card: CardTileCard;
   labels: { id: string; title: string; color: string | null }[];
   assignees: { participant: string; displayName: string }[];
 };
+
+/** A per-render snapshot: the model instance is mutated in place by every optimistic write, so a value comparator must compare copies, never the instance. */
+export function toCardTileCard(card: Card): CardTileCard {
+  return {
+    id: card.id,
+    title: card.title,
+    color: card.color ?? null,
+    duedate: card.duedate ?? null,
+    doneAt: card.doneAt ?? null,
+    attachmentCount: card.attachmentCount,
+    commentsCount: card.commentsCount,
+  };
+}
 
 type CardTileProps = { data: CardTileData; onPress: () => void };
 
@@ -158,11 +181,15 @@ function sameAssignees(a: CardTileData['assignees'], b: CardTileData['assignees'
 
 // A column re-renders on every observed change and rebuilds `data` fresh each
 // time, so a default shallow compare on { data, onPress } never bails — it's a
-// no-op. Comparing by identity or by `lastModified` isn't a fix either:
-// WatermelonDB keeps one JS instance per row (its identity map), and an
-// optimistic local write mutates that same instance in place without bumping
-// `lastModified`, so both checks would miss a real change too. Compare the
-// primitives this tile actually renders instead (spec §10).
+// no-op. Comparing primitives is the fix, but only because `card` is a
+// snapshot (see `toCardTileCard`), not the WatermelonDB model instance:
+// WatermelonDB keeps one JS instance per row (its identity map), so an
+// optimistic local write mutates that instance in place. Reading fields off
+// the live instance would make prev.data.card and next.data.card the same
+// mutated object — both sides already showing the new value — so the
+// comparator would bail and the tile would stay stale. A snapshot taken fresh
+// on every render captures the field values at that moment, so a real change
+// shows up as two different values, never as one object compared to itself.
 function areEqual(prev: CardTileProps, next: CardTileProps) {
   if (prev.onPress !== next.onPress) return false;
 
@@ -171,9 +198,9 @@ function areEqual(prev: CardTileProps, next: CardTileProps) {
   if (
     a.id !== b.id ||
     a.title !== b.title ||
-    (a.color ?? null) !== (b.color ?? null) ||
-    (a.duedate ?? null) !== (b.duedate ?? null) ||
-    (a.doneAt ?? null) !== (b.doneAt ?? null) ||
+    a.color !== b.color ||
+    a.duedate !== b.duedate ||
+    a.doneAt !== b.doneAt ||
     a.attachmentCount !== b.attachmentCount ||
     a.commentsCount !== b.commentsCount
   ) {
