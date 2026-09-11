@@ -65,12 +65,18 @@ export type SyncBoardContentParams = {
   full: boolean;
 };
 
+/**
+ * `true` if the pass actually reconciled (including a legitimate no-op, such
+ * as a 304); `false` if it aborted without writing because a local write
+ * raced the fetch. The caller must not credit a `false` pass as a snapshot —
+ * see `scheduler.ts`.
+ */
 export async function syncBoardContent({
   db,
   account,
   boardRemoteId,
   full,
-}: SyncBoardContentParams): Promise<void> {
+}: SyncBoardContentParams): Promise<boolean> {
   const boardRow = (
     await db
       .get<Board>('boards')
@@ -79,7 +85,7 @@ export async function syncBoardContent({
   )[0];
 
   // The board list pass owns board creation; without a row there is nowhere to attach.
-  if (!boardRow) return;
+  if (!boardRow) return true;
   const boardLocalId = boardRow.id;
 
   const cards = db.get<Card>('cards');
@@ -96,12 +102,17 @@ export async function syncBoardContent({
   const remoteStacks = await fetchStacks(account, boardRemoteId, sinceMs);
   // 304: nothing changed since the cursor. Reconciling against it would treat
   // "no news" as an empty snapshot and delete every stack on the board.
-  if (remoteStacks === null) return;
+  if (remoteStacks === null) return true;
 
-  await safeWrite(
+  return safeWrite(
     db,
     async () => {
-      if (localWriteEpoch() !== epoch) return;
+      // A write landed while the fetch was in flight: the rows below would be
+      // reconciled against a remote snapshot paired with a local state that is
+      // already stale. Abort without writing, and report it — a bare success
+      // here would let the caller stamp a snapshot clock for a pass that did
+      // nothing, corrupting the one mechanism that ever notices a deletion.
+      if (localWriteEpoch() !== epoch) return false;
 
       const stackRows = await stacks
         .query(Q.where('account_id', account.id), Q.where('board_id', boardLocalId))
@@ -245,6 +256,7 @@ export async function syncBoardContent({
       }
 
       if (ops.length > 0) await db.batch(ops);
+      return true;
     },
     30000,
     'syncBoardContent',

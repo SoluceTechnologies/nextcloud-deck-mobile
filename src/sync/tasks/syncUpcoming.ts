@@ -20,15 +20,24 @@ export type SyncUpcomingParams = {
  * `overview/upcoming` returns only the cards assigned to the user or unassigned,
  * across every board, in one request. It is a filtered subset, never a snapshot:
  * this pass creates and updates, and removes nothing.
+ *
+ * Returns `true` if the pass actually ran (including a legitimate no-op);
+ * `false` if it aborted without writing because a local write raced the
+ * fetch. The caller must not credit a `false` pass as having synced — see
+ * `scheduler.ts`.
  */
-export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise<void> {
+export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise<boolean> {
   const epoch = localWriteEpoch();
   const remote = flattenUpcoming(await fetchUpcoming(account));
 
-  await safeWrite(
+  return safeWrite(
     db,
     async () => {
-      if (localWriteEpoch() !== epoch) return;
+      // A write landed while the fetch was in flight: the rows below would be
+      // reconciled against a remote snapshot paired with a local state that is
+      // already stale. Abort without writing, and report it, for the same
+      // reason the board passes do.
+      if (localWriteEpoch() !== epoch) return false;
 
       const boardRows = await db
         .get<Board>('boards')
@@ -48,7 +57,7 @@ export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise
         (c) =>
           boardLocalIdByRemote.has(c.boardRemoteId) && stackLocalIdByRemote.has(c.stackRemoteId),
       );
-      if (placeable.length === 0) return;
+      if (placeable.length === 0) return true;
 
       const cards = db.get<Card>('cards');
       const cardRows = await cards.query(Q.where('account_id', account.id)).fetch();
@@ -84,6 +93,7 @@ export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise
       ];
 
       if (ops.length > 0) await db.batch(ops);
+      return true;
     },
     20000,
     'syncUpcoming',

@@ -1,5 +1,6 @@
 import { syncBoards } from '../../../src/sync/tasks/syncBoards';
 import { fetchBoards } from '../../../src/services/deck/boards';
+import { markLocalWrite } from '../../../src/sync/localWrites';
 import type { Account } from '../../../src/types';
 import type { DeckBoard } from '../../../src/services/deck/types';
 
@@ -182,6 +183,23 @@ describe('syncBoards', () => {
     const ops = calls[0]?.[0];
     expect(ops).toHaveLength(1);
     expect(ops[0]).toMatchObject({ _op: 'create', remoteId: '9' });
+  });
+
+  // A local write racing the fetch means the rows this pass is about to write
+  // against are already stale. The pass must abort without writing, and it
+  // must say so: a caller that reads a bare success here would stamp a
+  // snapshot clock for a pass that reconciled nothing.
+  it('reports failure and writes nothing when a local write races the fetch', async () => {
+    mockFetchBoards.mockImplementation(async () => {
+      markLocalWrite();
+      return [];
+    });
+    const { db, batch } = makeDb([makeRow()]);
+
+    const result = await syncBoards({ db, account, full: true });
+
+    expect(batch).not.toHaveBeenCalled();
+    expect(result).toBe(false);
   });
 
   it('creates the labels carried by a new board', async () => {

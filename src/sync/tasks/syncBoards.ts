@@ -24,7 +24,13 @@ export type SyncBoardsParams = {
   full: boolean;
 };
 
-export async function syncBoards({ db, account, full }: SyncBoardsParams): Promise<void> {
+/**
+ * `true` if the pass actually reconciled (including a legitimate no-op, such
+ * as a 304); `false` if it aborted without writing because a local write
+ * raced the fetch. The caller must not credit a `false` pass as a snapshot —
+ * see `scheduler.ts`.
+ */
+export async function syncBoards({ db, account, full }: SyncBoardsParams): Promise<boolean> {
   const boards = db.get<Board>('boards');
   const rows = await boards.query(Q.where('account_id', account.id)).fetch();
 
@@ -36,12 +42,17 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
   // 304: nothing changed since the cursor, so there is nothing to reconcile.
   // `deleteMissing` is false on this path today, but treating "no news" as an
   // empty snapshot is the same latent bug the stacks pass had.
-  if (remote === null) return;
+  if (remote === null) return true;
 
-  await safeWrite(
+  return safeWrite(
     db,
     async () => {
-      if (localWriteEpoch() !== epoch) return;
+      // A write landed while the fetch was in flight: the rows below would be
+      // reconciled against a remote snapshot paired with a local state that is
+      // already stale. Abort without writing, and report it — a bare success
+      // here would let the caller stamp a snapshot clock for a pass that did
+      // nothing, corrupting the one mechanism that ever notices a deletion.
+      if (localWriteEpoch() !== epoch) return false;
 
       const fresh = await boards.query(Q.where('account_id', account.id)).fetch();
       // Filter out boards awaiting their first push: they carry remoteId = '' until the create
@@ -95,6 +106,7 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
       }
 
       if (ops.length > 0) await db.batch(ops);
+      return true;
     },
     20000,
     'syncBoards',

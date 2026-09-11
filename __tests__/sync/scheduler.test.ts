@@ -13,6 +13,7 @@ function setup(over: Partial<Parameters<typeof createSyncScheduler>[0]> = {}) {
   const scheduler = createSyncScheduler({
     runTask: async (task) => {
       ran.push(task);
+      return true;
     },
     getActiveBoardRemoteId: () => null,
     getRecentBoardRemoteIds: () => [],
@@ -48,6 +49,7 @@ describe('createSyncScheduler', () => {
       runTask: async (task) => {
         ran.push(task);
         await gate;
+        return true;
       },
       getActiveBoardRemoteId: () => null,
       getRecentBoardRemoteIds: () => [],
@@ -77,6 +79,7 @@ describe('createSyncScheduler', () => {
       runTask: async (task) => {
         if (task.kind === 'boards') throw new Error('boom');
         ran.push(task);
+        return true;
       },
       getActiveBoardRemoteId: () => null,
       getRecentBoardRemoteIds: () => [],
@@ -116,6 +119,34 @@ describe('createSyncScheduler', () => {
     const afterStop = ran.length;
     await jest.advanceTimersByTimeAsync(90_000);
     expect(ran.length).toBe(afterStop);
+  });
+
+  // A task that loses the epoch race resolves without throwing, so a scheduler
+  // that only watched for exceptions would still credit it as a snapshot and
+  // stamp its cadence clock. `runTask` reporting `false` must stop that: the
+  // very next pass should still see the snapshot as due, not skip it for
+  // another ten minutes because of a pass that wrote nothing.
+  it('does not stamp the snapshot clock for a task that reports it was aborted', async () => {
+    const seen: SyncTask[] = [];
+    let now = 10 * 60_000; // the default SNAPSHOT_INTERVAL_MS, so `boards` starts full
+    const scheduler = createSyncScheduler({
+      runTask: async (task) => {
+        seen.push(task);
+        // The boards task lost the epoch race and aborted without writing.
+        return task.kind !== 'boards';
+      },
+      getActiveBoardRemoteId: () => null,
+      getRecentBoardRemoteIds: () => [],
+      isOnline: () => true,
+      now: () => now,
+    });
+
+    await scheduler.runNow();
+    now += 1000; // well under the ten-minute snapshot interval
+    seen.length = 0;
+    await scheduler.runNow();
+
+    expect(seen.find((t) => t.kind === 'boards')).toMatchObject({ kind: 'boards', full: true });
   });
 
   it('does not double up when start() is called twice', async () => {

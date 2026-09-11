@@ -3,7 +3,8 @@ import { applyRun, dueTasks, INITIAL_SCHEDULER_STATE, type SchedulerState, type 
 const DEFAULT_INTERVAL_MS = 30_000;
 
 export type SchedulerDeps = {
-  runTask: (task: SyncTask) => Promise<void>;
+  /** Resolves `true` if the task ran (a snapshot may be stamped); `false` if it aborted. */
+  runTask: (task: SyncTask) => Promise<boolean>;
   getActiveBoardRemoteId: () => string | null;
   getRecentBoardRemoteIds: () => string[];
   isOnline: () => boolean;
@@ -44,8 +45,10 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
       const succeeded: SyncTask[] = [];
       for (const task of tasks) {
         try {
-          await deps.runTask(task);
-          succeeded.push(task);
+          // `false` means the task lost the epoch race and aborted without
+          // writing: it must not advance its cadence clock any more than a
+          // thrown error would.
+          if (await deps.runTask(task)) succeeded.push(task);
         } catch (error) {
           // One failing scope must not cancel the others, and a failed task
           // must not advance its cadence clock.

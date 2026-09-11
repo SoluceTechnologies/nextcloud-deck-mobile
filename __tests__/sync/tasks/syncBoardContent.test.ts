@@ -1,5 +1,6 @@
 import { syncBoardContent } from '../../../src/sync/tasks/syncBoardContent';
 import { fetchStacks } from '../../../src/services/deck/boards';
+import { markLocalWrite } from '../../../src/sync/localWrites';
 import type { Account } from '../../../src/types';
 import type { DeckCard, DeckStack } from '../../../src/services/deck/types';
 
@@ -208,6 +209,23 @@ describe('syncBoardContent', () => {
 
     const ops = (batch as any).mock.calls[0]?.[0] ?? [];
     expect(ops.filter((o: any) => o._op === 'delete')).toEqual([]);
+  });
+
+  // A local write racing the fetch means the rows this pass is about to write
+  // against are already stale. The pass must abort without writing, and it
+  // must say so: a caller that reads a bare success here would stamp a
+  // snapshot clock for a pass that reconciled nothing.
+  it('reports failure and writes nothing when a local write races the fetch', async () => {
+    mockFetchStacks.mockImplementation(async () => {
+      markLocalWrite();
+      return [stack([])];
+    });
+    const { db, batch } = makeDb({ boards: [boardRow] });
+
+    const result = await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    expect(batch).not.toHaveBeenCalled();
+    expect(result).toBe(false);
   });
 
   it('keeps a card missing from a delta response', async () => {

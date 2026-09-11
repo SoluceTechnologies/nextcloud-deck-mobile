@@ -10,7 +10,7 @@ import { syncUpcoming } from './tasks/syncUpcoming';
 export function createTaskRunner(
   db: Database,
   account: Account,
-): (task: SyncTask) => Promise<void> {
+): (task: SyncTask) => Promise<boolean> {
   return async (task) => {
     switch (task.kind) {
       case 'boards':
