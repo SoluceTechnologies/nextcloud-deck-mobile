@@ -43,7 +43,9 @@ export function flattenUpcoming(upcoming: DeckUpcoming): DeckCard[] {
   const seen = new Set<string>();
   const flat: DeckCard[] = [];
   for (const group of GROUPS) {
-    for (const card of upcoming[group]) {
+    const cards = upcoming[group];
+    if (!Array.isArray(cards)) continue;
+    for (const card of cards) {
       if (seen.has(card.remoteId)) continue;
       seen.add(card.remoteId);
       flat.push(card);

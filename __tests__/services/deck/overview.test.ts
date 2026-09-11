@@ -77,4 +77,15 @@ describe('flattenUpcoming', () => {
     });
     expect(flat.map((c) => c.remoteId)).toEqual(['1', '2', '3']);
   });
+
+  it('tolerates a group list served as an array of {title, cards}', () => {
+    const flat = flattenUpcoming({
+      overdue: [{ id: 1, title: 'a' }],
+    } as never);
+    expect(flat).toHaveLength(1);
+  });
+
+  it('returns nothing rather than throwing when a group is not an array', () => {
+    expect(flattenUpcoming({ overdue: null, today: undefined } as never)).toEqual([]);
+  });
 });

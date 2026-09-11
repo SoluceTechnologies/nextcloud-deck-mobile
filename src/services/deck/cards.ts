@@ -195,13 +195,23 @@ export async function removeDependentCard(
   });
 }
 
-export async function cloneCard(account: DeckAccount, cardRemoteId: string): Promise<void> {
-  await deckRequest(account, {
+/**
+ * The `clone` route is unconfirmed to reply inside an OCS envelope (§4,
+ * docs/v0/api-verification.md) — `unwrap` already returns a bare body as-is
+ * when there is no `ocs` key, so this reads `data.id` without caring which
+ * shape arrived.
+ */
+export async function cloneCard(
+  account: DeckAccount,
+  cardRemoteId: string,
+): Promise<{ remoteId: string }> {
+  const result = await deckRequest<Record<string, any>>(account, {
     path: `/cards/${cardRemoteId}/clone`,
     api: 'ocs',
     method: 'POST',
     context: 'cloneCard',
   });
+  return { remoteId: String((result.data ?? {}).id) };
 }
 
 export async function createLabel(

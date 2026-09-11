@@ -180,6 +180,16 @@ describe('dependencies and clone use the OCS API', () => {
       'https://cloud.example.com/ocs/v2.php/apps/deck/api/v1.1/cards/42/clone',
     );
   });
+
+  it('reads a clone response that arrives inside an OCS envelope', async () => {
+    mockFetch.mockResolvedValue(ok({ ocs: { data: { id: 42 } } }));
+    await expect(cloneCard(account, '42')).resolves.toMatchObject({ remoteId: '42' });
+  });
+
+  it('reads a clone response that arrives bare', async () => {
+    mockFetch.mockResolvedValue(ok({ id: 42 }));
+    await expect(cloneCard(account, '42')).resolves.toMatchObject({ remoteId: '42' });
+  });
 });
 
 describe('deleteCard', () => {
