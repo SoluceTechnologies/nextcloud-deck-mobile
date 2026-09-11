@@ -116,11 +116,17 @@ export async function syncBoardContent({
       const ops: Model[] = [];
       const stackCtx = { accountId: account.id, boardLocalId };
 
+      // Filter out stacks awaiting their first push: they carry remoteId = '' until the create
+      // flushes to the server, but they cannot match any remote stack and are already protected
+      // by the outbox. Passing them to reconcile would risk marking them deleted if another
+      // offline stack collides on that empty key.
+      const syncedStackRows = stackRows.filter((r) => r.remoteId);
+
       // Stacks always come back whole, even on a delta call, so this pass is
       // always authoritative for the stack set.
       const stackPlan = reconcile({
         remote: remoteStacks,
-        rows: stackRows,
+        rows: syncedStackRows,
         remoteKey: (s) => s.remoteId,
         rowKey: (r) => r.remoteId,
         unchanged: (row, remote) => stackUnchanged(row, remote, boardLocalId),

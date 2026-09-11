@@ -162,6 +162,27 @@ describe('syncBoardContent', () => {
     expect((batch as any).mock.calls[0][0]).toEqual([{ _op: 'delete', _tag: 'stacks' }]);
   });
 
+  // The stack reconcile is authoritative (`deleteMissing: true`), so a stack
+  // created offline — remoteId = '' until its createStack flushes — matches no
+  // remote stack and would be marked deleted before it is ever pushed. Two of
+  // them also collide on that empty key, which `reconcile` dedups unconditionally.
+  it('does not delete stacks created offline that have not been pushed yet', async () => {
+    mockFetchStacks.mockResolvedValue([stack([])]);
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      stacks: [
+        makeRow('stacks', { id: 'stacks-1', boardId: 'b-local', remoteId: '5', title: 'Doing', order: 0, lastModified: 4000 }),
+        makeRow('stacks', { id: 'stacks-2', boardId: 'b-local', remoteId: '' }),
+        makeRow('stacks', { id: 'stacks-3', boardId: 'b-local', remoteId: '' }),
+      ],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'delete' && o._tag === 'stacks')).toEqual([]);
+  });
+
   it('keeps a card missing from a delta response', async () => {
     mockFetchStacks.mockResolvedValue([stack([])]);
     const { db, batch } = makeDb({
