@@ -6,7 +6,7 @@ import { Paperclip, MessageCircle } from 'lucide-react-native';
 import dayjs from 'dayjs';
 
 import type Card from '@/database/models/Card';
-import { AnimatedPressable, Avatar, Chip, Typography } from '@/ui/components';
+import { AnimatedPressable, Avatar, Typography } from '@/ui/components';
 
 export type CardTileData = {
   card: Card;
@@ -14,10 +14,12 @@ export type CardTileData = {
   assignees: { participant: string; displayName: string }[];
 };
 
+type CardTileProps = { data: CardTileData; onPress: () => void };
+
 const MAX_AVATARS = 3;
 const AVATAR_SIZE = 22;
 
-function CardTileImpl({ data, onPress }: { data: CardTileData; onPress: () => void }) {
+function CardTileImpl({ data, onPress }: CardTileProps) {
   const { t } = useTranslation();
   const { colors, radius } = useTheme();
   const { card, labels, assignees } = data;
@@ -48,14 +50,21 @@ function CardTileImpl({ data, onPress }: { data: CardTileData; onPress: () => vo
         {labels.length > 0 ? (
           <View style={styles.chipsRow}>
             {labels.map((label) => (
-              <Chip
+              <View
                 key={label.id}
-                small
-                active={Boolean(label.color)}
-                activeColor={label.color ?? undefined}
+                testID={`label-chip-${label.id}`}
+                style={[
+                  styles.labelChip,
+                  { borderRadius: radius.sm },
+                  label.color
+                    ? { backgroundColor: `${label.color}26`, borderColor: 'transparent' }
+                    : { backgroundColor: 'transparent', borderColor: colors.border },
+                ]}
               >
-                {label.title}
-              </Chip>
+                <Typography variant="caption" color={label.color ? 'text' : 'secondary'} numberOfLines={1}>
+                  {label.title}
+                </Typography>
+              </View>
             ))}
           </View>
         ) : null}
@@ -125,6 +134,7 @@ const styles = StyleSheet.create({
   edge: { width: 4, alignSelf: 'stretch' },
   body: { flex: 1, padding: 10, gap: 6 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  labelChip: { paddingHorizontal: 11, paddingVertical: 5, borderWidth: 1 },
   avatarsRow: { flexDirection: 'row' },
   avatarWrap: { borderRadius: AVATAR_SIZE, borderWidth: 2 },
   avatarOverlap: { marginLeft: -8 },
@@ -134,6 +144,43 @@ const styles = StyleSheet.create({
   counter: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
 
-// A column re-renders on every observed change; a tile whose data did not
-// change must not re-render (spec §10).
-export const CardTile = React.memo(CardTileImpl);
+function sameLabels(a: CardTileData['labels'], b: CardTileData['labels']) {
+  if (a.length !== b.length) return false;
+  return a.every((label, i) => label.id === b[i].id && label.title === b[i].title && label.color === b[i].color);
+}
+
+function sameAssignees(a: CardTileData['assignees'], b: CardTileData['assignees']) {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (assignee, i) => assignee.participant === b[i].participant && assignee.displayName === b[i].displayName,
+  );
+}
+
+// A column re-renders on every observed change and rebuilds `data` fresh each
+// time, so a default shallow compare on { data, onPress } never bails — it's a
+// no-op. Comparing by identity or by `lastModified` isn't a fix either:
+// WatermelonDB keeps one JS instance per row (its identity map), and an
+// optimistic local write mutates that same instance in place without bumping
+// `lastModified`, so both checks would miss a real change too. Compare the
+// primitives this tile actually renders instead (spec §10).
+function areEqual(prev: CardTileProps, next: CardTileProps) {
+  if (prev.onPress !== next.onPress) return false;
+
+  const a = prev.data.card;
+  const b = next.data.card;
+  if (
+    a.id !== b.id ||
+    a.title !== b.title ||
+    (a.color ?? null) !== (b.color ?? null) ||
+    (a.duedate ?? null) !== (b.duedate ?? null) ||
+    (a.doneAt ?? null) !== (b.doneAt ?? null) ||
+    a.attachmentCount !== b.attachmentCount ||
+    a.commentsCount !== b.commentsCount
+  ) {
+    return false;
+  }
+
+  return sameLabels(prev.data.labels, next.data.labels) && sameAssignees(prev.data.assignees, next.data.assignees);
+}
+
+export const CardTile = React.memo(CardTileImpl, areEqual);
