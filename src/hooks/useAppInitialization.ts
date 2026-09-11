@@ -83,7 +83,21 @@ export function useAppInitialization() {
             });
           void fetchCapabilities(activeAccount)
             .then((caps) => {
-              if (mounted && caps) setCapabilities(caps, activeAccount.id);
+              // The probe is fired without being awaited, so the app is already
+              // interactive and the user can already have switched accounts by
+              // the time it resolves. A verdict for an account that is no
+              // longer active says nothing about the one that is now — writing
+              // it anyway would clobber that account's own (possibly already
+              // correct) verdict and revert its Deck-availability gate to
+              // 'unknown'. Unlike useCapabilitiesSync's effect, boot has no
+              // per-account cleanup to cancel this, so the write checks itself.
+              if (
+                mounted &&
+                caps &&
+                useAccountStore.getState().activeAccountId === activeAccount.id
+              ) {
+                setCapabilities(caps, activeAccount.id);
+              }
             })
             .catch((e) => {
               console.warn('[useAppInitialization] fetchCapabilities failed:', String(e));
