@@ -104,7 +104,7 @@ it('shows the board and list as the identity subtitle', () => {
 it('says the card is gone rather than rendering a stale one', () => {
   const { useCard } = require('../../src/database/hooks/useCard');
   (useCard as jest.Mock).mockReturnValue(null);
-  render(<CardDetailScreen />, { wrapper: ThemeWrapper });
+  renderScreen();
 
   expect(screen.getByText('card.deleted')).toBeTruthy();
   expect(screen.queryByText('card.markDone')).toBeNull();
