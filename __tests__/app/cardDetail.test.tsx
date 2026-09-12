@@ -144,3 +144,21 @@ it('does not commit when the title is unchanged', () => {
   fireEvent(screen.getByTestId('card-title-input'), 'blur');
   expect(patch).not.toHaveBeenCalled();
 });
+
+// A remote rename landing while the field is focused must not be reverted by
+// an untouched blur: the reseed effect skips while focused, so `value` still
+// holds the pre-rename title, and only a real edit may commit.
+it('does not revert a remote rename on an untouched blur after a focused pull', () => {
+  const { patch } = requireCardActionsMock();
+  mockCard({ title: 'Old' });
+  const { rerender } = renderScreen();
+
+  fireEvent(screen.getByTestId('card-title-input'), 'focus');
+
+  mockCard({ title: 'New' });
+  rerender(<CardDetailScreen />);
+
+  fireEvent(screen.getByTestId('card-title-input'), 'blur');
+
+  expect(patch).not.toHaveBeenCalled();
+});

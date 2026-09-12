@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { TextField, Typography } from '@/ui/components';
@@ -19,17 +19,20 @@ interface CardIdentityProps {
 export function CardIdentity({ title, boardTitle, stackTitle, onChangeTitle }: CardIdentityProps) {
   const [value, setValue] = useState(title);
   const [focused, setFocused] = useState(false);
+  // Whether the user typed since the last reseed — a blur must only commit a
+  // real edit, never the stale `value` a focused reseed skipped over (e.g. a
+  // remote rename landing mid-focus, then an untouched blur).
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
-    if (!focused) setValue(title);
+    if (!focused) {
+      setValue(title);
+      dirtyRef.current = false;
+    }
   }, [title, focused]);
 
-  // ponytail: this compares the last-typed value against the freshest
-  // `title`, not "did the user actually type anything" — a remote rename
-  // landing while the field is focused, followed by an untouched blur, would
-  // re-send the pre-rename title. Narrow window, title-only; add a
-  // dirty-tracking ref if it proves to matter in practice.
   const commit = () => {
+    if (!dirtyRef.current) return;
     const trimmed = value.trim();
     if (trimmed && trimmed !== title) onChangeTitle(trimmed);
   };
@@ -39,7 +42,10 @@ export function CardIdentity({ title, boardTitle, stackTitle, onChangeTitle }: C
       <TextField
         testID="card-title-input"
         value={value}
-        onChangeText={setValue}
+        onChangeText={(text) => {
+          dirtyRef.current = true;
+          setValue(text);
+        }}
         onFocus={() => setFocused(true)}
         onBlur={() => {
           setFocused(false);
