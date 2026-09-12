@@ -24,6 +24,11 @@ export function CardIdentity({ title, boardTitle, stackTitle, onChangeTitle }: C
     if (!focused) setValue(title);
   }, [title, focused]);
 
+  // ponytail: this compares the last-typed value against the freshest
+  // `title`, not "did the user actually type anything" — a remote rename
+  // landing while the field is focused, followed by an untouched blur, would
+  // re-send the pre-rename title. Narrow window, title-only; add a
+  // dirty-tracking ref if it proves to matter in practice.
   const commit = () => {
     const trimmed = value.trim();
     if (trimmed && trimmed !== title) onChangeTitle(trimmed);
