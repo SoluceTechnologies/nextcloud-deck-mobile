@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -41,27 +41,40 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
   const [stage, setStage] = useState<Stage>('closed');
   const [draftDate, setDraftDate] = useState<Date | null>(null);
 
-  const close = () => {
-    setStage('closed');
-    setDraftDate(null);
-  };
+  // The screen that renders this row passes a fresh inline `onChange` on every
+  // re-render (theme/navigation/sibling state changes, unrelated to this row).
+  // Android's native picker re-opens itself whenever the `onChange` it was
+  // given changes identity (see datetimepicker.android.js's `showOrUpdatePicker`
+  // effect), so `handleChange` must NOT change identity for that reason. Reading
+  // the latest `onChange` through a ref lets `handleChange` depend only on the
+  // picker's own stage/draftDate below.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
-  const handleChange = (event: DateTimePickerEvent, picked?: Date) => {
-    if (event.type === 'dismissed' || !picked) {
+  const handleChange = useCallback(
+    (event: DateTimePickerEvent, picked?: Date) => {
+      const close = () => {
+        setStage('closed');
+        setDraftDate(null);
+      };
+
+      if (event.type === 'dismissed' || !picked) {
+        close();
+        return;
+      }
+
+      if (Platform.OS === 'android' && stage === 'date') {
+        setDraftDate(picked);
+        setStage('time');
+        return;
+      }
+
+      const chosen = Platform.OS === 'android' && stage === 'time' && draftDate ? combine(draftDate, picked) : picked;
+      onChangeRef.current(chosen.getTime());
       close();
-      return;
-    }
-
-    if (Platform.OS === 'android' && stage === 'date') {
-      setDraftDate(picked);
-      setStage('time');
-      return;
-    }
-
-    const chosen = Platform.OS === 'android' && stage === 'time' && draftDate ? combine(draftDate, picked) : picked;
-    onChange(chosen.getTime());
-    close();
-  };
+    },
+    [stage, draftDate],
+  );
 
   const description = value === null ? emptyLabel : dayjs(value).format('llll');
 
@@ -84,7 +97,11 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
         onPress={() => setStage('date')}
         trailing={
           value !== null ? (
-            <IconButton testID="date-clear" accessibilityLabel={t('common.clear')} onPress={() => onChange(null)}>
+            <IconButton
+              testID="date-clear"
+              accessibilityLabel={t('common.clear')}
+              onPress={() => onChangeRef.current(null)}
+            >
               <X size={18} color={colors.textTertiary} />
             </IconButton>
           ) : undefined
