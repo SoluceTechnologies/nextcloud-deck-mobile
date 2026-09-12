@@ -31,7 +31,7 @@ jest.mock('../../src/features/board/hooks/useCardActions', () => ({
 
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({ t: (k: string, o?: any) => (o?.count != null ? `${k}:${o.count}` : k) }),
 }));
 
 // SafeAreaView reads insets from context — same fix already used across the
@@ -75,6 +75,14 @@ function mockCard(over: any = {}) {
 
 function requireCardActionsMock() {
   return mockCardActions;
+}
+
+// Calendar days back from right now, so this stays 7 days overdue in
+// dueStateOf's local-day arithmetic regardless of DST (see CardTile.test.tsx).
+function daysAgo(n: number): number {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.getTime();
 }
 
 const renderScreen = () => render(<CardDetailScreen />, { wrapper: ThemeWrapper });
@@ -161,4 +169,29 @@ it('does not revert a remote rename on an untouched blur after a focused pull', 
   fireEvent(screen.getByTestId('card-title-input'), 'blur');
 
   expect(patch).not.toHaveBeenCalled();
+});
+
+it('toggles done through the card actions', () => {
+  const { setDone } = requireCardActionsMock();
+  renderScreen();
+  fireEvent.press(screen.getByText('card.markDone'));
+  expect(setDone).toHaveBeenCalledWith(expect.anything(), true);
+});
+
+it('offers to un-mark a card that is already done', () => {
+  mockCard({ doneAt: 1757000000000 });
+  renderScreen();
+  expect(screen.getByText('card.markNotDone')).toBeTruthy();
+});
+
+it('shows the overdue line for a late card', () => {
+  mockCard({ duedate: daysAgo(7), doneAt: null });
+  renderScreen();
+  expect(screen.getByText(/card.overdue/)).toBeTruthy();
+});
+
+it('shows no overdue line once the card is done', () => {
+  mockCard({ duedate: daysAgo(7), doneAt: Date.now() });
+  renderScreen();
+  expect(screen.queryByText(/card.overdue/)).toBeNull();
 });

@@ -4,6 +4,7 @@
     "cancel": "Anullar",
     "remove": "Suprimir",
     "close": "Tampar",
+    "clear": "Escafar",
     "errorPermission": "Permission refusada. Aqueste calendari es en lectura sola o partejat sens drech d'escritura.",
     "errorNetwork": "Error de ret. Verificatz la connexion e tornatz ensajar.",
     "errorGeneric": "Quicòm s'es mal passat. Tornatz ensajar.",

@@ -4,6 +4,7 @@
     "cancel": "Annulla",
     "remove": "Rimuovi",
     "close": "Chiudi",
+    "clear": "Cancella",
     "errorPermission": "Autorizzazione negata. Questo calendario è di sola lettura o condiviso senza accesso in scrittura.",
     "errorNetwork": "Errore di rete. Controlla la connessione e riprova.",
     "errorGeneric": "Qualcosa è andato storto. Riprova.",

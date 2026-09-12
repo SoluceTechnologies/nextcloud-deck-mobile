@@ -4,6 +4,7 @@
     "cancel": "Cancelar",
     "remove": "Remover",
     "close": "Fechar",
+    "clear": "Limpar",
     "errorPermission": "Permissão negada. Este calendário é só de leitura ou foi partilhado sem acesso de escrita.",
     "errorNetwork": "Erro de rede. Verifique a sua ligação e tente novamente.",
     "errorGeneric": "Algo correu mal. Tente novamente.",

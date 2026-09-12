@@ -4,6 +4,7 @@
     "cancel": "Cancel",
     "remove": "Remove",
     "close": "Close",
+    "clear": "Clear",
     "errorPermission": "Permission denied. This calendar is read-only or shared without write access.",
     "errorNetwork": "Network error. Check your connection and try again.",
     "errorGeneric": "Something went wrong. Please try again.",

@@ -4,6 +4,7 @@
     "cancel": "Annuleren",
     "remove": "Verwijderen",
     "close": "Sluiten",
+    "clear": "Wissen",
     "errorPermission": "Toegang geweigerd. Deze agenda is alleen-lezen of gedeeld zonder schrijfrechten.",
     "errorNetwork": "Netwerkfout. Controleer je verbinding en probeer het opnieuw.",
     "errorGeneric": "Er is iets misgegaan. Probeer het opnieuw.",

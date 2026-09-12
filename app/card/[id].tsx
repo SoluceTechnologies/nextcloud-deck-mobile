@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react-native';
+import { Circle, CircleCheck, X } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useCard } from '@/database/hooks/useCard';
@@ -10,7 +10,9 @@ import { useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
-import { IconButton, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
+import { DateRow } from '@/features/card/components/DateRow';
+import { dueStateOf } from '@/features/card/dueState';
+import { Icon, IconButton, Item, List, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,6 +57,12 @@ export default function CardDetailScreen() {
   const board = boards.find((b) => b.id === card.boardId);
   const stack = stacks.find((s) => s.id === card.stackId);
 
+  const dueState = dueStateOf(card.duedate ?? null, card.doneAt ?? null, Date.now());
+  const overdueLine =
+    dueState.kind === 'overdue'
+      ? `${t('card.needsAttention')} · ${t('card.overdue', { count: dueState.days })}`
+      : undefined;
+
   return (
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
@@ -66,7 +74,30 @@ export default function CardDetailScreen() {
             stackTitle={stack?.title ?? ''}
             onChangeTitle={(title) => void cardActions.patch(card, { title }).catch(() => undefined)}
           />
-          <View testID="card-sections" />
+          <View testID="card-sections">
+            <List>
+              <Item
+                title={t(card.doneAt ? 'card.markNotDone' : 'card.markDone')}
+                leading={
+                  <Icon color={colors.primary}>{card.doneAt ? <CircleCheck /> : <Circle />}</Icon>
+                }
+                onPress={() => void cardActions.setDone(card, !card.doneAt).catch(() => undefined)}
+              />
+              <DateRow
+                label={t('card.startDate')}
+                emptyLabel={t('card.noStartDate')}
+                value={card.startdate ?? null}
+                onChange={(v) => void cardActions.patch(card, { startdate: v }).catch(() => undefined)}
+              />
+              <DateRow
+                label={t('card.dueDate')}
+                emptyLabel={t('card.noDueDate')}
+                value={card.duedate ?? null}
+                overdueLine={overdueLine}
+                onChange={(v) => void cardActions.patch(card, { duedate: v }).catch(() => undefined)}
+              />
+            </List>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </ViewContainer>

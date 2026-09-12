@@ -4,6 +4,7 @@
     "cancel": "Cancelar",
     "remove": "Eliminar",
     "close": "Cerrar",
+    "clear": "Borrar",
     "errorPermission": "Permiso denegado. Este calendario es de solo lectura o está compartido sin acceso de escritura.",
     "errorNetwork": "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
     "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",

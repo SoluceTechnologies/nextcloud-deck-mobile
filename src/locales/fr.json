@@ -4,6 +4,7 @@
     "cancel": "Annuler",
     "remove": "Supprimer",
     "close": "Fermer",
+    "clear": "Effacer",
     "errorPermission": "Autorisation refusée. Cet agenda est en lecture seule ou partagé sans accès en écriture.",
     "errorNetwork": "Erreur réseau. Vérifiez votre connexion et réessayez.",
     "errorGeneric": "Une erreur s'est produite. Veuillez réessayer.",

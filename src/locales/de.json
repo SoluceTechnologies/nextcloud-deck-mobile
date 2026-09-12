@@ -4,6 +4,7 @@
     "cancel": "Abbrechen",
     "remove": "Entfernen",
     "close": "Schließen",
+    "clear": "Löschen",
     "errorPermission": "Zugriff verweigert. Dieser Kalender ist schreibgeschützt oder ohne Schreibzugriff freigegeben.",
     "errorNetwork": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "errorGeneric": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
