@@ -1,10 +1,4 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
-// Pulls in the ambient `toHaveAccessibilityState` matcher type — the runtime
-// matcher is already global via jest.config's setupFilesAfterEnv, but tsc's
-// program only sees jest-native's global type augmentation for files that
-// actually import it.
-import '@testing-library/jest-native/extend-expect';
-
 import { ThemeWrapper } from '../../helpers/theme';
 import { ColorSheet, DECK_PALETTE } from '../../../src/features/card/components/ColorSheet';
 import { normalizeColor, denormalizeColor } from '../../../src/services/deck/normalize';
