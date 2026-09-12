@@ -202,6 +202,16 @@ export function useCardActions(accountId: string | null): CardActions {
     const addLabel: CardActions['addLabel'] = async (card, labelLocalId) => {
       if (!accountId) return;
 
+      const [existing] = await db
+        .get<CardLabel>('card_labels')
+        .query(
+          Q.where('account_id', accountId),
+          Q.where('card_id', card.id),
+          Q.where('label_id', labelLocalId),
+        )
+        .fetch();
+      if (existing) return;
+
       await mutate({
         db,
         accountId,
@@ -218,10 +228,10 @@ export function useCardActions(accountId: string | null): CardActions {
     const removeLabel: CardActions['removeLabel'] = async (card, labelLocalId) => {
       if (!accountId) return;
 
-      // The join row carries no id the intent can reuse — find it before mutate,
+      // The join rows carry no ids the intent can reuse — find them before mutate,
       // since prepareMarkAsDeleted is the only call that may run inside applyLocal.
       // Nothing to un-assign locally means nothing to tell the server either.
-      const [join] = await db
+      const joins = await db
         .get<CardLabel>('card_labels')
         .query(
           Q.where('account_id', accountId),
@@ -229,13 +239,13 @@ export function useCardActions(accountId: string | null): CardActions {
           Q.where('label_id', labelLocalId),
         )
         .fetch();
-      if (!join) return;
+      if (!joins.length) return;
 
       await mutate({
         db,
         accountId,
         intent: { kind: 'removeLabel', cardId: card.id, labelId: labelLocalId },
-        applyLocal: () => join.prepareMarkAsDeleted(),
+        applyLocal: () => joins.map((j) => j.prepareMarkAsDeleted()),
       });
     };
 

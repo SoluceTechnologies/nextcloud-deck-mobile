@@ -239,6 +239,17 @@ it('enqueues assignLabel and writes the join optimistically', async () => {
   expect(prepareCreate).toHaveBeenCalled();
 });
 
+it('does not create a duplicate join when the label is already assigned', async () => {
+  const card: any = { id: 'c1' };
+  queryResult = [{ id: 'join-existing' }];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.addLabel(card, 'l1'));
+
+  expect(mutate).not.toHaveBeenCalled();
+  expect(prepareCreate).not.toHaveBeenCalled();
+});
+
 it('enqueues removeLabel and deletes the join optimistically', async () => {
   const card: any = { id: 'c1' };
   const markDeleted = jest.fn(() => ({ op: 'delete' }));
@@ -263,6 +274,28 @@ it('does nothing when there is no join row to remove', async () => {
   await act(() => result.current.removeLabel(card, 'l1'));
 
   expect(mutate).not.toHaveBeenCalled();
+});
+
+it('deletes all duplicate join rows when removing a label', async () => {
+  const card: any = { id: 'c1' };
+  const markDeleted1 = jest.fn(() => ({ op: 'delete' }));
+  const markDeleted2 = jest.fn(() => ({ op: 'delete' }));
+  queryResult = [
+    { id: 'join-1', prepareMarkAsDeleted: markDeleted1 },
+    { id: 'join-2', prepareMarkAsDeleted: markDeleted2 },
+  ];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.removeLabel(card, 'l1'));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent.kind).toBe('removeLabel');
+
+  const result_array = await call.applyLocal();
+  expect(markDeleted1).toHaveBeenCalled();
+  expect(markDeleted2).toHaveBeenCalled();
+  expect(result_array).toHaveLength(2);
 });
 
 // A label created offline has no remote id; the join intent must wait for it.
