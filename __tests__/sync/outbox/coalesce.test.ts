@@ -126,4 +126,21 @@ describe('coalesceIntents', () => {
     ];
     expect(coalesceIntents(entries).send.map((s) => s.id)).toEqual(['1', '2', '3']);
   });
+
+  it('collapses an add then remove dependency of the same dependent card to the removal', () => {
+    const result = coalesceIntents([
+      e('1', { kind: 'addDependency', cardId: 'c1', dependentCardRemoteId: 'd1' }),
+      e('2', { kind: 'removeDependency', cardId: 'c1', dependentCardRemoteId: 'd1' }),
+    ]);
+    expect(result.drop).toEqual(['1']);
+    expect(result.send.map((s) => s.id)).toEqual(['2']);
+  });
+
+  it('keeps dependency operations on different dependent cards', () => {
+    const entries = [
+      e('1', { kind: 'addDependency', cardId: 'c1', dependentCardRemoteId: 'd1' }),
+      e('2', { kind: 'addDependency', cardId: 'c1', dependentCardRemoteId: 'd2' }),
+    ];
+    expect(coalesceIntents(entries).send.map((s) => s.id)).toEqual(['1', '2']);
+  });
 });

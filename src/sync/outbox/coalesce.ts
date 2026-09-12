@@ -60,6 +60,9 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
       case 'assignUser':
       case 'unassignUser':
         return `user:${intent.participant}|${intent.assigneeType}`;
+      case 'addDependency':
+      case 'removeDependency':
+        return `dep:${intent.dependentCardRemoteId}`;
       default:
         return null;
     }
