@@ -230,6 +230,11 @@
     "listTitle": "List name",
     "emptyList": "No cards",
     "cardCount_one": "{{count}} card",
-    "cardCount_other": "{{count}} cards"
+    "cardCount_other": "{{count}} cards",
+    "form": {
+      "newTitle": "New list",
+      "renameTitle": "Rename list",
+      "save": "Save"
+    }
   }
 }

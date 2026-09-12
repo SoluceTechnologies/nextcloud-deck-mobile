@@ -1,0 +1,184 @@
+import { Q } from '@nozbe/watermelondb';
+import { useMemo } from 'react';
+
+import { useDatabase } from '@/database/DatabaseProvider';
+import type Board from '@/database/models/Board';
+import type Card from '@/database/models/Card';
+import type Stack from '@/database/models/Stack';
+import type { CardFieldName } from '@/database/writers';
+import { mutate } from '@/sync/outbox/enqueue';
+
+export type CardPatch = {
+  title: string;
+  description: string;
+  duedate: number | null;
+  startdate: number | null;
+  doneAt: number | null;
+  color: string | null;
+};
+
+export type CardActions = {
+  create(input: { boardLocalId: string; stackLocalId: string; title: string }): Promise<void>;
+  setDone(card: Card, done: boolean): Promise<void>;
+  patch(card: Card, fields: Partial<CardPatch>): Promise<void>;
+  setArchived(card: Card, archived: boolean): Promise<void>;
+  remove(card: Card): Promise<void>;
+  move(card: Card, toStackLocalId: string, order: number): Promise<void>;
+  clone(card: Card): Promise<void>;
+};
+
+/**
+ * The single card write surface for the whole app: every screen that changes a card
+ * goes through here, so every mutation reaches the outbox the same way and
+ * `protectedFieldsOf` (src/sync/outbox/enqueue.ts) always sees an accurate `fields`
+ * list. Each action is a no-op without an account — there is nowhere to file the
+ * intent, and enqueuing one anyway would orphan it.
+ */
+export function useCardActions(accountId: string | null): CardActions {
+  const db = useDatabase();
+
+  return useMemo<CardActions>(() => {
+    const create: CardActions['create'] = async ({ boardLocalId, stackLocalId, title }) => {
+      if (!accountId) return;
+
+      const siblings = await db
+        .get<Card>('cards')
+        .query(Q.where('account_id', accountId), Q.where('stack_id', stackLocalId))
+        .fetch();
+      const order = siblings.reduce((max, row) => Math.max(max, row.order), -1) + 1;
+
+      // Synchronous: WatermelonDB assigns the row's id before prepareCreate returns,
+      // which is why the intent below can carry it immediately.
+      const row = db.get<Card>('cards').prepareCreate((r) => {
+        r.accountId = accountId;
+        r.boardId = boardLocalId;
+        r.stackId = stackLocalId;
+        r.remoteId = ''; // Findable offline, before the server has assigned one.
+        r.title = title;
+        r.description = '';
+        r.type = 'plain';
+        r.order = order;
+        r.owner = '';
+        r.archived = false;
+        r.createdAt = Date.now();
+        r.lastModified = 0;
+        r.attachmentCount = 0;
+        r.commentsCount = 0;
+        r.dependentCardsJson = '[]';
+        r.pending = true; // Not yet synced — the board shows it as such.
+      });
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'createCard', cardId: row.id },
+        applyLocal: () => row,
+      });
+    };
+
+    // The single patch path every field-level edit funnels through: `fields` becomes
+    // `intent.fields`, which is what protects these exact columns from a sync overwrite
+    // (protectedFieldsOf) and what the conflict check compares against `intent.base`. So
+    // `base` must be read here, before `prepareUpdate` changes the row, in the same
+    // representation `serverValuesOf` uses (`null` for absent, never `undefined`).
+    const patch: CardActions['patch'] = async (card, fields) => {
+      if (!accountId) return;
+
+      const keys = Object.keys(fields) as (keyof CardPatch)[];
+      const base: Record<string, unknown> = {};
+      for (const key of keys) base[key] = card[key] ?? null;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'patchCard', cardId: card.id, fields: keys as CardFieldName[], base },
+        applyLocal: () =>
+          card.prepareUpdate((r: Card) => {
+            // Nullable columns are optional (`number | undefined`), so a patch clearing
+            // one writes `undefined`, not `null` — matches writeCardRow's convention.
+            // A generic key can't type-check as an assignment target field-by-field
+            // (TS can't prove the value matches every possible branch), same reason
+            // writers.ts reads/writes rows through an untyped `Row`.
+            const row = r as unknown as Record<string, unknown>;
+            for (const key of keys) row[key] = fields[key] ?? undefined;
+          }),
+      });
+    };
+
+    // doneAt is a timestamp, not a boolean — the column records *when*, not just *whether*.
+    const setDone: CardActions['setDone'] = (card, done) =>
+      patch(card, { doneAt: done ? Date.now() : null });
+
+    const setArchived: CardActions['setArchived'] = async (card, archived) => {
+      if (!accountId) return;
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'setCardArchived', cardId: card.id, archived },
+        applyLocal: () =>
+          card.prepareUpdate((r: Card) => {
+            r.archived = archived;
+          }),
+      });
+    };
+
+    const move: CardActions['move'] = async (card, toStackLocalId, order) => {
+      if (!accountId) return;
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'moveCard', cardId: card.id, toStackId: toStackLocalId, order },
+        applyLocal: () =>
+          card.prepareUpdate((r: Card) => {
+            r.stackId = toStackLocalId;
+            r.order = order;
+          }),
+      });
+    };
+
+    const remove: CardActions['remove'] = async (card) => {
+      if (!accountId) return;
+
+      // The local row is about to be destroyed, so the delete intent must carry the
+      // remote coordinates itself — read before mutate, since prepareMarkAsDeleted is
+      // the only call that may run inside applyLocal.
+      const [board, stack] = await Promise.all([
+        db.get<Board>('boards').find(card.boardId),
+        db.get<Stack>('stacks').find(card.stackId),
+      ]);
+
+      await mutate({
+        db,
+        accountId,
+        // Enqueued even when remoteId is '' (never synced) — coalescing collapses
+        // a create+delete pair for a row that never reached the server.
+        intent: {
+          kind: 'deleteCard',
+          cardId: card.id,
+          ref: {
+            boardRemoteId: board.remoteId,
+            stackRemoteId: stack.remoteId,
+            cardRemoteId: card.remoteId,
+          },
+        },
+        applyLocal: () => card.prepareMarkAsDeleted(),
+      });
+    };
+
+    const clone: CardActions['clone'] = async (card) => {
+      if (!accountId) return;
+      // The copy is server-only (spec §9) — a card that never synced has nothing to
+      // clone, and the menu that offers this action already hides it in that case.
+      if (!card.remoteId) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'cloneCard', cardId: card.id, cardRemoteId: card.remoteId },
+        applyLocal: () => [],
+      });
+    };
+
+    return { create, setDone, patch, setArchived, remove, move, clone };
+  }, [db, accountId]);
+}

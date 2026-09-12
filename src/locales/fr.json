@@ -230,6 +230,11 @@
     "listTitle": "Nom de la liste",
     "emptyList": "Aucune carte",
     "cardCount_one": "{{count}} carte",
-    "cardCount_other": "{{count}} cartes"
+    "cardCount_other": "{{count}} cartes",
+    "form": {
+      "newTitle": "Nouvelle liste",
+      "renameTitle": "Renommer la liste",
+      "save": "Enregistrer"
+    }
   }
 }
