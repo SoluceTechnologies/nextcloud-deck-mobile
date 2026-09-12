@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 
 import type Card from '@/database/models/Card';
 import { AnimatedPressable, Avatar, Typography } from '@/ui/components';
+import { dueStateOf } from '@/features/card/dueState';
 
 export type CardTileCard = {
   id: string;
@@ -50,7 +51,19 @@ function CardTileImpl({ data, onPress }: CardTileProps) {
   const title = card.title || t('card.noTitle');
   const shownAssignees = assignees.slice(0, MAX_AVATARS);
   const overflow = assignees.length - shownAssignees.length;
-  const hasFooter = Boolean(card.duedate) || card.attachmentCount > 0 || card.commentsCount > 0;
+
+  // Date.now() is read once per render, so an overdue count can go stale
+  // across midnight until something else causes this tile to re-render —
+  // acceptable for v0.
+  const dueState = dueStateOf(card.duedate, card.doneAt, Date.now());
+  const dueLabel =
+    dueState.kind === 'overdue' ? t('card.overdue', { count: dueState.days })
+    : dueState.kind === 'today' ? t('card.dueToday')
+    : dueState.kind === 'tomorrow' ? t('card.dueTomorrow')
+    : dueState.kind === 'upcoming' ? t('card.dueOn', { when: dayjs(dueState.at).format('D MMM') })
+    : null;
+
+  const hasFooter = dueLabel != null || card.attachmentCount > 0 || card.commentsCount > 0;
 
   return (
     <AnimatedPressable
@@ -123,9 +136,13 @@ function CardTileImpl({ data, onPress }: CardTileProps) {
 
         {hasFooter ? (
           <View style={styles.footer}>
-            {card.duedate ? (
-              <Typography testID="card-due" variant="caption" color="secondary">
-                {t('card.dueOn', { when: dayjs(card.duedate).format('D MMM') })}
+            {dueLabel != null ? (
+              <Typography
+                testID="card-due"
+                variant="caption"
+                color={dueState.kind === 'overdue' ? 'danger' : 'secondary'}
+              >
+                {dueLabel}
               </Typography>
             ) : null}
             <View style={styles.spacer} />

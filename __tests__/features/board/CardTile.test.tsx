@@ -26,6 +26,14 @@ const data = (over: Partial<any> = {}) => ({
   assignees: over.assignees ?? [],
 });
 
+// Calendar days back from right now, so this stays 7 days overdue in
+// dueStateOf's local-day arithmetic regardless of DST.
+function daysAgo(n: number): number {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.getTime();
+}
+
 it('toCardTileCard normalizes undefined color, duedate, and doneAt to null', () => {
   const model: any = { id: 'c1', title: 'Payer le loyer', attachmentCount: 0, commentsCount: 0 };
   expect(toCardTileCard(model)).toEqual({
@@ -78,6 +86,25 @@ it('shows the counters when there is something to count', () => {
   );
   expect(screen.getByText('2')).toBeTruthy();
   expect(screen.getByText('5')).toBeTruthy();
+});
+
+it('shows the overdue badge with the number of days late', () => {
+  render(
+    <CardTile data={data({ card: { duedate: daysAgo(7) } }) as never} onPress={jest.fn()} />,
+    { wrapper: ThemeWrapper },
+  );
+  expect(screen.getByText('card.overdue:7')).toBeTruthy();
+});
+
+it('shows no due badge for a done card, however overdue', () => {
+  render(
+    <CardTile
+      data={data({ card: { duedate: daysAgo(7), doneAt: Date.now() } }) as never}
+      onPress={jest.fn()}
+    />,
+    { wrapper: ThemeWrapper },
+  );
+  expect(screen.queryByTestId('card-due')).toBeNull();
 });
 
 it('calls onPress when tapped', () => {
