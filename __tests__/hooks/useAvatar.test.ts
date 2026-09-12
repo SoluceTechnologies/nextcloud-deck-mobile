@@ -61,4 +61,29 @@ describe('useAvatar', () => {
     const { result } = renderHook(() => useAvatar(account));
     await waitFor(() => expect(result.current.data).toBeNull());
   });
+
+  // A participant's avatar (Task 18) is not the account owner's — it must fetch
+  // and cache under its own key, so it never collides with or overwrites the
+  // account's own cached avatar.
+  it('fetches and caches a given userId under a per-user key, separate from the account avatar', async () => {
+    ((globalThis as any).fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => 'PNGDATA',
+      headers: { forEach: (cb: (v: string, k: string) => void) => cb('image/png', 'content-type') },
+    });
+
+    const { result } = renderHook(() => useAvatar(account, 'alice'));
+    const expected = `data:image/png;base64,${utf8ToBase64('PNGDATA')}`;
+    await waitFor(() => expect(result.current.data).toBe(expected));
+
+    expect((globalThis as any).fetch).toHaveBeenCalledWith(
+      'https://cloud.example.com/index.php/avatar/alice/96',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: expect.stringMatching(/^Basic /) }),
+      }),
+    );
+    expect(storage.getString('avatar:acc-1:alice')).toBe(expected);
+    expect(storage.getString('avatar:acc-1')).toBeUndefined();
+  });
 });

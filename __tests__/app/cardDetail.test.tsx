@@ -22,6 +22,13 @@ jest.mock('../../src/database/hooks/useBoardContent', () => ({
 jest.mock('../../src/database/hooks/useCardRelations', () => ({
   useBoardLabels: jest.fn(() => []),
   useCardLabels: jest.fn(() => []),
+  useCardAssignees: jest.fn(() => []),
+}));
+
+// The Assignees sheet needs an account to fetch avatars for; the screen tests
+// below only assert the row's subtitle, so a bare null (no fetch) is enough.
+jest.mock('../../src/hooks/useAccounts', () => ({
+  useActiveAccount: jest.fn(() => null),
 }));
 
 const mockCardActions = {
@@ -35,6 +42,8 @@ const mockCardActions = {
   addLabel: jest.fn(() => Promise.resolve()),
   removeLabel: jest.fn(() => Promise.resolve()),
   createLabel: jest.fn(() => Promise.resolve('new-label-id')),
+  assignUser: jest.fn(() => Promise.resolve()),
+  unassignUser: jest.fn(() => Promise.resolve()),
 };
 jest.mock('../../src/features/board/hooks/useCardActions', () => ({
   useCardActions: () => mockCardActions,
@@ -105,8 +114,9 @@ beforeEach(() => {
   // only mockCard() above gets that per-test reseeding for free (it replaces
   // the implementation wholesale). Reseed this one explicitly so a test that
   // overrides it can't leak into the next.
-  const { useCardLabels } = require('../../src/database/hooks/useCardRelations');
+  const { useCardLabels, useCardAssignees } = require('../../src/database/hooks/useCardRelations');
   (useCardLabels as jest.Mock).mockReturnValue([]);
+  (useCardAssignees as jest.Mock).mockReturnValue([]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
@@ -240,6 +250,21 @@ it('lists the card labels as the labels row subtitle', () => {
 it('shows the empty label when the card has no labels', () => {
   renderScreen();
   expect(screen.getByText('card.noLabels')).toBeTruthy();
+});
+
+it('lists the card assignees as the assignees row subtitle', () => {
+  const { useCardAssignees } = require('../../src/database/hooks/useCardRelations');
+  (useCardAssignees as jest.Mock).mockReturnValue([
+    { participant: 'alice', displayName: 'Alice', assigneeType: 0 },
+    { participant: 'devs', displayName: 'Devs', assigneeType: 1 },
+  ]);
+  renderScreen();
+  expect(screen.getByText('Alice, Devs')).toBeTruthy();
+});
+
+it('shows the empty assignees label when the card has no assignees', () => {
+  renderScreen();
+  expect(screen.getByText('card.noAssignees')).toBeTruthy();
 });
 
 it('opens the card menu from the … button', () => {

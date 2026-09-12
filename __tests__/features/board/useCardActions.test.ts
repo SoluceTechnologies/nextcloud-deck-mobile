@@ -298,6 +298,79 @@ it('deletes all duplicate join rows when removing a label', async () => {
   expect(result_array).toHaveLength(2);
 });
 
+const alice = { participant: 'alice', displayName: 'Alice', assigneeType: 0 };
+
+it('enqueues assignUser and writes the row optimistically', async () => {
+  const card: any = { id: 'c1' };
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.assignUser(card, alice));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'assignUser', cardId: 'c1', participant: 'alice', assigneeType: 0 });
+
+  await call.applyLocal();
+  expect(prepareCreate).toHaveBeenCalled();
+});
+
+// A user and a group can share an id, so the check must also match the type —
+// not just the participant id.
+it('does not create a duplicate row when the participant is already assigned', async () => {
+  const card: any = { id: 'c1' };
+  queryResult = [{ id: 'join-existing' }];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.assignUser(card, alice));
+
+  expect(mutate).not.toHaveBeenCalled();
+  expect(prepareCreate).not.toHaveBeenCalled();
+});
+
+it('enqueues unassignUser and deletes the row optimistically', async () => {
+  const card: any = { id: 'c1' };
+  const markDeleted = jest.fn(() => ({ op: 'delete' }));
+  queryResult = [{ id: 'join-1', prepareMarkAsDeleted: markDeleted }];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.unassignUser(card, alice));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'unassignUser', cardId: 'c1', participant: 'alice', assigneeType: 0 });
+
+  await call.applyLocal();
+  expect(markDeleted).toHaveBeenCalled();
+});
+
+// No local row for that participant — nothing to un-assign, and nothing to tell the server.
+it('does nothing when there is no row to unassign', async () => {
+  const card: any = { id: 'c1' };
+  queryResult = [];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.unassignUser(card, alice));
+
+  expect(mutate).not.toHaveBeenCalled();
+});
+
+it('deletes all duplicate rows when unassigning a participant', async () => {
+  const card: any = { id: 'c1' };
+  const markDeleted1 = jest.fn(() => ({ op: 'delete' }));
+  const markDeleted2 = jest.fn(() => ({ op: 'delete' }));
+  queryResult = [
+    { id: 'join-1', prepareMarkAsDeleted: markDeleted1 },
+    { id: 'join-2', prepareMarkAsDeleted: markDeleted2 },
+  ];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.unassignUser(card, alice));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  const result_array = await call.applyLocal();
+  expect(markDeleted1).toHaveBeenCalled();
+  expect(markDeleted2).toHaveBeenCalled();
+  expect(result_array).toHaveLength(2);
+});
+
 // A label created offline has no remote id; the join intent must wait for it.
 it('creates a label with an empty remote id and resolves to its new local id', async () => {
   const { result } = renderHook(() => useCardActions('a1'));

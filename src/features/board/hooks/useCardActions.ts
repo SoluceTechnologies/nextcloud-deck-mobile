@@ -4,10 +4,12 @@ import { useMemo } from 'react';
 import { useDatabase } from '@/database/DatabaseProvider';
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
+import type CardAssignee from '@/database/models/CardAssignee';
 import type CardLabel from '@/database/models/CardLabel';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import type { CardFieldName } from '@/database/writers';
+import type { Participant } from '@/features/card/participants';
 import { mutate } from '@/sync/outbox/enqueue';
 
 export type CardPatch = {
@@ -30,6 +32,8 @@ export type CardActions = {
   addLabel(card: Card, labelLocalId: string): Promise<void>;
   removeLabel(card: Card, labelLocalId: string): Promise<void>;
   createLabel(boardLocalId: string, input: { title: string; color: string | null }): Promise<string | null>;
+  assignUser(card: Card, participant: Participant): Promise<void>;
+  unassignUser(card: Card, participant: Participant): Promise<void>;
 };
 
 /**
@@ -273,6 +277,75 @@ export function useCardActions(accountId: string | null): CardActions {
       return row.id;
     };
 
-    return { create, setDone, patch, setArchived, remove, move, clone, addLabel, removeLabel, createLabel };
+    // A user and a group can share the same participant id — the check (and the
+    // row it creates) must key on id *and* type, same as participantsOf's dedup.
+    const assignUser: CardActions['assignUser'] = async (card, p) => {
+      if (!accountId) return;
+
+      const [existing] = await db
+        .get<CardAssignee>('card_assignees')
+        .query(
+          Q.where('account_id', accountId),
+          Q.where('card_id', card.id),
+          Q.where('participant', p.participant),
+          Q.where('assignee_type', p.assigneeType),
+        )
+        .fetch();
+      if (existing) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'assignUser', cardId: card.id, participant: p.participant, assigneeType: p.assigneeType },
+        applyLocal: () =>
+          db.get<CardAssignee>('card_assignees').prepareCreate((r: CardAssignee) => {
+            r.accountId = accountId;
+            r.cardId = card.id;
+            r.participant = p.participant;
+            r.assigneeType = p.assigneeType;
+            r.displayName = p.displayName;
+          }),
+      });
+    };
+
+    const unassignUser: CardActions['unassignUser'] = async (card, p) => {
+      if (!accountId) return;
+
+      // The join rows carry no ids the intent can reuse — find them before mutate,
+      // since prepareMarkAsDeleted is the only call that may run inside applyLocal.
+      // Nothing to un-assign locally means nothing to tell the server either.
+      const joins = await db
+        .get<CardAssignee>('card_assignees')
+        .query(
+          Q.where('account_id', accountId),
+          Q.where('card_id', card.id),
+          Q.where('participant', p.participant),
+          Q.where('assignee_type', p.assigneeType),
+        )
+        .fetch();
+      if (!joins.length) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'unassignUser', cardId: card.id, participant: p.participant, assigneeType: p.assigneeType },
+        applyLocal: () => joins.map((j) => j.prepareMarkAsDeleted()),
+      });
+    };
+
+    return {
+      create,
+      setDone,
+      patch,
+      setArchived,
+      remove,
+      move,
+      clone,
+      addLabel,
+      removeLabel,
+      createLabel,
+      assignUser,
+      unassignUser,
+    };
   }, [db, accountId]);
 }

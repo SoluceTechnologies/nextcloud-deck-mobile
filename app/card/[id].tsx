@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
@@ -6,11 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { Circle, CircleCheck, Ellipsis, X } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
+import { useActiveAccount } from '@/hooks/useAccounts';
 import { useCard } from '@/database/hooks/useCard';
 import { useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
-import { useBoardLabels, useCardLabels } from '@/database/hooks/useCardRelations';
+import { useBoardLabels, useCardAssignees, useCardLabels } from '@/database/hooks/useCardRelations';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
+import { AssigneesSheet } from '@/features/card/components/AssigneesSheet';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
 import { CardMenu } from '@/features/card/components/CardMenu';
 import { CardPickerSheet } from '@/features/card/components/CardPickerSheet';
@@ -18,6 +20,7 @@ import { ColorSheet } from '@/features/card/components/ColorSheet';
 import { DateRow } from '@/features/card/components/DateRow';
 import { LabelsSheet } from '@/features/card/components/LabelsSheet';
 import { dueStateOf } from '@/features/card/dueState';
+import { participantsOf, type Participant } from '@/features/card/participants';
 import { Icon, IconButton, Item, List, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 
 export default function CardDetailScreen() {
@@ -32,11 +35,23 @@ export default function CardDetailScreen() {
   const stacks = useBoardStacks(accountId, card?.boardId ?? null);
   const cardLabels = useCardLabels(accountId, card?.id ?? null);
   const boardLabels = useBoardLabels(accountId, card?.boardId ?? null);
+  const cardAssignees = useCardAssignees(accountId, card?.id ?? null);
+  const activeAccount = useActiveAccount(accountId);
   const cardActions = useCardActions(accountId);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
+  const [assigneesSheetVisible, setAssigneesSheetVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+
+  // Found before the early return below so the hooks that depend on it
+  // (useMemo here) stay unconditional — card can flip to null later if sync
+  // reconciles a server-side delete while this screen is open.
+  const board = boards.find((b) => b.id === card?.boardId);
+  const participants = useMemo(
+    () => (board ? participantsOf(board) : []),
+    [board?.usersJson, board?.aclJson],
+  );
 
   const closeButton = (
     <IconButton
@@ -79,7 +94,6 @@ export default function CardDetailScreen() {
     );
   }
 
-  const board = boards.find((b) => b.id === card.boardId);
   const stack = stacks.find((s) => s.id === card.stackId);
 
   const dueState = dueStateOf(card.duedate ?? null, card.doneAt ?? null, Date.now());
@@ -143,6 +157,15 @@ export default function CardDetailScreen() {
                 }
                 onPress={() => setLabelsSheetVisible(true)}
               />
+              <Item
+                title={t('card.assignees')}
+                description={
+                  cardAssignees.length > 0
+                    ? cardAssignees.map((a) => a.displayName).join(', ')
+                    : t('card.noAssignees')
+                }
+                onPress={() => setAssigneesSheetVisible(true)}
+              />
             </List>
           </View>
         </ScrollView>
@@ -166,6 +189,22 @@ export default function CardDetailScreen() {
             .createLabel(card.boardId, input)
             .then((newId) => (newId ? cardActions.addLabel(card, newId) : undefined))
             .catch(() => undefined)
+        }
+      />
+      <AssigneesSheet
+        visible={assigneesSheetVisible}
+        account={activeAccount}
+        participants={participants}
+        selected={cardAssignees.map(
+          (a): Participant => ({
+            participant: a.participant,
+            displayName: a.displayName,
+            assigneeType: a.assigneeType,
+          }),
+        )}
+        onClose={() => setAssigneesSheetVisible(false)}
+        onToggle={(p, on) =>
+          void (on ? cardActions.assignUser(card, p) : cardActions.unassignUser(card, p)).catch(() => undefined)
         }
       />
       <CardMenu
