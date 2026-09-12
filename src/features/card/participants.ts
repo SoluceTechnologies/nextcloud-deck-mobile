@@ -13,11 +13,13 @@ export function participantKey(p: Participant): string {
 }
 
 /**
- * `board.usersJson`/`aclJson` came off the wire and can be anything after a bad
- * response — a malformed column must contribute nothing rather than take the
- * whole read down with it (spec §7.5.5's local search has no server to retry).
+ * A JSON column can be anything after a bad response — a malformed value must
+ * contribute nothing rather than take the whole read down with it. Shared by
+ * every caller storing a JSON array in a WatermelonDB column: board
+ * `usersJson`/`aclJson` here (spec §7.5.5's local search has no server to
+ * retry) and a card's `dependentCardsJson` (useCardActions, card/[id].tsx).
  */
-function parseArray<T>(json: string): T[] {
+export function parseArray<T>(json: string): T[] {
   try {
     const parsed: unknown = JSON.parse(json);
     return Array.isArray(parsed) ? (parsed as T[]) : [];

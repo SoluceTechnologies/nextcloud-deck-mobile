@@ -9,7 +9,7 @@ import type CardLabel from '@/database/models/CardLabel';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import type { CardFieldName } from '@/database/writers';
-import type { Participant } from '@/features/card/participants';
+import { parseArray, type Participant } from '@/features/card/participants';
 import { mutate } from '@/sync/outbox/enqueue';
 
 export type CardPatch = {
@@ -34,6 +34,8 @@ export type CardActions = {
   createLabel(boardLocalId: string, input: { title: string; color: string | null }): Promise<string | null>;
   assignUser(card: Card, participant: Participant): Promise<void>;
   unassignUser(card: Card, participant: Participant): Promise<void>;
+  addDependency(card: Card, dependentCardRemoteId: string): Promise<void>;
+  removeDependency(card: Card, dependentCardRemoteId: string): Promise<void>;
 };
 
 /**
@@ -333,6 +335,44 @@ export function useCardActions(accountId: string | null): CardActions {
       });
     };
 
+    // dependentCardsJson is a plain string column, not a CardFieldName — it is
+    // never in protectedFieldsOf's switch, so this optimistic write is
+    // unprotected by design: a delta pass landing before the outbox drains
+    // this intent may briefly revert it. Accepted (R38).
+    const addDependency: CardActions['addDependency'] = async (card, dependentCardRemoteId) => {
+      if (!accountId) return;
+
+      const ids = parseArray<string>(card.dependentCardsJson);
+      if (ids.includes(dependentCardRemoteId)) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'addDependency', cardId: card.id, dependentCardRemoteId },
+        applyLocal: () =>
+          card.prepareUpdate((r: Card) => {
+            r.dependentCardsJson = JSON.stringify([...ids, dependentCardRemoteId]);
+          }),
+      });
+    };
+
+    const removeDependency: CardActions['removeDependency'] = async (card, dependentCardRemoteId) => {
+      if (!accountId) return;
+
+      const ids = parseArray<string>(card.dependentCardsJson);
+      if (!ids.includes(dependentCardRemoteId)) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'removeDependency', cardId: card.id, dependentCardRemoteId },
+        applyLocal: () =>
+          card.prepareUpdate((r: Card) => {
+            r.dependentCardsJson = JSON.stringify(ids.filter((id) => id !== dependentCardRemoteId));
+          }),
+      });
+    };
+
     return {
       create,
       setDone,
@@ -346,6 +386,8 @@ export function useCardActions(accountId: string | null): CardActions {
       createLabel,
       assignUser,
       unassignUser,
+      addDependency,
+      removeDependency,
     };
   }, [db, accountId]);
 }

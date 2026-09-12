@@ -8,7 +8,7 @@ import { Circle, CircleCheck, Ellipsis, X } from 'lucide-react-native';
 import { useAccountStore } from '@/stores/accountStore';
 import { useActiveAccount } from '@/hooks/useAccounts';
 import { useCard } from '@/database/hooks/useCard';
-import { useBoards } from '@/database/hooks/useBoards';
+import { useAccountCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
 import { useBoardLabels, useCardAssignees, useCardLabels } from '@/database/hooks/useCardRelations';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
@@ -18,9 +18,10 @@ import { CardMenu } from '@/features/card/components/CardMenu';
 import { CardPickerSheet } from '@/features/card/components/CardPickerSheet';
 import { ColorSheet } from '@/features/card/components/ColorSheet';
 import { DateRow } from '@/features/card/components/DateRow';
+import { DependenciesSheet } from '@/features/card/components/DependenciesSheet';
 import { LabelsSheet } from '@/features/card/components/LabelsSheet';
 import { dueStateOf } from '@/features/card/dueState';
-import { participantsOf, type Participant } from '@/features/card/participants';
+import { parseArray, participantsOf, type Participant } from '@/features/card/participants';
 import { Icon, IconButton, Item, List, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 
 export default function CardDetailScreen() {
@@ -36,13 +37,26 @@ export default function CardDetailScreen() {
   const cardLabels = useCardLabels(accountId, card?.id ?? null);
   const boardLabels = useBoardLabels(accountId, card?.boardId ?? null);
   const cardAssignees = useCardAssignees(accountId, card?.id ?? null);
+  const accountCards = useAccountCards(accountId);
   const activeAccount = useActiveAccount(accountId);
   const cardActions = useCardActions(accountId);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
   const [assigneesSheetVisible, setAssigneesSheetVisible] = useState(false);
+  const [dependenciesSheetVisible, setDependenciesSheetVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+
+  // Resolved against every card of the account so the row can show a title
+  // instead of a bare remote id; a dependency not yet pulled by sync falls
+  // back to "#<id>" rather than disappearing from the list.
+  const dependencies = useMemo(() => {
+    const ids = parseArray<string>(card?.dependentCardsJson ?? '[]');
+    return ids.map((remoteId) => {
+      const match = accountCards.find((c) => c.remoteId === remoteId);
+      return { remoteId, title: match ? match.title : `#${remoteId}` };
+    });
+  }, [card?.dependentCardsJson, accountCards]);
 
   // Found before the early return below so the hooks that depend on it
   // (useMemo here) stay unconditional — card can flip to null later if sync
@@ -166,6 +180,15 @@ export default function CardDetailScreen() {
                 }
                 onPress={() => setAssigneesSheetVisible(true)}
               />
+              <Item
+                title={t('card.dependencies')}
+                description={
+                  dependencies.length > 0
+                    ? dependencies.map((d) => d.title).join(', ')
+                    : t('card.noDependencies')
+                }
+                onPress={() => setDependenciesSheetVisible(true)}
+              />
             </List>
           </View>
         </ScrollView>
@@ -206,6 +229,15 @@ export default function CardDetailScreen() {
         onToggle={(p, on) =>
           void (on ? cardActions.assignUser(card, p) : cardActions.unassignUser(card, p)).catch(() => undefined)
         }
+      />
+      <DependenciesSheet
+        visible={dependenciesSheetVisible}
+        accountId={accountId}
+        cardId={card.id}
+        dependencies={dependencies}
+        onClose={() => setDependenciesSheetVisible(false)}
+        onAdd={(id) => void cardActions.addDependency(card, id).catch(() => undefined)}
+        onRemove={(id) => void cardActions.removeDependency(card, id).catch(() => undefined)}
       />
       <CardMenu
         visible={menuVisible}

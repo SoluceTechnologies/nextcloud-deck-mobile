@@ -13,6 +13,9 @@ jest.mock('../../src/database/hooks/useBoards', () => ({
   useBoards: jest.fn(() => [{ id: 'b1', title: 'Finance & Juridique' }]),
   // The card menu's move picker (CardPickerSheet) reads from this same module.
   useBoardCards: jest.fn(() => []),
+  // The Dependencies row resolves each remote id in card.dependentCardsJson
+  // against this list — kept empty by default, overridden per test.
+  useAccountCards: jest.fn(() => []),
 }));
 
 jest.mock('../../src/database/hooks/useBoardContent', () => ({
@@ -44,6 +47,8 @@ const mockCardActions = {
   createLabel: jest.fn(() => Promise.resolve('new-label-id')),
   assignUser: jest.fn(() => Promise.resolve()),
   unassignUser: jest.fn(() => Promise.resolve()),
+  addDependency: jest.fn(() => Promise.resolve()),
+  removeDependency: jest.fn(() => Promise.resolve()),
 };
 jest.mock('../../src/features/board/hooks/useCardActions', () => ({
   useCardActions: () => mockCardActions,
@@ -117,6 +122,8 @@ beforeEach(() => {
   const { useCardLabels, useCardAssignees } = require('../../src/database/hooks/useCardRelations');
   (useCardLabels as jest.Mock).mockReturnValue([]);
   (useCardAssignees as jest.Mock).mockReturnValue([]);
+  const { useAccountCards } = require('../../src/database/hooks/useBoards');
+  (useAccountCards as jest.Mock).mockReturnValue([]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
@@ -283,4 +290,19 @@ it('archives the card and leaves the screen, rather than stranding the user on a
 
   expect(setArchived).toHaveBeenCalledWith(expect.anything(), true);
   expect(router.back).toHaveBeenCalled();
+});
+
+// Resolves each remote id in dependentCardsJson against useAccountCards; a
+// remote id with no cached card (not yet pulled by sync) falls back to #<id>.
+it('lists the resolved dependency titles as the dependencies row subtitle', () => {
+  mockCard({ dependentCardsJson: JSON.stringify(['9', '42']) });
+  const { useAccountCards } = require('../../src/database/hooks/useBoards');
+  (useAccountCards as jest.Mock).mockReturnValue([{ id: 'c9', remoteId: '9', title: 'Nine' }]);
+  renderScreen();
+  expect(screen.getByText('Nine, #42')).toBeTruthy();
+});
+
+it('shows the empty dependencies label when the card has no dependencies', () => {
+  renderScreen();
+  expect(screen.getByText('card.noDependencies')).toBeTruthy();
 });

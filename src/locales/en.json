@@ -242,6 +242,8 @@
     "typeTwo": "Type at least two characters",
     "dependencies": "Dependencies",
     "noDependencies": "None",
+    "addDependency": "Add a dependency",
+    "dependencyNeedsSync": "This card has to sync before it can be linked.",
     "color": "Card color",
     "noColor": "No card color",
     "clearColor": "Clear color",

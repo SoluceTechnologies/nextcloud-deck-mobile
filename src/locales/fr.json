@@ -242,6 +242,8 @@
     "typeTwo": "Saisissez au moins deux caractères",
     "dependencies": "Dépendances",
     "noDependencies": "Aucune",
+    "addDependency": "Ajouter une dépendance",
+    "dependencyNeedsSync": "Cette carte doit être synchronisée avant de pouvoir être liée.",
     "color": "Couleur de la carte",
     "noColor": "Aucune couleur",
     "clearColor": "Effacer la couleur",

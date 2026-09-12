@@ -395,3 +395,72 @@ it('does nothing and resolves to null without an account', async () => {
   expect(mutate).not.toHaveBeenCalled();
   expect(id).toBeNull();
 });
+
+// dependentCardsJson carries remote ids (R38) — never a CardFieldName, so this
+// write is not protected by protectedFieldsOf; a delta pass before the drain
+// may briefly revert it, which is accepted.
+it('adds a dependency by its remote id and enqueues the intent', async () => {
+  const card: any = {
+    id: 'c1',
+    dependentCardsJson: '[]',
+    prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; },
+  };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.addDependency(card, '99'));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'addDependency', cardId: 'c1', dependentCardRemoteId: '99' });
+  const row = await call.applyLocal();
+  expect(row.dependentCardsJson).toBe(JSON.stringify(['99']));
+});
+
+it('does nothing when the dependency is already present', async () => {
+  const card: any = { id: 'c1', dependentCardsJson: JSON.stringify(['99']) };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.addDependency(card, '99'));
+
+  expect(mutate).not.toHaveBeenCalled();
+});
+
+it('removes a dependency by its remote id and enqueues the intent', async () => {
+  const card: any = {
+    id: 'c1',
+    dependentCardsJson: JSON.stringify(['99', '100']),
+    prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; },
+  };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.removeDependency(card, '99'));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'removeDependency', cardId: 'c1', dependentCardRemoteId: '99' });
+  const row = await call.applyLocal();
+  expect(row.dependentCardsJson).toBe(JSON.stringify(['100']));
+});
+
+it('does nothing when the dependency to remove is absent', async () => {
+  const card: any = { id: 'c1', dependentCardsJson: '[]' };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.removeDependency(card, '99'));
+
+  expect(mutate).not.toHaveBeenCalled();
+});
+
+// A malformed column must contribute nothing rather than take the write down with it.
+it('treats malformed dependentCardsJson as an empty list', async () => {
+  const card: any = {
+    id: 'c1',
+    dependentCardsJson: 'not-json',
+    prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; },
+  };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.addDependency(card, '99'));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  const row = await call.applyLocal();
+  expect(row.dependentCardsJson).toBe(JSON.stringify(['99']));
+});
