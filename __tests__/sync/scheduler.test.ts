@@ -211,6 +211,48 @@ describe('createSyncScheduler', () => {
       full: true,
     });
   });
+
+  // A snapshot request that arrives while a pass is already running must not
+  // be dropped: it queues exactly one more pass to run right after the
+  // in-flight one finishes, instead of waiting for the next 30s tick — that
+  // 30s gap is what left a freshly opened board looking empty.
+  it('queues a rerun for a snapshot request that arrives mid-pass, instead of dropping it', async () => {
+    let now = 10 * 60_000; // the default SNAPSHOT_INTERVAL_MS, so the first pass is already full
+    let releaseHeld: (ok: boolean) => void = () => {};
+    const held = new Promise<boolean>((resolve) => (releaseHeld = resolve));
+    const ran: SyncTask[] = [];
+
+    const scheduler = createSyncScheduler({
+      runTask: async (task) => {
+        ran.push(task);
+        return held;
+      },
+      getActiveBoardRemoteId: () => 'B1',
+      getRecentBoardRemoteIds: () => [],
+      isOnline: () => true,
+      now: () => now,
+    });
+
+    const firstPass = scheduler.runNow();
+
+    // The pass is genuinely in flight (its first task is awaiting `held`),
+    // so this must be queued rather than run now.
+    scheduler.requestBoardSnapshot('B1');
+    // By the time the queued rerun calls dueTasks, the board reads as due
+    // again regardless of exactly when its clock was last stamped.
+    now += 10 * 60_000;
+
+    releaseHeld(true);
+    await firstPass;
+    while (scheduler.isRunning()) {
+      await Promise.resolve();
+    }
+
+    // Exactly two passes ran: the one in flight, and one queued rerun — no
+    // third from a stray extra call.
+    expect(ran.filter((t) => t.kind === 'boards')).toHaveLength(2);
+    expect(ran).toContainEqual({ kind: 'boardContent', boardRemoteId: 'B1', full: true });
+  });
 });
 
 describe('requestBoardSnapshot (module-level)', () => {

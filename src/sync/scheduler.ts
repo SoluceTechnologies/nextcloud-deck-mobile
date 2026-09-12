@@ -19,10 +19,14 @@ export type SyncScheduler = {
   stop: () => void;
   runNow: () => Promise<void>;
   isRunning: () => boolean;
-  /** Zeroes this board's snapshot clock and triggers a run, so the very next
-   * tick (this one if none is in flight, otherwise the next) sees it as due
-   * for a full fetch — reusing the active-board priority in `dueTasks`
-   * rather than bypassing the scheduler with a direct fetch. */
+  /** Zeroes this board's snapshot clock so the next pass sees it as due for
+   * a full fetch — reusing the active-board priority in `dueTasks` rather
+   * than bypassing the scheduler with a direct fetch. If no pass is
+   * currently running, that pass starts immediately; if one is already in
+   * flight, this queues exactly one more pass to run right after it
+   * finishes, so the request is never silently dropped. A request that
+   * arrives while offline still zeroes the clock and is picked up on the
+   * next online tick, since `runNow` itself declines to run while offline. */
   requestBoardSnapshot: (boardRemoteId: string) => void;
 };
 
@@ -33,10 +37,13 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
   let state: SchedulerState = INITIAL_SCHEDULER_STATE;
   let timer: ReturnType<typeof setInterval> | null = null;
   let running = false;
+  let rerun = false;
 
   async function runNow(): Promise<void> {
     // A tick that arrives while the previous one is still working is dropped,
-    // not queued: the next tick is thirty seconds away and will see fresh state.
+    // not queued: the next tick is thirty seconds away and will see fresh
+    // state. `requestBoardSnapshot` below is the one caller that can't wait
+    // thirty seconds, so it sets `rerun` instead of relying on this guard.
     if (running || !deps.isOnline()) return;
     running = true;
 
@@ -66,6 +73,10 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
       state = applyRun(state, succeeded, at);
     } finally {
       running = false;
+      if (rerun) {
+        rerun = false;
+        void runNow();
+      }
     }
   }
 
@@ -84,7 +95,11 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
     isRunning: () => running,
     requestBoardSnapshot(boardRemoteId) {
       state = { ...state, boardSnapshotAt: { ...state.boardSnapshotAt, [boardRemoteId]: 0 } };
-      void runNow();
+      if (running) {
+        rerun = true;
+      } else {
+        void runNow();
+      }
     },
   };
 }
