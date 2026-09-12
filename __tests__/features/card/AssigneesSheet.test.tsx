@@ -72,7 +72,7 @@ it('reports a toggle to true for an unassigned result', () => {
   const onToggle = jest.fn();
   renderSheet({ onToggle });
   fireEvent.changeText(screen.getByTestId('assignee-search'), 'al');
-  fireEvent.press(screen.getByTestId('assignee-row-alice'));
+  fireEvent.press(screen.getByTestId('assignee-row-alice-0'));
   expect(onToggle).toHaveBeenCalledWith(alice, true);
 });
 
@@ -80,8 +80,8 @@ it('shows an already-assigned participant as checked and toggles it off', () => 
   const onToggle = jest.fn();
   renderSheet({ selected: [alice], onToggle });
 
-  expect(screen.getByTestId('assignee-row-alice')).toHaveAccessibilityState({ checked: true });
-  fireEvent.press(screen.getByTestId('assignee-row-alice'));
+  expect(screen.getByTestId('assignee-row-alice-0')).toHaveAccessibilityState({ checked: true });
+  fireEvent.press(screen.getByTestId('assignee-row-alice-0'));
   expect(onToggle).toHaveBeenCalledWith(alice, false);
 });
 
@@ -95,7 +95,7 @@ it('always shows the current assignees, regardless of the query', () => {
 it('does not close on a toggle', () => {
   const onClose = jest.fn();
   renderSheet({ selected: [alice], onClose });
-  fireEvent.press(screen.getByTestId('assignee-row-alice'));
+  fireEvent.press(screen.getByTestId('assignee-row-alice-0'));
   expect(onClose).not.toHaveBeenCalled();
 });
 
@@ -104,4 +104,29 @@ it('excludes an already-assigned participant from the search results', () => {
   fireEvent.changeText(screen.getByTestId('assignee-search'), 'al');
   // Only the always-shown checked row for alice — not a second, unchecked one.
   expect(screen.getAllByText('Alice Martin')).toHaveLength(1);
+});
+
+// A large board must not mount hundreds of rows (and hundreds of avatar
+// fetches) off one common substring — cap search results, independent of how
+// many participants match.
+it('caps search results at 25 rows', () => {
+  const many: any[] = Array.from({ length: 30 }, (_, i) => ({
+    participant: `user${i}`,
+    displayName: `Match Person ${i}`,
+    assigneeType: 0,
+  }));
+  renderSheet({ participants: many });
+  fireEvent.changeText(screen.getByTestId('assignee-search'), 'match');
+  expect(screen.getAllByText(/Match Person/)).toHaveLength(25);
+});
+
+// A user and a group can share the same id (participants.test.ts covers this
+// at the data layer); the row testID must not collide between them.
+it('gives a user and a group that share an id distinct row testIDs', () => {
+  const aliceUser = { participant: 'alice', displayName: 'Alice Martin', assigneeType: 0 };
+  const aliceGroup = { participant: 'alice', displayName: 'Alice Group', assigneeType: 1 };
+  renderSheet({ participants: [aliceUser, aliceGroup], selected: [aliceUser] });
+  fireEvent.changeText(screen.getByTestId('assignee-search'), 'alice');
+  expect(screen.getByTestId('assignee-row-alice-0')).toHaveAccessibilityState({ checked: true });
+  expect(screen.getByTestId('assignee-row-alice-1')).toHaveAccessibilityState({ checked: false });
 });

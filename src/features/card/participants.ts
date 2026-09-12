@@ -5,7 +5,10 @@ export type Participant = { participant: string; displayName: string; assigneeTy
 type StoredUser = { uid: string; displayName: string };
 type StoredAclEntry = { uid: string; displayName: string; type: number };
 
-function keyOf(p: Participant): string {
+/** `${participant}:${assigneeType}` — a user and a group can share an id, so
+ * the id alone is not a unique key. Exported so callers (React list keys,
+ * dedup) use the same identity `participantsOf` dedups by. */
+export function participantKey(p: Participant): string {
   return `${p.participant}:${p.assigneeType}`;
 }
 
@@ -46,7 +49,7 @@ export function participantsOf(board: Board): Participant[] {
   const seen = new Set<string>();
   const result: Participant[] = [];
   for (const p of [...users, ...acl]) {
-    const key = keyOf(p);
+    const key = participantKey(p);
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(p);

@@ -66,6 +66,9 @@ describe('useAvatar', () => {
   // and cache under its own key, so it never collides with or overwrites the
   // account's own cached avatar.
   it('fetches and caches a given userId under a per-user key, separate from the account avatar', async () => {
+    // Seeded so the assertion below proves the account's own slot survives
+    // untouched — an empty cache would pass this test vacuously either way.
+    storage.set('avatar:acc-1', 'data:image/jpeg;base64,OWNAVATAR');
     ((globalThis as any).fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
@@ -84,6 +87,17 @@ describe('useAvatar', () => {
       }),
     );
     expect(storage.getString('avatar:acc-1:alice')).toBe(expected);
-    expect(storage.getString('avatar:acc-1')).toBeUndefined();
+    expect(storage.getString('avatar:acc-1')).toBe('data:image/jpeg;base64,OWNAVATAR');
+  });
+
+  // A card's assignee list mounts one row per participant; a cache hit must
+  // not re-fetch on every mount, or a large board triggers a fetch storm.
+  it('returns a cached per-user avatar without fetching', async () => {
+    storage.set('avatar:acc-1:alice', 'data:image/png;base64,CACHED');
+
+    const { result } = renderHook(() => useAvatar(account, 'alice'));
+
+    await waitFor(() => expect(result.current.data).toBe('data:image/png;base64,CACHED'));
+    expect((globalThis as any).fetch).not.toHaveBeenCalled();
   });
 });

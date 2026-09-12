@@ -36,26 +36,31 @@ export function useAvatar(
     const cached = storage.getString(key);
     if (cached) setData(cached);
 
-    (async () => {
-      try {
-        const target = userId ?? account.davUserId;
-        const url = `${account.baseUrl}/index.php/avatar/${encodeURIComponent(target)}/96`;
-        const res = await trustedFetch(url, { headers: { Authorization: basicAuth(account) } });
-        if (!res.ok) {
-          console.warn('[useAvatar] non-ok response', res.status, url);
+    // A per-user avatar (a card participant) rarely changes and every result
+    // row mounts one of these — a cache hit returns as-is with no re-fetch.
+    // The account's own avatar keeps refreshing on every mount, as before.
+    if (!(userId && cached)) {
+      (async () => {
+        try {
+          const target = userId ?? account.davUserId;
+          const url = `${account.baseUrl}/index.php/avatar/${encodeURIComponent(target)}/96`;
+          const res = await trustedFetch(url, { headers: { Authorization: basicAuth(account) } });
+          if (!res.ok) {
+            console.warn('[useAvatar] non-ok response', res.status, url);
+            if (active && !cached) setData(null);
+            return;
+          }
+          const contentType = res.headers.get('content-type') || 'image/jpeg';
+          const base64 = await res.base64();
+          const uri = `data:${contentType};base64,${base64}`;
+          storage.set(key, uri);
+          if (active) setData(uri);
+        } catch (e) {
+          console.warn('[useAvatar] failed to load avatar', account.baseUrl, e);
           if (active && !cached) setData(null);
-          return;
         }
-        const contentType = res.headers.get('content-type') || 'image/jpeg';
-        const base64 = await res.base64();
-        const uri = `data:${contentType};base64,${base64}`;
-        storage.set(key, uri);
-        if (active) setData(uri);
-      } catch (e) {
-        console.warn('[useAvatar] failed to load avatar', account.baseUrl, e);
-        if (active && !cached) setData(null);
-      }
-    })();
+      })();
+    }
 
     return () => {
       active = false;

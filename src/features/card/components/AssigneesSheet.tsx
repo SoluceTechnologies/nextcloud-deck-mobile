@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react-native';
 
 import { useAvatar } from '@/features/account/hooks/useAvatar';
-import { filterParticipants, type Participant } from '@/features/card/participants';
+import { filterParticipants, participantKey, type Participant } from '@/features/card/participants';
 import type { Account } from '@/types';
 import { AnimatedPressable, Avatar, Icon, Sheet, TextField, Typography } from '@/ui/components';
 
@@ -18,9 +18,10 @@ export interface AssigneesSheetProps {
   onToggle: (participant: Participant, checked: boolean) => void;
 }
 
-function keyOf(p: Participant): string {
-  return `${p.participant}:${p.assigneeType}`;
-}
+// A large board can match hundreds of participants on a common two-letter
+// substring; each result row mounts an avatar fetch, so results are capped
+// independently of how many participants match.
+const MAX_RESULTS = 25;
 
 /** A user's avatar comes from the server; a group or team has none, so it
  * renders initials only (assigneeType !== 0, handled by the caller). */
@@ -54,15 +55,17 @@ export function AssigneesSheet({
     onClose();
   };
 
-  const selectedKeys = new Set(selected.map(keyOf));
+  const selectedKeys = new Set(selected.map(participantKey));
   // filterParticipants already enforces the two-character floor, so an empty
   // `results` also covers the below-threshold case — no second check needed.
-  const results = filterParticipants(participants, query).filter((p) => !selectedKeys.has(keyOf(p)));
+  const results = filterParticipants(participants, query).filter(
+    (p) => !selectedKeys.has(participantKey(p)),
+  );
 
   const row = (p: Participant, checked: boolean) => (
     <AnimatedPressable
-      key={keyOf(p)}
-      testID={`assignee-row-${p.participant}`}
+      key={participantKey(p)}
+      testID={`assignee-row-${p.participant}-${p.assigneeType}`}
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
       onPress={() => onToggle(p, !checked)}
@@ -96,7 +99,7 @@ export function AssigneesSheet({
           {t('card.typeTwo')}
         </Typography>
       ) : (
-        results.map((p) => row(p, false))
+        results.slice(0, MAX_RESULTS).map((p) => row(p, false))
       )}
     </Sheet>
   );
