@@ -233,6 +233,8 @@
     "needsAttention": "Needs attention",
     "labels": "Labels",
     "noLabels": "None",
+    "newLabel": "New label",
+    "create": "Create",
     "assignees": "Assignees",
     "noAssignees": "None",
     "dependencies": "Dependencies",

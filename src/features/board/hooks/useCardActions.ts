@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { useDatabase } from '@/database/DatabaseProvider';
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
+import type CardLabel from '@/database/models/CardLabel';
+import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import type { CardFieldName } from '@/database/writers';
 import { mutate } from '@/sync/outbox/enqueue';
@@ -25,6 +27,9 @@ export type CardActions = {
   remove(card: Card): Promise<void>;
   move(card: Card, toStackLocalId: string, order?: number): Promise<void>;
   clone(card: Card): Promise<void>;
+  addLabel(card: Card, labelLocalId: string): Promise<void>;
+  removeLabel(card: Card, labelLocalId: string): Promise<void>;
+  createLabel(boardLocalId: string, input: { title: string; color: string | null }): Promise<string | null>;
 };
 
 /**
@@ -194,6 +199,70 @@ export function useCardActions(accountId: string | null): CardActions {
       });
     };
 
-    return { create, setDone, patch, setArchived, remove, move, clone };
+    const addLabel: CardActions['addLabel'] = async (card, labelLocalId) => {
+      if (!accountId) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'assignLabel', cardId: card.id, labelId: labelLocalId },
+        applyLocal: () =>
+          db.get<CardLabel>('card_labels').prepareCreate((r: CardLabel) => {
+            r.accountId = accountId;
+            r.cardId = card.id;
+            r.labelId = labelLocalId;
+          }),
+      });
+    };
+
+    const removeLabel: CardActions['removeLabel'] = async (card, labelLocalId) => {
+      if (!accountId) return;
+
+      // The join row carries no id the intent can reuse — find it before mutate,
+      // since prepareMarkAsDeleted is the only call that may run inside applyLocal.
+      // Nothing to un-assign locally means nothing to tell the server either.
+      const [join] = await db
+        .get<CardLabel>('card_labels')
+        .query(
+          Q.where('account_id', accountId),
+          Q.where('card_id', card.id),
+          Q.where('label_id', labelLocalId),
+        )
+        .fetch();
+      if (!join) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'removeLabel', cardId: card.id, labelId: labelLocalId },
+        applyLocal: () => join.prepareMarkAsDeleted(),
+      });
+    };
+
+    const createLabel: CardActions['createLabel'] = async (boardLocalId, input) => {
+      if (!accountId) return null;
+
+      // Synchronous, like create(): WatermelonDB assigns the row's id before
+      // prepareCreate returns, so both the intent and the caller's addLabel
+      // follow-up (to join it to a card) can use it immediately.
+      const row = db.get<Label>('labels').prepareCreate((r: Label) => {
+        r.accountId = accountId;
+        r.boardId = boardLocalId;
+        r.remoteId = ''; // Findable offline, before the server has assigned one.
+        r.title = input.title;
+        r.color = input.color ?? undefined;
+      });
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'createLabel', labelId: row.id, boardId: boardLocalId },
+        applyLocal: () => row,
+      });
+
+      return row.id;
+    };
+
+    return { create, setDone, patch, setArchived, remove, move, clone, addLabel, removeLabel, createLabel };
   }, [db, accountId]);
 }

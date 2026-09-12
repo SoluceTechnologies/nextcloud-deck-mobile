@@ -19,6 +19,11 @@ jest.mock('../../src/database/hooks/useBoardContent', () => ({
   useBoardStacks: jest.fn(() => [{ id: 's1', title: 'En cours' }]),
 }));
 
+jest.mock('../../src/database/hooks/useCardRelations', () => ({
+  useBoardLabels: jest.fn(() => []),
+  useCardLabels: jest.fn(() => []),
+}));
+
 const mockCardActions = {
   create: jest.fn(() => Promise.resolve()),
   setDone: jest.fn(() => Promise.resolve()),
@@ -27,6 +32,9 @@ const mockCardActions = {
   remove: jest.fn(() => Promise.resolve()),
   move: jest.fn(() => Promise.resolve()),
   clone: jest.fn(() => Promise.resolve()),
+  addLabel: jest.fn(() => Promise.resolve()),
+  removeLabel: jest.fn(() => Promise.resolve()),
+  createLabel: jest.fn(() => Promise.resolve('new-label-id')),
 };
 jest.mock('../../src/features/board/hooks/useCardActions', () => ({
   useCardActions: () => mockCardActions,
@@ -93,6 +101,12 @@ const renderScreen = () => render(<CardDetailScreen />, { wrapper: ThemeWrapper 
 beforeEach(() => {
   jest.clearAllMocks();
   mockCard();
+  // clearAllMocks() does not undo a mockReturnValue set by a previous test —
+  // only mockCard() above gets that per-test reseeding for free (it replaces
+  // the implementation wholesale). Reseed this one explicitly so a test that
+  // overrides it can't leak into the next.
+  const { useCardLabels } = require('../../src/database/hooks/useCardRelations');
+  (useCardLabels as jest.Mock).mockReturnValue([]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
@@ -211,6 +225,21 @@ it('commits a chosen swatch through the card actions', () => {
   fireEvent.press(screen.getByText('card.color'));
   fireEvent.press(screen.getByTestId(`color-swatch-${DECK_PALETTE[0]}`));
   expect(patch).toHaveBeenCalledWith(expect.anything(), { color: DECK_PALETTE[0] });
+});
+
+it('lists the card labels as the labels row subtitle', () => {
+  const { useCardLabels } = require('../../src/database/hooks/useCardRelations');
+  (useCardLabels as jest.Mock).mockReturnValue([
+    { id: 'l1', title: 'FACTURATION' },
+    { id: 'l2', title: 'URGENT' },
+  ]);
+  renderScreen();
+  expect(screen.getByText('FACTURATION, URGENT')).toBeTruthy();
+});
+
+it('shows the empty label when the card has no labels', () => {
+  renderScreen();
+  expect(screen.getByText('card.noLabels')).toBeTruthy();
 });
 
 it('opens the card menu from the … button', () => {

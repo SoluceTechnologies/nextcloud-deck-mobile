@@ -226,3 +226,66 @@ it('does nothing when cloning a card that never synced', async () => {
 
   expect(mutate).not.toHaveBeenCalled();
 });
+
+it('enqueues assignLabel and writes the join optimistically', async () => {
+  const card: any = { id: 'c1' };
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.addLabel(card, 'l1'));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'assignLabel', cardId: 'c1', labelId: 'l1' });
+
+  await call.applyLocal();
+  expect(prepareCreate).toHaveBeenCalled();
+});
+
+it('enqueues removeLabel and deletes the join optimistically', async () => {
+  const card: any = { id: 'c1' };
+  const markDeleted = jest.fn(() => ({ op: 'delete' }));
+  queryResult = [{ id: 'join-1', prepareMarkAsDeleted: markDeleted }];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.removeLabel(card, 'l1'));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent.kind).toBe('removeLabel');
+
+  await call.applyLocal();
+  expect(markDeleted).toHaveBeenCalled();
+});
+
+// No local join row for that label — nothing to un-assign, and nothing to tell the server.
+it('does nothing when there is no join row to remove', async () => {
+  const card: any = { id: 'c1' };
+  queryResult = [];
+
+  const { result } = renderHook(() => useCardActions('a1'));
+  await act(() => result.current.removeLabel(card, 'l1'));
+
+  expect(mutate).not.toHaveBeenCalled();
+});
+
+// A label created offline has no remote id; the join intent must wait for it.
+it('creates a label with an empty remote id and resolves to its new local id', async () => {
+  const { result } = renderHook(() => useCardActions('a1'));
+  let id: string | null = null;
+  await act(async () => {
+    id = await result.current.createLabel('b1', { title: 'URGENT', color: null });
+  });
+
+  const row = prepareCreate.mock.results[0].value;
+  expect(row.remoteId).toBe('');
+  expect((mutate as jest.Mock).mock.calls[0][0].intent.kind).toBe('createLabel');
+  expect(id).toBe(row.id);
+});
+
+it('does nothing and resolves to null without an account', async () => {
+  const { result } = renderHook(() => useCardActions(null));
+  let id: string | null = 'unset' as unknown as null;
+  await act(async () => {
+    id = await result.current.createLabel('b1', { title: 'URGENT', color: null });
+  });
+
+  expect(mutate).not.toHaveBeenCalled();
+  expect(id).toBeNull();
+});

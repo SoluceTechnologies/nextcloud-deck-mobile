@@ -233,6 +233,8 @@
     "needsAttention": "À traiter",
     "labels": "Étiquettes",
     "noLabels": "Aucune",
+    "newLabel": "Nouvelle étiquette",
+    "create": "Créer",
     "assignees": "Personnes assignées",
     "noAssignees": "Aucune",
     "dependencies": "Dépendances",

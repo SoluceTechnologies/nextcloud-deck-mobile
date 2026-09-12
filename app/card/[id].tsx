@@ -9,12 +9,14 @@ import { useAccountStore } from '@/stores/accountStore';
 import { useCard } from '@/database/hooks/useCard';
 import { useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
+import { useBoardLabels, useCardLabels } from '@/database/hooks/useCardRelations';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
 import { CardMenu } from '@/features/card/components/CardMenu';
 import { CardPickerSheet } from '@/features/card/components/CardPickerSheet';
 import { ColorSheet } from '@/features/card/components/ColorSheet';
 import { DateRow } from '@/features/card/components/DateRow';
+import { LabelsSheet } from '@/features/card/components/LabelsSheet';
 import { dueStateOf } from '@/features/card/dueState';
 import { Icon, IconButton, Item, List, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 
@@ -28,8 +30,11 @@ export default function CardDetailScreen() {
   const card = useCard(id);
   const boards = useBoards(accountId);
   const stacks = useBoardStacks(accountId, card?.boardId ?? null);
+  const cardLabels = useCardLabels(accountId, card?.id ?? null);
+  const boardLabels = useBoardLabels(accountId, card?.boardId ?? null);
   const cardActions = useCardActions(accountId);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
+  const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -131,6 +136,13 @@ export default function CardDetailScreen() {
                 }
                 onPress={() => setColorSheetVisible(true)}
               />
+              <Item
+                title={t('card.labels')}
+                description={
+                  cardLabels.length > 0 ? cardLabels.map((l) => l.title).join(', ') : t('card.noLabels')
+                }
+                onPress={() => setLabelsSheetVisible(true)}
+              />
             </List>
           </View>
         </ScrollView>
@@ -140,6 +152,21 @@ export default function CardDetailScreen() {
         value={card.color ?? null}
         onClose={() => setColorSheetVisible(false)}
         onSelect={(c) => void cardActions.patch(card, { color: c }).catch(() => undefined)}
+      />
+      <LabelsSheet
+        visible={labelsSheetVisible}
+        boardLabels={boardLabels}
+        selected={cardLabels.map((l) => l.id)}
+        onClose={() => setLabelsSheetVisible(false)}
+        onToggle={(id, on) =>
+          void (on ? cardActions.addLabel(card, id) : cardActions.removeLabel(card, id)).catch(() => undefined)
+        }
+        onCreate={(input) =>
+          void cardActions
+            .createLabel(card.boardId, input)
+            .then((newId) => (newId ? cardActions.addLabel(card, newId) : undefined))
+            .catch(() => undefined)
+        }
       />
       <CardMenu
         visible={menuVisible}
