@@ -85,7 +85,17 @@ function makeDb(tables: Record<string, any[]>) {
   const collections: Record<string, any> = {};
   for (const name of ['boards', 'stacks', 'cards', 'outbox', 'labels', 'card_labels', 'card_assignees']) {
     collections[name] = {
-      query: jest.fn(() => ({ fetch: jest.fn(async () => tables[name] ?? []) })),
+      // A `Q.oneOf` clause is the account-wide pending-card lookup (see
+      // `syncBoardContent`): a fixture may supply a `<name>Pending` override
+      // for it, distinct from the board-scoped rows under `<name>`, to
+      // simulate a row that moved to another board. Absent an override, it
+      // falls back to the same rows every other query on this table sees.
+      query: jest.fn((...clauses: any[]) => ({
+        fetch: jest.fn(async () => {
+          const isOneOf = clauses.some((c: any) => c?.comparison?.operator === 'oneOf');
+          return (isOneOf ? tables[`${name}Pending`] : undefined) ?? tables[name] ?? [];
+        }),
+      })),
       prepareCreate: prepared(name),
     };
   }
@@ -276,6 +286,37 @@ describe('syncBoardContent', () => {
     await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
 
     const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.some((o: any) => o._op === 'delete' && o._tag === 'cards')).toBe(false);
+  });
+
+  // `useCardActions.move` re-homes the local row to the target board right
+  // away, while the `moveCard` intent is still queued. This board's own
+  // cards query (scoped by board_id) therefore no longer sees the row at
+  // all, so a protectedRowIds built from it would miss the card entirely —
+  // and a full snapshot that still lists the card here (the server hasn't
+  // seen the move yet) would get recreated as a second local row.
+  it('does not recreate a card that moved to another board while its move is still queued', async () => {
+    mockFetchStacks.mockResolvedValue([stack([card({ remoteId: '42' })])]);
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      stacks: [makeRow('stacks', { boardId: 'b-local', remoteId: '5', title: 'Doing', order: 0, lastModified: 4000 })],
+      cards: [], // the moved card's row now carries board_id = 'other'
+      cardsPending: [makeRow('cards', { id: 'c1', boardId: 'other', remoteId: '42', lastModified: 0 })],
+      outbox: [
+        makeRow('outbox', {
+          entityType: 'card',
+          entityId: 'c1',
+          state: 'queued',
+          serverValuesJson: '{}',
+          payloadJson: JSON.stringify({ kind: 'moveCard', cardId: 'c1', toStackId: '5', order: 0 }),
+        }),
+      ],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.some((o: any) => o._op === 'create' && o._tag === 'cards' && o.remoteId === '42')).toBe(false);
     expect(ops.some((o: any) => o._op === 'delete' && o._tag === 'cards')).toBe(false);
   });
 

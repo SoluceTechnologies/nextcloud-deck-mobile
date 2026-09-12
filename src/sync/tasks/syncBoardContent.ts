@@ -121,6 +121,24 @@ export async function syncBoardContent({
         .query(Q.where('account_id', account.id), Q.where('board_id', boardLocalId))
         .fetch();
       const pending = await loadPendingCards(db, account.id);
+
+      // A queued move can have re-homed a card's row to another board before
+      // the intent flushed (`useCardActions.move` adopts the target board
+      // locally right away). Scoping this lookup to `boardLocalId` would miss
+      // it — this board's own snapshot still lists the card, the guard below
+      // would not fire, and reconcile would recreate it here while it also
+      // still exists on the board it moved to. Fetch pending cards account-wide.
+      const pendingIds = pendingEntityIds(pending);
+      const pendingCardRows =
+        pendingIds.size === 0
+          ? []
+          : await cards
+              .query(Q.where('account_id', account.id), Q.where('id', Q.oneOf([...pendingIds])))
+              .fetch();
+      const protectedRowIds = new Set(
+        pendingCardRows.map((r) => r.remoteId).filter((id) => id !== ''),
+      );
+
       const { labelLocalIdByRemote, cardLabelRows, cardAssigneeRows } = await loadCardRelationContext(
         db,
         account.id,
@@ -184,9 +202,7 @@ export async function syncBoardContent({
         // A delta omits archived and deleted cards silently, so absence only
         // means "gone" when the response was a snapshot.
         deleteMissing: full,
-        protectedRowIds: new Set(
-          syncedCardRows.filter((r) => pendingEntityIds(pending).has(r.id)).map((r) => r.remoteId),
-        ),
+        protectedRowIds,
       });
 
       const cardLocalIdByRemote = new Map(cardRows.map((r) => [r.remoteId, r.id]));
