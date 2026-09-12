@@ -239,6 +239,7 @@
     "noDependencies": "Aucune",
     "color": "Couleur de la carte",
     "noColor": "Aucune couleur",
+    "clearColor": "Effacer la couleur",
     "files": "Fichiers",
     "noFiles": "Aucun fichier",
     "description": "Description",

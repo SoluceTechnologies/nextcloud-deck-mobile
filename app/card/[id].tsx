@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
@@ -10,6 +11,7 @@ import { useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
+import { ColorSheet } from '@/features/card/components/ColorSheet';
 import { DateRow } from '@/features/card/components/DateRow';
 import { dueStateOf } from '@/features/card/dueState';
 import { Icon, IconButton, Item, List, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
@@ -25,6 +27,7 @@ export default function CardDetailScreen() {
   const boards = useBoards(accountId);
   const stacks = useBoardStacks(accountId, card?.boardId ?? null);
   const cardActions = useCardActions(accountId);
+  const [colorSheetVisible, setColorSheetVisible] = useState(false);
 
   const closeButton = (
     <IconButton
@@ -96,10 +99,31 @@ export default function CardDetailScreen() {
                 overdueLine={overdueLine}
                 onChange={(v) => void cardActions.patch(card, { duedate: v }).catch(() => undefined)}
               />
+              <Item
+                title={t('card.color')}
+                description={card.color ?? t('card.noColor')}
+                leading={
+                  <View
+                    style={[
+                      styles.colorDot,
+                      card.color
+                        ? { backgroundColor: card.color }
+                        : { borderWidth: 1, borderColor: colors.border },
+                    ]}
+                  />
+                }
+                onPress={() => setColorSheetVisible(true)}
+              />
             </List>
           </View>
         </ScrollView>
       </SafeAreaView>
+      <ColorSheet
+        visible={colorSheetVisible}
+        value={card.color ?? null}
+        onClose={() => setColorSheetVisible(false)}
+        onSelect={(c) => void cardActions.patch(card, { color: c }).catch(() => undefined)}
+      />
     </ViewContainer>
   );
 }
@@ -107,4 +131,5 @@ export default function CardDetailScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   deleted: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  colorDot: { width: 20, height: 20, borderRadius: 10 },
 });

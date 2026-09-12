@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from 'expo-router';
 
-import { AnimatedPressable, Button, Sheet, TextField } from '@/ui/components';
-import { DECK_PALETTE } from '@/features/board/palette';
+import { Button, Sheet, TextField } from '@/ui/components';
+import { PaletteRow } from './PaletteRow';
 
 export interface BoardFormSheetProps {
   visible: boolean;
@@ -15,7 +13,6 @@ export interface BoardFormSheetProps {
 
 export function BoardFormSheet({ visible, initial, onClose, onSubmit }: BoardFormSheetProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
   const [title, setTitle] = useState('');
   const [color, setColor] = useState<string | null>(null);
 
@@ -47,30 +44,8 @@ export function BoardFormSheet({ visible, initial, onClose, onSubmit }: BoardFor
         value={title}
         onChangeText={setTitle}
       />
-      <View style={styles.palette}>
-        {DECK_PALETTE.map((hex) => {
-          const selected = color === hex;
-          return (
-            <AnimatedPressable
-              key={hex}
-              testID={`color-swatch-${hex}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => setColor(hex)}
-              style={[
-                styles.swatch,
-                { backgroundColor: hex, borderColor: selected ? colors.text : 'transparent' },
-              ]}
-            />
-          );
-        })}
-      </View>
+      <PaletteRow value={color} onSelect={setColor} />
       <Button title={t('boards.form.save')} onPress={handleSubmit} disabled={!trimmed} />
     </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  palette: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingVertical: 8 },
-  swatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 3 },
-});

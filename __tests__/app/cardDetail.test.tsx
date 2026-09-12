@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../helpers/theme';
 import { useAccountStore } from '../../src/stores/accountStore';
+import { DECK_PALETTE } from '../../src/features/board/palette';
 import CardDetailScreen from '../../app/card/[id]';
 
 jest.mock('../../src/database/hooks/useCard', () => ({
@@ -194,4 +195,18 @@ it('shows no overdue line once the card is done', () => {
   mockCard({ duedate: daysAgo(7), doneAt: Date.now() });
   renderScreen();
   expect(screen.queryByText(/card.overdue/)).toBeNull();
+});
+
+it('opens the colour sheet from the colour row', () => {
+  renderScreen();
+  fireEvent.press(screen.getByText('card.color'));
+  expect(screen.getByText('card.clearColor')).toBeTruthy();
+});
+
+it('commits a chosen swatch through the card actions', () => {
+  const { patch } = requireCardActionsMock();
+  renderScreen();
+  fireEvent.press(screen.getByText('card.color'));
+  fireEvent.press(screen.getByTestId(`color-swatch-${DECK_PALETTE[0]}`));
+  expect(patch).toHaveBeenCalledWith(expect.anything(), { color: DECK_PALETTE[0] });
 });

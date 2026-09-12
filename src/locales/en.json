@@ -239,6 +239,7 @@
     "noDependencies": "None",
     "color": "Card color",
     "noColor": "No card color",
+    "clearColor": "Clear color",
     "files": "Files",
     "noFiles": "No files",
     "description": "Description",
