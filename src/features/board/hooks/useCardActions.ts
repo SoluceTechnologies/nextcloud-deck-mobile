@@ -23,7 +23,7 @@ export type CardActions = {
   patch(card: Card, fields: Partial<CardPatch>): Promise<void>;
   setArchived(card: Card, archived: boolean): Promise<void>;
   remove(card: Card): Promise<void>;
-  move(card: Card, toStackLocalId: string, order: number): Promise<void>;
+  move(card: Card, toStackLocalId: string, order?: number): Promise<void>;
   clone(card: Card): Promise<void>;
 };
 
@@ -124,14 +124,29 @@ export function useCardActions(accountId: string | null): CardActions {
 
     const move: CardActions['move'] = async (card, toStackLocalId, order) => {
       if (!accountId) return;
+
+      // A move can land on another board's list — the local row must follow, or the
+      // card would show under its old board until the next full sync.
+      const stack = await db.get<Stack>('stacks').find(toStackLocalId);
+
+      let resolvedOrder = order;
+      if (resolvedOrder === undefined) {
+        const siblings = await db
+          .get<Card>('cards')
+          .query(Q.where('account_id', accountId), Q.where('stack_id', toStackLocalId))
+          .fetch();
+        resolvedOrder = siblings.reduce((max, row) => Math.max(max, row.order), -1) + 1;
+      }
+
       await mutate({
         db,
         accountId,
-        intent: { kind: 'moveCard', cardId: card.id, toStackId: toStackLocalId, order },
+        intent: { kind: 'moveCard', cardId: card.id, toStackId: toStackLocalId, order: resolvedOrder },
         applyLocal: () =>
           card.prepareUpdate((r: Card) => {
+            r.boardId = stack.boardId;
             r.stackId = toStackLocalId;
-            r.order = order;
+            r.order = resolvedOrder;
           }),
       });
     };

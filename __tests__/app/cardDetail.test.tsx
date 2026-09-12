@@ -11,6 +11,8 @@ jest.mock('../../src/database/hooks/useCard', () => ({
 
 jest.mock('../../src/database/hooks/useBoards', () => ({
   useBoards: jest.fn(() => [{ id: 'b1', title: 'Finance & Juridique' }]),
+  // The card menu's move picker (CardPickerSheet) reads from this same module.
+  useBoardCards: jest.fn(() => []),
 }));
 
 jest.mock('../../src/database/hooks/useBoardContent', () => ({
@@ -209,4 +211,22 @@ it('commits a chosen swatch through the card actions', () => {
   fireEvent.press(screen.getByText('card.color'));
   fireEvent.press(screen.getByTestId(`color-swatch-${DECK_PALETTE[0]}`));
   expect(patch).toHaveBeenCalledWith(expect.anything(), { color: DECK_PALETTE[0] });
+});
+
+it('opens the card menu from the … button', () => {
+  renderScreen();
+  fireEvent.press(screen.getByTestId('card-menu'));
+  expect(screen.getByText('card.menu.move')).toBeTruthy();
+});
+
+it('archives the card and leaves the screen, rather than stranding the user on a card that just left the board', () => {
+  const { setArchived } = requireCardActionsMock();
+  const { router } = require('expo-router');
+  renderScreen();
+
+  fireEvent.press(screen.getByTestId('card-menu'));
+  fireEvent.press(screen.getByText('card.menu.archive'));
+
+  expect(setArchived).toHaveBeenCalledWith(expect.anything(), true);
+  expect(router.back).toHaveBeenCalled();
 });

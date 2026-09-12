@@ -14,9 +14,9 @@ const prepareCreate = jest.fn((fn: (r: any) => void) => {
   fn(row);
   return row;
 });
-// Generic enough for both `boards` and `stacks` lookups: echoes a remote id derived
-// from whatever local id it was asked to find.
-const find = jest.fn(async (id: string) => ({ id, remoteId: `remote-${id}` }));
+// Generic enough for both `boards` and `stacks` lookups: echoes a remote id (and,
+// for a stack lookup, a board id) derived from whatever local id it was asked to find.
+const find = jest.fn(async (id: string) => ({ id, remoteId: `remote-${id}`, boardId: `board-${id}` }));
 const db = { get: jest.fn(() => ({ query, prepareCreate, find })) };
 
 beforeEach(() => {
@@ -136,6 +136,37 @@ it('moves a card to another stack at the given order', async () => {
   const row = await call.applyLocal();
   expect(row.stackId).toBe('s2');
   expect(row.order).toBe(3);
+});
+
+// R30: a move to another board's list must not leave the local row pointing at its
+// old board — order is computed the same way create() does (append to the end).
+it('appends after the target stack’s last card and adopts its board when no order is given', async () => {
+  const { result } = renderHook(() => useCardActions('a1'));
+  const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };
+  queryResult = [{ order: 0 }, { order: 4 }, { order: 2 }];
+
+  await act(() => result.current.move(card, 's2'));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'moveCard', cardId: 'c1', toStackId: 's2', order: 5 });
+  const row = await call.applyLocal();
+  expect(row.boardId).toBe('board-s2');
+  expect(row.stackId).toBe('s2');
+  expect(row.order).toBe(5);
+});
+
+it('uses an explicit order as given, without recomputing it from the target stack', async () => {
+  const { result } = renderHook(() => useCardActions('a1'));
+  const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };
+  // Would append at order 5 if the explicit order were ignored — it must not be.
+  queryResult = [{ order: 0 }, { order: 4 }, { order: 2 }];
+
+  await act(() => result.current.move(card, 's2', 3));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'moveCard', cardId: 'c1', toStackId: 's2', order: 3 });
+  const row = await call.applyLocal();
+  expect(row.boardId).toBe('board-s2');
 });
 
 it('archives a card through setCardArchived', async () => {

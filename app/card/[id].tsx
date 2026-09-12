@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Circle, CircleCheck, X } from 'lucide-react-native';
+import { Circle, CircleCheck, Ellipsis, X } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useCard } from '@/database/hooks/useCard';
@@ -11,6 +11,8 @@ import { useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
+import { CardMenu } from '@/features/card/components/CardMenu';
+import { CardPickerSheet } from '@/features/card/components/CardPickerSheet';
 import { ColorSheet } from '@/features/card/components/ColorSheet';
 import { DateRow } from '@/features/card/components/DateRow';
 import { dueStateOf } from '@/features/card/dueState';
@@ -28,6 +30,8 @@ export default function CardDetailScreen() {
   const stacks = useBoardStacks(accountId, card?.boardId ?? null);
   const cardActions = useCardActions(accountId);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   const closeButton = (
     <IconButton
@@ -39,6 +43,19 @@ export default function CardDetailScreen() {
       onPress={() => router.back()}
     >
       <X size={22} color={colors.text} />
+    </IconButton>
+  );
+
+  const menuButton = (
+    <IconButton
+      variant="ghost"
+      round
+      size={40}
+      testID="card-menu"
+      accessibilityLabel={t('card.menu.title')}
+      onPress={() => setMenuVisible(true)}
+    >
+      <Ellipsis size={22} color={colors.text} />
     </IconButton>
   );
 
@@ -69,7 +86,7 @@ export default function CardDetailScreen() {
   return (
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
-        <ScreenHeader title={card.title} left={closeButton} />
+        <ScreenHeader title={card.title} left={closeButton} right={menuButton} />
         <ScrollView keyboardShouldPersistTaps="handled">
           <CardIdentity
             title={card.title}
@@ -123,6 +140,30 @@ export default function CardDetailScreen() {
         value={card.color ?? null}
         onClose={() => setColorSheetVisible(false)}
         onSelect={(c) => void cardActions.patch(card, { color: c }).catch(() => undefined)}
+      />
+      <CardMenu
+        visible={menuVisible}
+        card={card}
+        onClose={() => setMenuVisible(false)}
+        onMove={() => setPickerVisible(true)}
+        onCopy={() => void cardActions.clone(card).catch(() => undefined)}
+        onArchive={() => {
+          void cardActions.setArchived(card, !card.archived).catch(() => undefined);
+          // An archived card leaves the board — leaving the detail screen open
+          // would strand the user on a card they can no longer see in its list.
+          router.back();
+        }}
+        onDelete={() => {
+          void cardActions.remove(card).catch(() => undefined);
+          router.back();
+        }}
+      />
+      <CardPickerSheet
+        visible={pickerVisible}
+        accountId={accountId}
+        mode="stack"
+        onClose={() => setPickerVisible(false)}
+        onPick={({ stackLocalId }) => void cardActions.move(card, stackLocalId).catch(() => undefined)}
       />
     </ViewContainer>
   );

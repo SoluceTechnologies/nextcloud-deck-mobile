@@ -245,7 +245,24 @@
     "description": "Description",
     "noDescription": "Aucune description",
     "comments": "Commentaires",
-    "deleted": "Cette carte n'existe plus."
+    "deleted": "Cette carte n'existe plus.",
+    "menu": {
+      "title": "Plus",
+      "move": "Déplacer",
+      "copy": "Copier",
+      "archive": "Archiver",
+      "unarchive": "Désarchiver",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer cette carte ?",
+      "deleteMessage": "« {{title}} » sera supprimée pour toutes les personnes qui y ont accès.",
+      "cancel": "Annuler"
+    },
+    "picker": {
+      "chooseBoard": "Choisir un tableau",
+      "chooseList": "Choisir une liste",
+      "chooseCard": "Choisir une carte",
+      "empty": "Rien ici"
+    }
   },
   "board": {
     "addCard": "Ajouter une carte",

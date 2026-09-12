@@ -245,7 +245,24 @@
     "description": "Description",
     "noDescription": "No description",
     "comments": "Comments",
-    "deleted": "This card no longer exists."
+    "deleted": "This card no longer exists.",
+    "menu": {
+      "title": "More",
+      "move": "Move",
+      "copy": "Copy",
+      "archive": "Archive",
+      "unarchive": "Unarchive",
+      "delete": "Delete",
+      "deleteTitle": "Delete this card?",
+      "deleteMessage": "\"{{title}}\" will be deleted for everyone with access.",
+      "cancel": "Cancel"
+    },
+    "picker": {
+      "chooseBoard": "Choose a board",
+      "chooseList": "Choose a list",
+      "chooseCard": "Choose a card",
+      "empty": "Nothing here"
+    }
   },
   "board": {
     "addCard": "Add a card",
