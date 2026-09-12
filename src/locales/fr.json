@@ -228,11 +228,13 @@
     "addCard": "Ajouter une carte",
     "addList": "Ajouter une liste",
     "listTitle": "Nom de la liste",
+    "cardTitle": "Titre de la carte",
     "emptyList": "Aucune carte",
     "cardCount_one": "{{count}} carte",
     "cardCount_other": "{{count}} cartes",
     "form": {
       "newTitle": "Nouvelle liste",
+      "newCard": "Nouvelle carte",
       "renameTitle": "Renommer la liste",
       "save": "Enregistrer"
     }

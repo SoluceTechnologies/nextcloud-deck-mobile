@@ -1,3 +1,5 @@
+import { useUiStore } from '@/stores/uiStore';
+
 import { applyRun, dueTasks, INITIAL_SCHEDULER_STATE, type SchedulerState, type SyncTask } from './dueTasks';
 
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -17,6 +19,11 @@ export type SyncScheduler = {
   stop: () => void;
   runNow: () => Promise<void>;
   isRunning: () => boolean;
+  /** Zeroes this board's snapshot clock and triggers a run, so the very next
+   * tick (this one if none is in flight, otherwise the next) sees it as due
+   * for a full fetch — reusing the active-board priority in `dueTasks`
+   * rather than bypassing the scheduler with a direct fetch. */
+  requestBoardSnapshot: (boardRemoteId: string) => void;
 };
 
 export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
@@ -75,5 +82,39 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
     },
     runNow,
     isRunning: () => running,
+    requestBoardSnapshot(boardRemoteId) {
+      state = { ...state, boardSnapshotAt: { ...state.boardSnapshotAt, [boardRemoteId]: 0 } };
+      void runNow();
+    },
   };
+}
+
+// A registry of one scheduler per currently-mounted account (useDeckSync
+// registers/unregisters around its own effect lifecycle), so code outside the
+// sync loop — the board screen — can reach the right instance without a
+// prop-drilled reference or a second source of truth for "which account is
+// active".
+let active: { accountId: string; scheduler: SyncScheduler } | null = null;
+
+export function registerScheduler(accountId: string, scheduler: SyncScheduler): void {
+  active = { accountId, scheduler };
+}
+
+export function unregisterScheduler(scheduler: SyncScheduler): void {
+  if (active?.scheduler === scheduler) active = null;
+}
+
+/**
+ * Called when the user opens a board: marks it active (and recent) in the ui
+ * store regardless of sync state, then — if a scheduler is actually running
+ * for this account — asks it to fetch a full snapshot on the next tick. A
+ * no-op scheduler-side is fine: opening a board before the sync loop has
+ * started must not throw.
+ */
+export function requestBoardSnapshot(accountId: string, boardRemoteId: string): void {
+  useUiStore.getState().setActiveBoardRemoteId(boardRemoteId);
+  useUiStore.getState().pushRecentBoard(boardRemoteId);
+  if (active?.accountId === accountId) {
+    active.scheduler.requestBoardSnapshot(boardRemoteId);
+  }
 }

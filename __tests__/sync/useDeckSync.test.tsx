@@ -20,7 +20,12 @@ jest.mock('../../src/sync/scheduler', () => {
       stop,
       runNow: jest.fn(async () => {}),
       isRunning: () => false,
+      requestBoardSnapshot: jest.fn(),
     })),
+    // Real behavior is covered in isolation by __tests__/sync/scheduler.test.ts;
+    // this suite only needs the calls not to throw.
+    registerScheduler: jest.fn(),
+    unregisterScheduler: jest.fn(),
   };
 });
 

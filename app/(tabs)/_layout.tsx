@@ -30,7 +30,7 @@ const TAB_ITEMS: TabItem[] = [
     Icon: Sun,
   },
   {
-    name: 'boards/index',
+    name: 'boards',
     labelKey: 'tabs.boards',
     sf: { default: 'square.grid.2x2', selected: 'square.grid.2x2.fill' },
     md: { default: 'grid_view', selected: 'grid_view' },

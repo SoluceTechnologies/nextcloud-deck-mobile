@@ -9,7 +9,7 @@ import { useUiStore } from '@/stores/uiStore';
 
 import { drainOutbox } from './outbox/drain';
 import { createTaskRunner } from './runTask';
-import { createSyncScheduler } from './scheduler';
+import { createSyncScheduler, registerScheduler, unregisterScheduler } from './scheduler';
 
 /**
  * Owns the whole background data loop: one scheduler and one outbox drain for
@@ -41,6 +41,9 @@ export function useDeckSync(): void {
       getRecentBoardRemoteIds: () => useUiStore.getState().recentBoardRemoteIds,
       isOnline: getIsOnline,
     });
+    // Lets requestBoardSnapshot (called from the board screen, well outside
+    // this effect's closure) reach this account's scheduler instance.
+    registerScheduler(account.id, scheduler);
 
     const drain = () => {
       if (!getIsOnline()) return;
@@ -64,6 +67,7 @@ export function useDeckSync(): void {
     return () => {
       appStateSub.remove();
       scheduler.stop();
+      unregisterScheduler(scheduler);
     };
   }, [account]);
 

@@ -6,11 +6,22 @@ import { Button, Sheet, TextField } from '@/ui/components';
 export interface StackFormSheetProps {
   visible: boolean;
   initial?: { title: string };
+  /** Overrides the sheet title — the board screen reuses this sheet for "add
+   * a card" as well as "add/rename a list", and each needs its own copy. */
+  heading?: string;
+  placeholder?: string;
   onClose: () => void;
   onSubmit: (input: { title: string }) => void;
 }
 
-export function StackFormSheet({ visible, initial, onClose, onSubmit }: StackFormSheetProps) {
+export function StackFormSheet({
+  visible,
+  initial,
+  heading,
+  placeholder,
+  onClose,
+  onSubmit,
+}: StackFormSheetProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
 
@@ -34,9 +45,9 @@ export function StackFormSheet({ visible, initial, onClose, onSubmit }: StackFor
     <Sheet
       visible={visible}
       onClose={onClose}
-      title={t(initial ? 'board.form.renameTitle' : 'board.form.newTitle')}
+      title={heading ?? t(initial ? 'board.form.renameTitle' : 'board.form.newTitle')}
     >
-      <TextField placeholder={t('board.listTitle')} value={title} onChangeText={setTitle} />
+      <TextField placeholder={placeholder ?? t('board.listTitle')} value={title} onChangeText={setTitle} />
       <Button title={t('board.form.save')} onPress={handleSubmit} disabled={!trimmed} />
     </Sheet>
   );

@@ -228,11 +228,13 @@
     "addCard": "Add a card",
     "addList": "Add a list",
     "listTitle": "List name",
+    "cardTitle": "Card title",
     "emptyList": "No cards",
     "cardCount_one": "{{count}} card",
     "cardCount_other": "{{count}} cards",
     "form": {
       "newTitle": "New list",
+      "newCard": "New card",
       "renameTitle": "Rename list",
       "save": "Save"
     }

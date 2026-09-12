@@ -1,9 +1,15 @@
-import { createSyncScheduler } from '../../src/sync/scheduler';
+import {
+  createSyncScheduler,
+  registerScheduler,
+  requestBoardSnapshot,
+  unregisterScheduler,
+} from '../../src/sync/scheduler';
 import { createTaskRunner } from '../../src/sync/runTask';
 import type { SyncTask } from '../../src/sync/dueTasks';
 import * as syncBoardsModule from '../../src/sync/tasks/syncBoards';
 import * as syncUpcomingModule from '../../src/sync/tasks/syncUpcoming';
 import * as syncBoardContentModule from '../../src/sync/tasks/syncBoardContent';
+import { useUiStore } from '../../src/stores/uiStore';
 import type { Database } from '@nozbe/watermelondb';
 import type { Account } from '@/types';
 
@@ -168,6 +174,107 @@ describe('createSyncScheduler', () => {
     expect(ran.length - afterStart).toBe(2);
 
     scheduler.stop();
+  });
+
+  // The board screen calls this to reuse the scheduler's existing active-board
+  // priority (see dueTasks) instead of bypassing it with a direct fetch.
+  it('requestBoardSnapshot forces a full boardContent task even shortly after a snapshot', async () => {
+    const seen: SyncTask[] = [];
+    let now = 10 * 60_000; // the default SNAPSHOT_INTERVAL_MS, so the first pass is full
+    const scheduler = createSyncScheduler({
+      runTask: async (task) => {
+        seen.push(task);
+        return true;
+      },
+      getActiveBoardRemoteId: () => 'board-1',
+      getRecentBoardRemoteIds: () => [],
+      isOnline: () => true,
+      now: () => now,
+    });
+
+    await scheduler.runNow();
+    expect(seen.find((t) => t.kind === 'boardContent')).toMatchObject({
+      boardRemoteId: 'board-1',
+      full: true,
+    });
+
+    now += 60_000; // a minute later — well under the ten-minute interval
+    seen.length = 0;
+
+    scheduler.requestBoardSnapshot('board-1');
+    while (scheduler.isRunning()) {
+      await Promise.resolve();
+    }
+
+    expect(seen.find((t) => t.kind === 'boardContent')).toMatchObject({
+      boardRemoteId: 'board-1',
+      full: true,
+    });
+  });
+});
+
+describe('requestBoardSnapshot (module-level)', () => {
+  afterEach(() => {
+    useUiStore.setState({ activeBoardRemoteId: null, recentBoardRemoteIds: [] });
+  });
+
+  it('is a no-op, without throwing, when no scheduler is registered for the account', () => {
+    expect(() => requestBoardSnapshot('acc-none', 'board-none')).not.toThrow();
+  });
+
+  it('marks the board active and recent', () => {
+    requestBoardSnapshot('acc-1', 'board-1');
+    expect(useUiStore.getState().activeBoardRemoteId).toBe('board-1');
+    expect(useUiStore.getState().recentBoardRemoteIds).toEqual(['board-1']);
+  });
+
+  it('asks the registered scheduler for that account to force a full snapshot', async () => {
+    const seen: SyncTask[] = [];
+    const scheduler = createSyncScheduler({
+      runTask: async (task) => {
+        seen.push(task);
+        return true;
+      },
+      getActiveBoardRemoteId: () => useUiStore.getState().activeBoardRemoteId,
+      getRecentBoardRemoteIds: () => [],
+      isOnline: () => true,
+    });
+    registerScheduler('acc-1', scheduler);
+
+    try {
+      requestBoardSnapshot('acc-1', 'board-1');
+      while (scheduler.isRunning()) {
+        await Promise.resolve();
+      }
+      expect(seen.find((t) => t.kind === 'boardContent')).toMatchObject({
+        boardRemoteId: 'board-1',
+        full: true,
+      });
+    } finally {
+      unregisterScheduler(scheduler);
+    }
+  });
+
+  it('does not ask a scheduler registered for a different account', async () => {
+    const seen: SyncTask[] = [];
+    const scheduler = createSyncScheduler({
+      runTask: async (task) => {
+        seen.push(task);
+        return true;
+      },
+      getActiveBoardRemoteId: () => useUiStore.getState().activeBoardRemoteId,
+      getRecentBoardRemoteIds: () => [],
+      isOnline: () => true,
+    });
+    registerScheduler('acc-other', scheduler);
+
+    try {
+      requestBoardSnapshot('acc-1', 'board-1');
+      await Promise.resolve();
+      expect(seen).toEqual([]);
+    } finally {
+      unregisterScheduler(scheduler);
+    }
   });
 });
 
