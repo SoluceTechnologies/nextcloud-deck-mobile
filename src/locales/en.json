@@ -223,5 +223,13 @@
     "dueTomorrow": "Due tomorrow",
     "dueOn": "Due {{when}}",
     "noTitle": "Untitled"
+  },
+  "board": {
+    "addCard": "Add a card",
+    "addList": "Add a list",
+    "listTitle": "List name",
+    "emptyList": "No cards",
+    "cardCount_one": "{{count}} card",
+    "cardCount_other": "{{count}} cards"
   }
 }

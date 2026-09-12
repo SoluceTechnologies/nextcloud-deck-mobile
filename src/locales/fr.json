@@ -223,5 +223,13 @@
     "dueTomorrow": "Échéance demain",
     "dueOn": "Échéance {{when}}",
     "noTitle": "Sans titre"
+  },
+  "board": {
+    "addCard": "Ajouter une carte",
+    "addList": "Ajouter une liste",
+    "listTitle": "Nom de la liste",
+    "emptyList": "Aucune carte",
+    "cardCount_one": "{{count}} carte",
+    "cardCount_other": "{{count}} cartes"
   }
 }
