@@ -40,6 +40,14 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
   const { colors } = useTheme();
   const [stage, setStage] = useState<Stage>('closed');
   const [draftDate, setDraftDate] = useState<Date | null>(null);
+  // Seeded once when the row is pressed (see onPress below), not recomputed
+  // on every render. `new Date(value ?? Date.now())` is only stable when
+  // `value` is set; for an empty field it would otherwise mint a fresh
+  // timestamp on every unrelated parent re-render while the picker is open,
+  // which — independently of `onChange`'s identity (round 1) — is its own
+  // entry in the Android picker effect's dependency array (`valueTimestamp`
+  // in datetimepicker.android.js's `showOrUpdatePicker`) and re-opens it.
+  const [seed, setSeed] = useState<Date | null>(null);
 
   // The screen that renders this row passes a fresh inline `onChange` on every
   // re-render (theme/navigation/sibling state changes, unrelated to this row).
@@ -56,6 +64,7 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
       const close = () => {
         setStage('closed');
         setDraftDate(null);
+        setSeed(null);
       };
 
       if (event.type === 'dismissed' || !picked) {
@@ -94,7 +103,10 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
             ) : null}
           </>
         }
-        onPress={() => setStage('date')}
+        onPress={() => {
+          setSeed(new Date(value ?? Date.now()));
+          setStage('date');
+        }}
         trailing={
           value !== null ? (
             <IconButton
@@ -109,7 +121,7 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
       />
       {stage !== 'closed' ? (
         <DateTimePicker
-          value={Platform.OS === 'android' && stage === 'time' && draftDate ? draftDate : new Date(value ?? Date.now())}
+          value={stage === 'time' && draftDate ? draftDate : (seed ?? new Date(value ?? Date.now()))}
           mode={Platform.OS === 'ios' ? 'datetime' : stage === 'time' ? 'time' : 'date'}
           onChange={handleChange}
         />
