@@ -281,7 +281,7 @@ it('creates a label with an empty remote id and resolves to its new local id', a
 
 it('does nothing and resolves to null without an account', async () => {
   const { result } = renderHook(() => useCardActions(null));
-  let id: string | null = 'unset' as unknown as null;
+  let id: string | null | undefined;
   await act(async () => {
     id = await result.current.createLabel('b1', { title: 'URGENT', color: null });
   });
