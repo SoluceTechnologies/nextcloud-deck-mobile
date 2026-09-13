@@ -4,7 +4,10 @@ import { useBoardActions } from '../../../src/features/board/hooks/useBoardActio
 import { mutate } from '../../../src/sync/outbox/enqueue';
 import { useDatabase } from '../../../src/database/DatabaseProvider';
 
-jest.mock('../../../src/sync/outbox/enqueue', () => ({ mutate: jest.fn(async () => {}) }));
+jest.mock('../../../src/sync/outbox/enqueue', () => ({
+  mutate: jest.fn(async () => {}),
+  OUTBOX_QUEUED: 'queued',
+}));
 jest.mock('../../../src/database/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
 
 const prepareCreate = jest.fn((fn: (r: any) => void) => {
@@ -13,12 +16,19 @@ const prepareCreate = jest.fn((fn: (r: any) => void) => {
   return row;
 });
 // `remove` reads the board's stacks, cards and labels before marking them deleted;
-// a test seeds them per table here.
+// a test seeds them per table here. The one clause the query mock honours is
+// `Q.where('entity_id', Q.oneOf(ids))`, so a test can see that the outbox sweep
+// is scoped to the cascaded ids rather than the whole account.
 let rowsByTable: Record<string, any[]> = {};
 const db = {
   get: jest.fn((table: string) => ({
     prepareCreate,
-    query: jest.fn(() => ({ fetch: jest.fn(async () => rowsByTable[table] ?? []) })),
+    query: jest.fn((...clauses: any[]) => ({
+      fetch: jest.fn(async () => {
+        const ids = clauses.find((c) => c.left === 'entity_id')?.comparison.right.values;
+        return (rowsByTable[table] ?? []).filter((r) => !ids || ids.includes(r.entityId));
+      }),
+    })),
   })),
 };
 
@@ -113,6 +123,8 @@ it('marks the row deleted locally when removing', async () => {
 
   await (mutate as jest.Mock).mock.calls[0][0].applyLocal();
   expect(markDeleted).toHaveBeenCalled();
+  // No children, nothing to sweep: the outbox is not even read.
+  expect(db.get).not.toHaveBeenCalledWith('outbox');
 });
 
 it('marks the board’s stack and card rows deleted along with it, in one batch', async () => {
@@ -138,4 +150,36 @@ it('marks the board’s stack and card rows deleted along with it, in one batch'
     { op: 'delete', table: 'cards' },
     { op: 'delete', table: 'labels' },
   ]);
+});
+
+// A cascaded child can still hold a queued intent — its own create, say. Left
+// queued, that intent's write-back hits a row this batch soft-deleted and
+// throws, which the drain counts as transient: the account's queue wedges for
+// ten backoff rounds and re-POSTs on each. Every intent on a board's children
+// is moot once the board's own delete goes out. A row that is not a child (a
+// card already moved to another board) keeps its intents.
+it('drops the queued intents of the cascaded children, and no other', async () => {
+  const mine = {
+    id: 'o1',
+    entityId: 'c1',
+    prepareDestroyPermanently: jest.fn(() => ({ op: 'destroy', table: 'outbox' })),
+  };
+  const foreign = { id: 'o2', entityId: 'c-elsewhere', prepareDestroyPermanently: jest.fn() };
+  rowsByTable = {
+    cards: [{ id: 'c1', prepareMarkAsDeleted: () => ({ op: 'delete', table: 'cards' }) }],
+    outbox: [mine, foreign],
+  };
+  const board: any = {
+    id: 'b1',
+    remoteId: '7',
+    prepareMarkAsDeleted: () => ({ op: 'delete', table: 'boards' }),
+  };
+
+  const { result } = renderHook(() => useBoardActions('a1'));
+  await act(() => result.current.remove(board));
+
+  const ops = await (mutate as jest.Mock).mock.calls[0][0].applyLocal();
+  expect(mine.prepareDestroyPermanently).toHaveBeenCalled();
+  expect(foreign.prepareDestroyPermanently).not.toHaveBeenCalled();
+  expect(ops).toContainEqual({ op: 'destroy', table: 'outbox' });
 });

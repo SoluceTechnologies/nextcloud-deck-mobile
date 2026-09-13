@@ -5,8 +5,9 @@ import { useDatabase } from '@/database/DatabaseProvider';
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
 import type Label from '@/database/models/Label';
+import type OutboxEntry from '@/database/models/OutboxEntry';
 import type Stack from '@/database/models/Stack';
-import { mutate } from '@/sync/outbox/enqueue';
+import { mutate, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
 
 export type BoardActions = {
   create(input: { title: string; color: string | null }): Promise<void>;
@@ -122,11 +123,30 @@ export function useBoardActions(accountId: string | null): BoardActions {
             db.get<Card>('cards').query(...scope).fetch(),
             db.get<Label>('labels').query(...scope).fetch(),
           ]);
+          // Every intent on a board's children is moot once the board's own
+          // delete goes out — and a queued create's write-back on a row this
+          // batch soft-deletes would throw, a failure the drain counts as
+          // transient, wedging the account's queue for every backoff round. A
+          // card already moved to another board is not among the children and
+          // keeps its intents.
+          const childIds = [...stacks, ...cards, ...labels].map((r) => r.id);
+          const childIntents =
+            childIds.length === 0
+              ? []
+              : await db
+                  .get<OutboxEntry>('outbox')
+                  .query(
+                    Q.where('account_id', accountId),
+                    Q.where('state', OUTBOX_QUEUED),
+                    Q.where('entity_id', Q.oneOf(childIds)),
+                  )
+                  .fetch();
           return [
             board.prepareMarkAsDeleted(),
             ...stacks.map((r) => r.prepareMarkAsDeleted()),
             ...cards.map((r) => r.prepareMarkAsDeleted()),
             ...labels.map((r) => r.prepareMarkAsDeleted()),
+            ...childIntents.map((r) => r.prepareDestroyPermanently()),
           ];
         },
       });
