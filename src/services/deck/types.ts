@@ -77,3 +77,13 @@ export type DeckComment = {
   createdAt: number;
   parentId: string | null;
 };
+
+export type DeckAttachment = {
+  remoteId: string;
+  attachmentType: string;
+  fileName: string;
+  mime: string;
+  size: number;
+  createdAt: number;
+  createdBy: string;
+};

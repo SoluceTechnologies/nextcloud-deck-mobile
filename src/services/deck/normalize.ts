@@ -1,6 +1,7 @@
 import type {
   DeckAclEntry,
   DeckAssignee,
+  DeckAttachment,
   DeckBoard,
   DeckBoardUser,
   DeckCard,
@@ -160,5 +161,17 @@ export function normalizeStack(raw: Raw, boardRemoteId: string): DeckStack {
     cards: (Array.isArray(raw.cards) ? raw.cards : []).map((c: Raw) =>
       normalizeCard(c, boardRemoteId),
     ),
+  };
+}
+
+export function normalizeAttachment(raw: Raw): DeckAttachment {
+  return {
+    remoteId: String(raw.id),
+    attachmentType: String(raw.type ?? 'deck_file'),
+    fileName: String(raw.data ?? ''),
+    mime: String(raw.extendedData?.mimetype ?? 'application/octet-stream'),
+    size: Number(raw.extendedData?.filesize ?? 0),
+    createdAt: secondsToMs(raw.createdAt),
+    createdBy: String(raw.createdBy ?? ''),
   };
 }
