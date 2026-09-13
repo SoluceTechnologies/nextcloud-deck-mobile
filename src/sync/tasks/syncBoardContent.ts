@@ -138,6 +138,14 @@ export async function syncBoardContent({
       const protectedRowIds = new Set(
         pendingCardRows.map((r) => r.remoteId).filter((id) => id !== ''),
       );
+      // A queued delete has already destroyed its row, so no row carries the
+      // key; it must still be protected or a full snapshot would recreate the
+      // card before the DELETE drains.
+      for (const bucket of pending.values()) {
+        for (const { intent } of bucket.entries) {
+          if (intent.kind === 'deleteCard') protectedRowIds.add(intent.ref.cardRemoteId);
+        }
+      }
 
       const { labelLocalIdByRemote, cardLabelRows, cardAssigneeRows } = await loadCardRelationContext(
         db,

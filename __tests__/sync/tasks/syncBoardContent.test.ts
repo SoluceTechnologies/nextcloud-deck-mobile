@@ -320,6 +320,38 @@ describe('syncBoardContent', () => {
     expect(ops.some((o: any) => o._op === 'delete' && o._tag === 'cards')).toBe(false);
   });
 
+  // `useCardActions.remove` marks the local row deleted right away, while the
+  // `deleteCard` intent is still queued. No card row carries the key any more,
+  // so a protectedRowIds built from rows alone would miss it — and a full
+  // snapshot that still lists the card (the server hasn't seen the DELETE yet)
+  // would recreate it, resurrecting a card the user just removed.
+  it('does not recreate a card whose delete is still queued', async () => {
+    mockFetchStacks.mockResolvedValue([stack([card({ remoteId: '42' })])]);
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      stacks: [makeRow('stacks', { boardId: 'b-local', remoteId: '5', title: 'Doing', order: 0, lastModified: 4000 })],
+      cards: [], // the row is already gone
+      outbox: [
+        makeRow('outbox', {
+          entityType: 'card',
+          entityId: 'c1',
+          state: 'queued',
+          serverValuesJson: '{}',
+          payloadJson: JSON.stringify({
+            kind: 'deleteCard',
+            cardId: 'c1',
+            ref: { boardRemoteId: '7', stackRemoteId: '5', cardRemoteId: '42' },
+          }),
+        }),
+      ],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'create' && o._tag === 'cards')).toEqual([]);
+  });
+
   // Correction: `reconcile` removes duplicate keys unconditionally, whatever
   // `deleteMissing` says. Two offline-created cards both carry remoteId = ''
   // until their create flushes, so they collide on that empty key and — unless
