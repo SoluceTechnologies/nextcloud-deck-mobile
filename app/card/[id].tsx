@@ -49,7 +49,7 @@ export default function CardDetailScreen() {
   // Keyed off the route param, not card?.id: syncCardDetail resolves the
   // card itself from the database, so this can start fetching before
   // useCard's own subscription (above) has resolved a row to render.
-  const { hasMore, loadMore } = useCardDetailSync(id);
+  const { hasMore, loadMore } = useCardDetailSync(accountId, id);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
   const [assigneesSheetVisible, setAssigneesSheetVisible] = useState(false);
