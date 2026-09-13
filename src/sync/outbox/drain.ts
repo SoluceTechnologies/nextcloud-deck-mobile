@@ -32,30 +32,52 @@ export type DrainParams = {
   onConflict?: (info: { cardId: string; fields: string[] }) => void;
 };
 
-// The scheduler tick and a reconnect can genuinely overlap - a drain is slow
-// and asynchronous - so a second call for an account already draining shares
-// the in-flight pass instead of reading the queue again and sending every
-// row twice. `finally` clears the guard on both success and failure so a
-// rejected drain never wedges the account's queue.
+// A local write, a foreground transition and a reconnect can genuinely
+// overlap - a drain is slow and asynchronous - so a second call for an account
+// already draining shares the in-flight pass instead of reading the queue
+// again and sending every row twice. `finally` clears the guard on both
+// success and failure so a rejected drain never wedges the account's queue.
+//
+// The pass reads the queue once, so a write committed while it is in flight
+// is invisible to it, and the write's own drain call has just joined that
+// pass. Nothing else is scheduled to pick it up: `rerun` remembers the request
+// and the pass runs once more when it ends. Not after a transient failure —
+// the row was backed off and the reconnect / foreground / next-write triggers
+// take over — and never in a loop: a follow-up pass reruns only if a write
+// arrived during it in turn.
 const inFlight = new Map<string, Promise<void>>();
+const rerun = new Set<string>();
 
 export function drainOutbox(params: DrainParams): Promise<void> {
-  const existing = inFlight.get(params.account.id);
-  if (existing) return existing;
+  const id = params.account.id;
+  const existing = inFlight.get(id);
+  if (existing) {
+    rerun.add(id);
+    return existing;
+  }
 
-  const run = drainOnce(params).finally(() => inFlight.delete(params.account.id));
-  inFlight.set(params.account.id, run);
+  let requested = false;
+  const run = drainOnce(params)
+    .finally(() => {
+      inFlight.delete(id);
+      requested = rerun.delete(id);
+    })
+    .then((backedOff) => {
+      if (requested && !backedOff) return drainOutbox(params);
+    });
+  inFlight.set(id, run);
   return run;
 }
 
-async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise<void> {
+/** Resolves `true` when the pass ended early on a transient failure, leaving a backed-off row. */
+async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise<boolean> {
   const clock = now ?? (() => Date.now());
   const collection = db.get<OutboxEntry>('outbox');
 
   const rows = await collection
     .query(Q.where('account_id', account.id), Q.where('state', OUTBOX_QUEUED))
     .fetch();
-  if (rows.length === 0) return;
+  if (rows.length === 0) return false;
 
   const ordered = [...rows].sort((a, b) => a.createdAt - b.createdAt);
   const byId = new Map(ordered.map((row) => [row.id, row]));
@@ -150,7 +172,8 @@ async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise
 
       // A transient failure almost always means the network is gone; there is
       // nothing to gain from hammering the rest of the queue.
-      if (!permanent) return;
+      if (!permanent) return true;
     }
   }
+  return false;
 }

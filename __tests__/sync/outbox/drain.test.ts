@@ -47,9 +47,13 @@ function entryRow(id: string, intent: Intent, over: Record<string, unknown> = {}
   return row;
 }
 
+// A destroyed row is gone from the next query, as it would be from the real
+// table — a follow-up pass must only ever see what is still queued.
 function makeDb(rows: any[]) {
   return {
-    get: jest.fn(() => ({ query: jest.fn(() => ({ fetch: jest.fn(async () => rows) })) })),
+    get: jest.fn(() => ({
+      query: jest.fn(() => ({ fetch: jest.fn(async () => rows.filter((r) => !r.destroyed)) })),
+    })),
     write: jest.fn(async (fn: any) => fn()),
   } as any;
 }
@@ -230,12 +234,69 @@ describe('drainOutbox', () => {
     const [a, b] = [drainOutbox({ db, account }), drainOutbox({ db, account })];
     await Promise.all([a, b]);
 
-    // Only the first call actually read the queue; the second returned the
-    // same in-flight pass instead of fetching (and sending) it again.
-    expect(db.get).toHaveBeenCalledTimes(1);
+    // The second call joined the in-flight pass instead of starting its own,
+    // so nothing was sent twice. It cannot tell a race from a write that
+    // landed mid-pass, so the drain reads the queue once more when the pass
+    // ends — and that follow-up finds nothing left to send.
     expect(mockExecute).toHaveBeenCalledTimes(2);
+    expect(db.get).toHaveBeenCalledTimes(2);
     expect(first.destroyed).toBe(true);
     expect(second.destroyed).toBe(true);
+  });
+
+  // The queue is read once per pass, so a write committed while a pass is in
+  // flight is invisible to it — and its onLocalWrite drain call only joins that
+  // same pass. Nothing else is scheduled to pick the write up: it has to be the
+  // drain itself, once, when the pass ends.
+  it('runs one follow-up pass for a write that arrived while a pass was in flight', async () => {
+    const first = entryRow('1', archive);
+    const second = entryRow('2', { kind: 'createCard', cardId: 'c2' });
+    const rows = [first, second];
+    const db = makeDb(rows);
+
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockExecute.mockImplementationOnce(() => held).mockResolvedValue(undefined);
+
+    const pass = drainOutbox({ db, account });
+    // Parks the pass on entry 1's executeIntent, past its one read of the queue.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+
+    const third = entryRow('3', { kind: 'setCardArchived', cardId: 'c3', archived: true });
+    rows.push(third);
+    const again = drainOutbox({ db, account });
+    release();
+    await Promise.all([pass, again]);
+
+    expect(mockExecute).toHaveBeenCalledTimes(3);
+    expect(third.destroyed).toBe(true);
+    // One follow-up, not a loop: exactly two reads of the queue.
+    expect(db.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not rerun after a pass that ended on a transient failure, so the backed-off row is not retried early', async () => {
+    const row = entryRow('1', archive);
+    const db = makeDb([row]);
+    let fail!: (error: Error) => void;
+    mockExecute.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          fail = reject;
+        }),
+    );
+
+    const pass = drainOutbox({ db, account, now: () => 5000 });
+    await new Promise((r) => setTimeout(r, 0));
+    const again = drainOutbox({ db, account, now: () => 5000 });
+    fail(new Error('Network request failed'));
+    await Promise.all([pass, again]);
+
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+    expect(db.get).toHaveBeenCalledTimes(1);
+    expect(row.nextAttemptAt).toBe(6000);
   });
 
   it('releases the in-flight guard when a pass rejects, so the next call for that account still runs', async () => {

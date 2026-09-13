@@ -54,9 +54,10 @@ export function useDeckSync(): void {
     };
 
     // A queued mutation is sendable the moment it is committed; without this
-    // it would sit until the next scheduler tick or foreground transition.
-    // `drainOutbox` shares an in-flight pass per account, so a burst of writes
-    // costs one drain, not one per write.
+    // it would sit until a reconnect or foreground transition. `drainOutbox`
+    // shares an in-flight pass per account, so a burst of writes costs one
+    // drain, not one per write — and a write that lands mid-pass, which that
+    // pass cannot see, is sent by the follow-up pass the drain schedules itself.
     const offLocalWrite = onLocalWrite(drain);
 
     scheduler.start();
