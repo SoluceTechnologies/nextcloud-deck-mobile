@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -10,10 +10,11 @@ import { useActiveAccount } from '@/hooks/useAccounts';
 import { useCard } from '@/database/hooks/useCard';
 import { useAccountCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
-import { useCardComments } from '@/database/hooks/useCardDetail';
+import { useCardAttachments, useCardComments } from '@/database/hooks/useCardDetail';
 import { useBoardLabels, useCardAssignees, useCardLabels } from '@/database/hooks/useCardRelations';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { AssigneesSheet } from '@/features/card/components/AssigneesSheet';
+import { AttachmentsSection } from '@/features/card/components/AttachmentsSection';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
 import { CardMenu } from '@/features/card/components/CardMenu';
 import { CardPickerSheet } from '@/features/card/components/CardPickerSheet';
@@ -27,6 +28,8 @@ import { useCardDetailSync } from '@/features/card/hooks/useCardDetailSync';
 import { DescriptionEditor } from '@/features/card/markdown/DescriptionEditor';
 import { DescriptionView } from '@/features/card/markdown/DescriptionView';
 import { parseArray, participantsOf, type Participant } from '@/features/card/participants';
+// Pure URL builder, not a request — trustedFetch/deckRequest never run from a screen.
+import { attachmentDownloadUrl } from '@/services/deck/attachments';
 import { Icon, IconButton, Item, List, ScreenHeader, SectionHeader, Typography, ViewContainer } from '@/ui/components';
 
 export default function CardDetailScreen() {
@@ -46,6 +49,7 @@ export default function CardDetailScreen() {
   const activeAccount = useActiveAccount(accountId);
   const cardActions = useCardActions(accountId);
   const comments = useCardComments(accountId, card?.id ?? null);
+  const attachments = useCardAttachments(accountId, card?.id ?? null);
   // Keyed off the route param, not card?.id: syncCardDetail resolves the
   // card itself from the database, so this can start fetching before
   // useCard's own subscription (above) has resolved a row to render.
@@ -201,6 +205,19 @@ export default function CardDetailScreen() {
                 onPress={() => setDependenciesSheetVisible(true)}
               />
             </List>
+            <AttachmentsSection
+              attachments={attachments}
+              onOpen={(a) => {
+                if (!activeAccount || !board?.remoteId || !stack?.remoteId || !card.remoteId) return;
+                void Linking.openURL(
+                  attachmentDownloadUrl(
+                    activeAccount,
+                    { boardRemoteId: board.remoteId, stackRemoteId: stack.remoteId, cardRemoteId: card.remoteId },
+                    a,
+                  ),
+                ).catch(() => undefined);
+              }}
+            />
             <SectionHeader title={t('card.description')} />
             <DescriptionView
               markdown={card.description}

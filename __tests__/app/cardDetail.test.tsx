@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { ThemeWrapper } from '../helpers/theme';
 import { useAccountStore } from '../../src/stores/accountStore';
@@ -33,7 +34,8 @@ jest.mock('../../src/database/hooks/useCard', () => ({
 }));
 
 jest.mock('../../src/database/hooks/useBoards', () => ({
-  useBoards: jest.fn(() => [{ id: 'b1', title: 'Finance & Juridique' }]),
+  // remoteId feeds the attachment download URL (boards/<remoteId>/stacks/...).
+  useBoards: jest.fn(() => [{ id: 'b1', title: 'Finance & Juridique', remoteId: 'B1' }]),
   // The card menu's move picker (CardPickerSheet) reads from this same module.
   useBoardCards: jest.fn(() => []),
   // The Dependencies row resolves each remote id in card.dependentCardsJson
@@ -42,7 +44,7 @@ jest.mock('../../src/database/hooks/useBoards', () => ({
 }));
 
 jest.mock('../../src/database/hooks/useBoardContent', () => ({
-  useBoardStacks: jest.fn(() => [{ id: 's1', title: 'En cours' }]),
+  useBoardStacks: jest.fn(() => [{ id: 's1', title: 'En cours', remoteId: 'S1' }]),
 }));
 
 jest.mock('../../src/database/hooks/useCardRelations', () => ({
@@ -53,6 +55,7 @@ jest.mock('../../src/database/hooks/useCardRelations', () => ({
 
 jest.mock('../../src/database/hooks/useCardDetail', () => ({
   useCardComments: jest.fn(() => []),
+  useCardAttachments: jest.fn(() => []),
 }));
 
 jest.mock('../../src/features/card/hooks/useCardDetailSync', () => ({
@@ -156,8 +159,11 @@ beforeEach(() => {
   (useCardAssignees as jest.Mock).mockReturnValue([]);
   const { useAccountCards } = require('../../src/database/hooks/useBoards');
   (useAccountCards as jest.Mock).mockReturnValue([]);
-  const { useCardComments } = require('../../src/database/hooks/useCardDetail');
+  const { useCardComments, useCardAttachments } = require('../../src/database/hooks/useCardDetail');
   (useCardComments as jest.Mock).mockReturnValue([]);
+  (useCardAttachments as jest.Mock).mockReturnValue([]);
+  const { useActiveAccount } = require('../../src/hooks/useAccounts');
+  (useActiveAccount as jest.Mock).mockReturnValue(null);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
@@ -376,4 +382,54 @@ it('submits a new comment through the card actions', () => {
   fireEvent.press(screen.getByTestId('comment-send'));
 
   expect(addComment).toHaveBeenCalledWith(expect.anything(), 'hello');
+});
+
+it('renders the attachments section with the observed attachments', () => {
+  const { useCardAttachments } = require('../../src/database/hooks/useCardDetail');
+  (useCardAttachments as jest.Mock).mockReturnValue([
+    {
+      id: 'f1',
+      remoteId: '3',
+      attachmentType: 'deck_file',
+      fileName: 'contract.pdf',
+      mime: 'application/pdf',
+      size: 20480,
+      createdAt: 1000,
+      createdBy: 'alice',
+    },
+  ]);
+  renderScreen();
+  expect(screen.getByText('contract.pdf')).toBeTruthy();
+});
+
+// R50: opening a file goes through attachmentDownloadUrl (a pure URL builder,
+// not a request) and Linking.openURL — never fetch/deckRequest from a screen.
+it('opens an attachment through its authenticated download URL', () => {
+  const { useCardAttachments } = require('../../src/database/hooks/useCardDetail');
+  (useCardAttachments as jest.Mock).mockReturnValue([
+    {
+      id: 'f1',
+      remoteId: '3',
+      attachmentType: 'deck_file',
+      fileName: 'contract.pdf',
+      mime: 'application/pdf',
+      size: 20480,
+      createdAt: 1000,
+      createdBy: 'alice',
+    },
+  ]);
+  const { useActiveAccount } = require('../../src/hooks/useAccounts');
+  (useActiveAccount as jest.Mock).mockReturnValue({
+    baseUrl: 'https://cloud.example.com',
+    username: 'alice',
+    appPassword: 'secret',
+  });
+  const openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+
+  renderScreen();
+  fireEvent.press(screen.getByText('contract.pdf'));
+
+  expect(openURLSpy).toHaveBeenCalledWith(expect.stringContaining('/attachments/deck_file/3'));
+
+  openURLSpy.mockRestore();
 });
