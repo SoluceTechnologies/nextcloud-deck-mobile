@@ -6,6 +6,7 @@ import {
   EnrichedMarkdownText,
   EnrichedMarkdownTextInput,
   type EnrichedMarkdownTextInputInstance,
+  type TaskListItemPressEvent,
 } from 'react-native-enriched-markdown';
 
 import { Button, Typography, ViewContainer } from '@/ui/components';
@@ -56,6 +57,10 @@ export function SpikeScreen() {
   const { colors } = useTheme();
   const ref = useRef<EnrichedMarkdownTextInputInstance>(null);
   const [output, setOutput] = useState<string | null>(null);
+  // Every task-checkbox tap, in order: settles whether `index` counts in
+  // document order across nesting (what `toggleTaskAtIndex` assumes) or
+  // restarts per list. See step 5 in docs/v0/markdown-spike.md.
+  const [taps, setTaps] = useState<TaskListItemPressEvent[]>([]);
 
   function handleRoundTrip() {
     ref.current
@@ -89,8 +94,22 @@ export function SpikeScreen() {
 
           <Typography variant="title">Rendered (flavor=github)</Typography>
           <View style={[styles.box, { borderColor: colors.border }]}>
-            <EnrichedMarkdownText markdown={SPIKE_FIXTURE} flavor="github" />
+            <EnrichedMarkdownText
+              markdown={SPIKE_FIXTURE}
+              flavor="github"
+              onTaskListItemPress={(e) => setTaps((t) => [...t, e])}
+            />
           </View>
+
+          <Typography variant="title">Task taps (index, checked, text)</Typography>
+          <Text
+            selectable
+            style={[styles.mono, styles.box, { color: colors.text, borderColor: colors.border }]}
+          >
+            {taps.length === 0
+              ? '(none yet)'
+              : taps.map((e) => `${e.index} ${e.checked} ${e.text}`).join('\n')}
+          </Text>
 
           <Button title="Round-trip" onPress={handleRoundTrip} />
 
