@@ -449,6 +449,32 @@ it('does nothing when the dependency to remove is absent', async () => {
   expect(mutate).not.toHaveBeenCalled();
 });
 
+// addComment prepares the local row with remoteId '' before mutate, so an
+// offline comment appears instantly and the drain fills the remote id later.
+it('creates a comment row with an empty remote id and enqueues createComment', async () => {
+  const card: any = { id: 'c1' };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.addComment(card, '  hello  '));
+
+  const row = prepareCreate.mock.results[0].value;
+  expect(row.remoteId).toBe('');
+  expect(row.message).toBe('hello');
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({ kind: 'createComment', commentId: row.id, cardId: 'c1', message: 'hello' });
+  expect(await call.applyLocal()).toBe(row);
+});
+
+it('does not enqueue a whitespace-only comment', async () => {
+  const card: any = { id: 'c1' };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.addComment(card, '   '));
+
+  expect(mutate).not.toHaveBeenCalled();
+  expect(prepareCreate).not.toHaveBeenCalled();
+});
+
 // A malformed column must contribute nothing rather than take the write down with it.
 it('treats malformed dependentCardsJson as an empty list', async () => {
   const card: any = {

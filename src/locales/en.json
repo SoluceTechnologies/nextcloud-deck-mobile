@@ -254,6 +254,12 @@
     "rawEditorNotice": "This description uses formatting the rich editor cannot keep. Editing as plain Markdown.",
     "save": "Save",
     "comments": "Comments",
+    "noComments": "No comments",
+    "loadMore": "Load more",
+    "writeComment": "Write a comment…",
+    "commentPending": "Sending…",
+    "you": "You",
+    "send": "Send",
     "deleted": "This card no longer exists.",
     "menu": {
       "title": "More",

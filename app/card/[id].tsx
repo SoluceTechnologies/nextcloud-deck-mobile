@@ -10,6 +10,7 @@ import { useActiveAccount } from '@/hooks/useAccounts';
 import { useCard } from '@/database/hooks/useCard';
 import { useAccountCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
+import { useCardComments } from '@/database/hooks/useCardDetail';
 import { useBoardLabels, useCardAssignees, useCardLabels } from '@/database/hooks/useCardRelations';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { AssigneesSheet } from '@/features/card/components/AssigneesSheet';
@@ -17,10 +18,12 @@ import { CardIdentity } from '@/features/card/components/CardIdentity';
 import { CardMenu } from '@/features/card/components/CardMenu';
 import { CardPickerSheet } from '@/features/card/components/CardPickerSheet';
 import { ColorSheet } from '@/features/card/components/ColorSheet';
+import { CommentsSection } from '@/features/card/components/CommentsSection';
 import { DateRow } from '@/features/card/components/DateRow';
 import { DependenciesSheet } from '@/features/card/components/DependenciesSheet';
 import { LabelsSheet } from '@/features/card/components/LabelsSheet';
 import { dueStateOf } from '@/features/card/dueState';
+import { useCardDetailSync } from '@/features/card/hooks/useCardDetailSync';
 import { DescriptionEditor } from '@/features/card/markdown/DescriptionEditor';
 import { DescriptionView } from '@/features/card/markdown/DescriptionView';
 import { parseArray, participantsOf, type Participant } from '@/features/card/participants';
@@ -42,6 +45,11 @@ export default function CardDetailScreen() {
   const accountCards = useAccountCards(accountId);
   const activeAccount = useActiveAccount(accountId);
   const cardActions = useCardActions(accountId);
+  const comments = useCardComments(accountId, card?.id ?? null);
+  // Keyed off the route param, not card?.id: syncCardDetail resolves the
+  // card itself from the database, so this can start fetching before
+  // useCard's own subscription (above) has resolved a row to render.
+  const { hasMore, loadMore } = useCardDetailSync(id);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
   const [assigneesSheetVisible, setAssigneesSheetVisible] = useState(false);
@@ -198,6 +206,12 @@ export default function CardDetailScreen() {
               markdown={card.description}
               onToggleTask={(next) => void cardActions.patch(card, { description: next }).catch(() => undefined)}
               onEdit={() => setDescriptionEditorVisible(true)}
+            />
+            <CommentsSection
+              comments={comments}
+              hasMore={hasMore}
+              onLoadMore={loadMore}
+              onSubmit={(message) => void cardActions.addComment(card, message).catch(() => undefined)}
             />
           </View>
         </ScrollView>

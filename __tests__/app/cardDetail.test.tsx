@@ -51,6 +51,14 @@ jest.mock('../../src/database/hooks/useCardRelations', () => ({
   useCardAssignees: jest.fn(() => []),
 }));
 
+jest.mock('../../src/database/hooks/useCardDetail', () => ({
+  useCardComments: jest.fn(() => []),
+}));
+
+jest.mock('../../src/features/card/hooks/useCardDetailSync', () => ({
+  useCardDetailSync: jest.fn(() => ({ hasMore: false, loadMore: jest.fn(), loading: false })),
+}));
+
 // The Assignees sheet needs an account to fetch avatars for; the screen tests
 // below only assert the row's subtitle, so a bare null (no fetch) is enough.
 jest.mock('../../src/hooks/useAccounts', () => ({
@@ -72,6 +80,7 @@ const mockCardActions = {
   unassignUser: jest.fn(() => Promise.resolve()),
   addDependency: jest.fn(() => Promise.resolve()),
   removeDependency: jest.fn(() => Promise.resolve()),
+  addComment: jest.fn(() => Promise.resolve()),
 };
 jest.mock('../../src/features/board/hooks/useCardActions', () => ({
   useCardActions: () => mockCardActions,
@@ -147,6 +156,8 @@ beforeEach(() => {
   (useCardAssignees as jest.Mock).mockReturnValue([]);
   const { useAccountCards } = require('../../src/database/hooks/useBoards');
   (useAccountCards as jest.Mock).mockReturnValue([]);
+  const { useCardComments } = require('../../src/database/hooks/useCardDetail');
+  (useCardComments as jest.Mock).mockReturnValue([]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
@@ -346,4 +357,23 @@ it('opens the description editor from the edit affordance', () => {
   renderScreen();
   fireEvent.press(screen.getByTestId('description-edit'));
   expect(screen.getByTestId('editor-close')).toBeTruthy();
+});
+
+it('renders the comments section with the observed comments', () => {
+  const { useCardComments } = require('../../src/database/hooks/useCardDetail');
+  (useCardComments as jest.Mock).mockReturnValue([
+    { id: 'k1', remoteId: 'r1', message: 'Hello there', actorId: 'alice', actorDisplayName: 'Alice', createdAt: 1000 },
+  ]);
+  renderScreen();
+  expect(screen.getByText('Hello there')).toBeTruthy();
+});
+
+it('submits a new comment through the card actions', () => {
+  const { addComment } = requireCardActionsMock();
+  renderScreen();
+
+  fireEvent.changeText(screen.getByTestId('comment-input'), 'hello');
+  fireEvent.press(screen.getByTestId('comment-send'));
+
+  expect(addComment).toHaveBeenCalledWith(expect.anything(), 'hello');
 });

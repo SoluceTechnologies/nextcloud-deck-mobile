@@ -254,6 +254,12 @@
     "rawEditorNotice": "Cette description utilise une mise en forme que l'éditeur enrichi ne sait pas conserver. Édition en Markdown brut.",
     "save": "Enregistrer",
     "comments": "Commentaires",
+    "noComments": "Aucun commentaire",
+    "loadMore": "Afficher plus",
+    "writeComment": "Écrire un commentaire…",
+    "commentPending": "Envoi…",
+    "you": "Vous",
+    "send": "Envoyer",
     "deleted": "Cette carte n'existe plus.",
     "menu": {
       "title": "Plus",

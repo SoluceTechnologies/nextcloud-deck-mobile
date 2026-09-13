@@ -6,6 +6,7 @@ import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
 import type CardAssignee from '@/database/models/CardAssignee';
 import type CardLabel from '@/database/models/CardLabel';
+import type Comment from '@/database/models/Comment';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import type { CardFieldName } from '@/database/writers';
@@ -36,6 +37,7 @@ export type CardActions = {
   unassignUser(card: Card, participant: Participant): Promise<void>;
   addDependency(card: Card, dependentCardRemoteId: string): Promise<void>;
   removeDependency(card: Card, dependentCardRemoteId: string): Promise<void>;
+  addComment(card: Card, message: string): Promise<void>;
 };
 
 /**
@@ -373,6 +375,35 @@ export function useCardActions(accountId: string | null): CardActions {
       });
     };
 
+    // A comment written offline must appear right away: the row is prepared
+    // (remoteId '', no actor yet — CommentsSection renders that as pending/"You")
+    // before mutate, same as create()/createLabel(), and the drain fills in the
+    // real remote id and author once it reaches the server.
+    const addComment: CardActions['addComment'] = async (card, message) => {
+      if (!accountId) return;
+
+      const trimmed = message.trim();
+      if (!trimmed) return;
+
+      const row = db.get<Comment>('comments').prepareCreate((r: Comment) => {
+        r.accountId = accountId;
+        r.cardId = card.id;
+        r.remoteId = '';
+        r.message = trimmed;
+        r.actorId = '';
+        r.actorDisplayName = '';
+        r.createdAt = Date.now();
+        r.parentId = undefined;
+      });
+
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'createComment', commentId: row.id, cardId: card.id, message: trimmed },
+        applyLocal: () => row,
+      });
+    };
+
     return {
       create,
       setDone,
@@ -388,6 +419,7 @@ export function useCardActions(accountId: string | null): CardActions {
       unassignUser,
       addDependency,
       removeDependency,
+      addComment,
     };
   }, [db, accountId]);
 }
