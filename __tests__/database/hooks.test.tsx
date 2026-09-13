@@ -214,6 +214,36 @@ describe('useCard', () => {
     await waitFor(() => expect(result.current).toEqual(row));
   });
 
+  // `findAndObserve` emits the SAME model instance after an in-place update,
+  // so a hook that stores the row itself hands React an identical reference
+  // and the setState bails out — the screen keeps showing the stale field.
+  // Two emissions: React still renders once before its eager same-value
+  // bail-out engages, so only the second emission tells the two apart.
+  it('re-renders on every in-place update of the observed row (same reference)', () => {
+    const row: any = { id: 'c-1', title: 'a' };
+    const { db, observer } = makeCardDb(row);
+    mockUseDatabase.mockReturnValue(db);
+
+    let renders = 0;
+    const { result } = renderHook(() => {
+      renders += 1;
+      return useCard('c-1');
+    });
+    const before = renders;
+
+    act(() => {
+      row.title = 'b';
+      observer.next(row);
+    });
+    act(() => {
+      row.title = 'c';
+      observer.next(row);
+    });
+
+    expect(renders).toBe(before + 2);
+    expect(result.current?.title).toBe('c');
+  });
+
   it('resets to null when the row is deleted (subscription completes)', () => {
     const row = { id: 'c-1', title: 'Card One' };
     const { db, observer } = makeCardDb(row);
