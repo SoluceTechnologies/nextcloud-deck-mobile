@@ -251,6 +251,8 @@
     "noFiles": "Aucun fichier",
     "description": "Description",
     "noDescription": "Aucune description",
+    "rawEditorNotice": "Cette description utilise une mise en forme que l'éditeur enrichi ne sait pas conserver. Édition en Markdown brut.",
+    "save": "Enregistrer",
     "comments": "Commentaires",
     "deleted": "Cette carte n'existe plus.",
     "menu": {

@@ -251,6 +251,8 @@
     "noFiles": "No files",
     "description": "Description",
     "noDescription": "No description",
+    "rawEditorNotice": "This description uses formatting the rich editor cannot keep. Editing as plain Markdown.",
+    "save": "Save",
     "comments": "Comments",
     "deleted": "This card no longer exists.",
     "menu": {

@@ -21,8 +21,10 @@ import { DateRow } from '@/features/card/components/DateRow';
 import { DependenciesSheet } from '@/features/card/components/DependenciesSheet';
 import { LabelsSheet } from '@/features/card/components/LabelsSheet';
 import { dueStateOf } from '@/features/card/dueState';
+import { DescriptionEditor } from '@/features/card/markdown/DescriptionEditor';
+import { DescriptionView } from '@/features/card/markdown/DescriptionView';
 import { parseArray, participantsOf, type Participant } from '@/features/card/participants';
-import { Icon, IconButton, Item, List, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
+import { Icon, IconButton, Item, List, ScreenHeader, SectionHeader, Typography, ViewContainer } from '@/ui/components';
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,6 +46,7 @@ export default function CardDetailScreen() {
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
   const [assigneesSheetVisible, setAssigneesSheetVisible] = useState(false);
   const [dependenciesSheetVisible, setDependenciesSheetVisible] = useState(false);
+  const [descriptionEditorVisible, setDescriptionEditorVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -190,9 +193,21 @@ export default function CardDetailScreen() {
                 onPress={() => setDependenciesSheetVisible(true)}
               />
             </List>
+            <SectionHeader title={t('card.description')} />
+            <DescriptionView
+              markdown={card.description}
+              onToggleTask={(next) => void cardActions.patch(card, { description: next }).catch(() => undefined)}
+              onEdit={() => setDescriptionEditorVisible(true)}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
+      <DescriptionEditor
+        visible={descriptionEditorVisible}
+        initial={card.description}
+        onClose={() => setDescriptionEditorVisible(false)}
+        onSave={(md) => void cardActions.patch(card, { description: md }).catch(() => undefined)}
+      />
       <ColorSheet
         visible={colorSheetVisible}
         value={card.color ?? null}

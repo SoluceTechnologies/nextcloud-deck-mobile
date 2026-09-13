@@ -5,6 +5,29 @@ import { useAccountStore } from '../../src/stores/accountStore';
 import { DECK_PALETTE } from '../../src/features/board/palette';
 import CardDetailScreen from '../../app/card/[id]';
 
+// The library's jest mock drops onTaskListItemPress (see DescriptionView.test.tsx
+// for why); wrapped here the same way so a checkbox tap in the rendered
+// description can be exercised end to end through the screen's patch() call.
+let mockOnTaskListItemPress: ((e: { index: number; checked: boolean; text: string }) => void) | null = null;
+
+jest.mock('react-native-enriched-markdown', () => {
+  const actual = require('react-native-enriched-markdown/jest');
+  return {
+    ...actual,
+    EnrichedMarkdownText: (props: any) => {
+      mockOnTaskListItemPress = props.onTaskListItemPress ?? null;
+      const ActualText = actual.EnrichedMarkdownText;
+      return <ActualText {...props} />;
+    },
+  };
+});
+
+function fireTaskPress(e: { index: number; checked: boolean; text: string }) {
+  act(() => {
+    mockOnTaskListItemPress?.(e);
+  });
+}
+
 jest.mock('../../src/database/hooks/useCard', () => ({
   useCard: jest.fn(),
 }));
@@ -305,4 +328,22 @@ it('lists the resolved dependency titles as the dependencies row subtitle', () =
 it('shows the empty dependencies label when the card has no dependencies', () => {
   renderScreen();
   expect(screen.getByText('card.noDependencies')).toBeTruthy();
+});
+
+// Lot 10's flagship: a tapped checkbox in the rendered description is one
+// optimistic patch() write, offline included.
+it('commits a task toggle in the description through the card actions', () => {
+  const { patch } = requireCardActionsMock();
+  mockCard({ description: '- [ ] a' });
+  renderScreen();
+
+  fireTaskPress({ index: 0, checked: true, text: 'a' });
+
+  expect(patch).toHaveBeenCalledWith(expect.anything(), { description: '- [x] a' });
+});
+
+it('opens the description editor from the edit affordance', () => {
+  renderScreen();
+  fireEvent.press(screen.getByTestId('description-edit'));
+  expect(screen.getByTestId('editor-close')).toBeTruthy();
 });
