@@ -7,6 +7,7 @@ import { createSyncScheduler } from '../../src/sync/scheduler';
 import { useAccountStore } from '../../src/stores/accountStore';
 import { useUiStore } from '../../src/stores/uiStore';
 import { setAccounts } from '../../src/hooks/useAccounts';
+import { markLocalWrite } from '../../src/sync/localWrites';
 
 jest.mock('../../src/sync/outbox/drain', () => ({ drainOutbox: jest.fn(async () => {}) }));
 jest.mock('../../src/sync/scheduler', () => {
@@ -113,6 +114,34 @@ describe('useDeckSync', () => {
     renderHook(() => useDeckSync());
 
     expect(drainOutbox).toHaveBeenCalledTimes(1);
+  });
+
+  // `mutate` (src/sync/outbox/enqueue.ts) calls the real `markLocalWrite` once
+  // the outbox row is committed; the drain must follow it immediately rather
+  // than wait for the next scheduler tick or foreground transition.
+  it('drains again as soon as a local write is queued', () => {
+    setAccounts([account]);
+    act(() => useAccountStore.getState().setActiveAccountId('acc-1'));
+
+    renderHook(() => useDeckSync());
+    (drainOutbox as jest.Mock).mockClear();
+
+    act(() => markLocalWrite());
+
+    expect(drainOutbox).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops listening for local writes on unmount', () => {
+    setAccounts([account]);
+    act(() => useAccountStore.getState().setActiveAccountId('acc-1'));
+
+    const { unmount } = renderHook(() => useDeckSync());
+    unmount();
+    (drainOutbox as jest.Mock).mockClear();
+
+    act(() => markLocalWrite());
+
+    expect(drainOutbox).not.toHaveBeenCalled();
   });
 
   it('stops the scheduler on unmount', () => {

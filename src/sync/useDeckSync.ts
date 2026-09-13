@@ -7,6 +7,7 @@ import { getIsOnline, useIsOnline } from '@/services/shared/network';
 import { useAccountStore } from '@/stores/accountStore';
 import { useUiStore } from '@/stores/uiStore';
 
+import { onLocalWrite } from './localWrites';
 import { drainOutbox } from './outbox/drain';
 import { createTaskRunner } from './runTask';
 import { createSyncScheduler, registerScheduler, unregisterScheduler } from './scheduler';
@@ -52,6 +53,12 @@ export function useDeckSync(): void {
       );
     };
 
+    // A queued mutation is sendable the moment it is committed; without this
+    // it would sit until the next scheduler tick or foreground transition.
+    // `drainOutbox` shares an in-flight pass per account, so a burst of writes
+    // costs one drain, not one per write.
+    const offLocalWrite = onLocalWrite(drain);
+
     scheduler.start();
     drain();
 
@@ -66,6 +73,7 @@ export function useDeckSync(): void {
 
     return () => {
       appStateSub.remove();
+      offLocalWrite();
       scheduler.stop();
       unregisterScheduler(scheduler);
     };
