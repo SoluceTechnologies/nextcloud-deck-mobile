@@ -24,6 +24,7 @@ import {
 import { Button, IconButton, ScreenHeader, Typography } from '@/ui/components';
 import { canUseRichEditor } from './unsupportedBlocks';
 import { RawMarkdownEditor } from './RawMarkdownEditor';
+import { useMarkdownStyle } from './markdownStyle';
 
 export interface DescriptionEditorProps {
   visible: boolean;
@@ -60,20 +61,27 @@ const TOOLBAR: ReadonlyArray<{
 export function DescriptionEditor({ visible, initial, onClose, onSave }: DescriptionEditorProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const markdownStyle = useMarkdownStyle();
   const editorRef = useRef<EnrichedMarkdownTextInputInstance>(null);
   const [useRich, setUseRich] = useState(() => canUseRichEditor(initial));
   const [rawValue, setRawValue] = useState(initial);
+  // The baseline "did anything change" is compared against, seeded once per
+  // open alongside useRich/rawValue above — never the live `initial` prop,
+  // which can move mid-edit (e.g. a sync patch arriving while the sheet is
+  // open) and must not silently override whatever the user is editing.
+  const [seed, setSeed] = useState(initial);
 
   useEffect(() => {
     if (visible) {
       setUseRich(canUseRichEditor(initial));
       setRawValue(initial);
+      setSeed(initial);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const finish = (markdown: string) => {
-    if (markdown !== initial) onSave(markdown);
+    if (markdown !== seed) onSave(markdown);
     onClose();
   };
 
@@ -82,7 +90,8 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
       editorRef.current
         ?.getMarkdown()
         .then(finish)
-        .catch(() => onClose());
+        // A failed read should leave the draft on screen, not discard it.
+        .catch(() => undefined);
     } else {
       finish(rawValue);
     }
@@ -129,7 +138,8 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
                 ref={editorRef}
                 defaultValue={initial}
                 testID="rich-editor"
-                style={styles.flex}
+                markdownStyle={markdownStyle}
+                style={{ ...styles.flex, color: colors.text }}
               />
             </>
           ) : (

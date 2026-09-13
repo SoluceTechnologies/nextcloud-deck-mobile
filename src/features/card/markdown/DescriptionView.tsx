@@ -6,6 +6,7 @@ import { SquarePen } from 'lucide-react-native';
 
 import { IconButton, Typography } from '@/ui/components';
 import { toggleTaskAtIndex } from './toggleTaskAtIndex';
+import { useMarkdownStyle } from './markdownStyle';
 
 export interface DescriptionViewProps {
   markdown: string;
@@ -23,6 +24,7 @@ export interface DescriptionViewProps {
 export function DescriptionView({ markdown, onToggleTask, onEdit }: DescriptionViewProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const markdownStyle = useMarkdownStyle();
   const empty = markdown.trim() === '';
 
   return (
@@ -34,6 +36,7 @@ export function DescriptionView({ markdown, onToggleTask, onEdit }: DescriptionV
           <EnrichedMarkdownText
             markdown={markdown}
             flavor="github"
+            markdownStyle={markdownStyle}
             testID="description-markdown"
             onTaskListItemPress={(e) => {
               const next = toggleTaskAtIndex(markdown, e.index, e.checked);

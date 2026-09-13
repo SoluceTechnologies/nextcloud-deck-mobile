@@ -72,6 +72,22 @@ it('does not save when nothing changed', async () => {
   await waitFor(() => expect(onSave).not.toHaveBeenCalled());
 });
 
+// A sync patch can update `initial` while the sheet is still open. Save
+// must compare against what was on screen when the editor opened, not
+// whatever `initial` has drifted to since — otherwise an untouched Save
+// clobbers the remote change with the stale seeded text.
+it('saves against the text seeded at open, not a later initial prop', async () => {
+  const onSave = jest.fn();
+  const onClose = jest.fn();
+  const { rerender } = renderEditor({ initial: 'v1', onSave, onClose });
+
+  rerender(<DescriptionEditor visible initial="v2" onClose={onClose} onSave={onSave} />);
+
+  fireEvent.press(screen.getByText('card.save'));
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(onSave).not.toHaveBeenCalled();
+});
+
 it('closes without saving from the close button', () => {
   const onClose = jest.fn();
   renderEditor({ initial: 'same', onClose });
