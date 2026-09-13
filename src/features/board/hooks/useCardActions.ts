@@ -97,7 +97,12 @@ export function useCardActions(accountId: string | null): CardActions {
     const patch: CardActions['patch'] = async (card, fields) => {
       if (!accountId) return;
 
-      const keys = Object.keys(fields) as (keyof CardPatch)[];
+      // An explicit `undefined` is "not patched", not "cleared" (clearing is `null`);
+      // letting it through would protect and conflict-check a field nobody changed.
+      const keys = (Object.keys(fields) as (keyof CardPatch)[]).filter(
+        (k) => fields[k] !== undefined,
+      );
+      if (keys.length === 0) return;
       const base: Record<string, unknown> = {};
       for (const key of keys) base[key] = card[key] ?? null;
 

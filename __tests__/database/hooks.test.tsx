@@ -73,6 +73,7 @@ describe('useBoards', () => {
     renderHook(() => useBoards('acc-1'));
 
     expect(observeWithColumns).toHaveBeenCalledWith([
+      'remote_id',
       'title',
       'color',
       'archived',

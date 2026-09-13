@@ -86,6 +86,15 @@ it('names only the changed fields on a patch intent', async () => {
   expect((mutate as jest.Mock).mock.calls[0][0].intent.fields).toEqual(['title']);
 });
 
+it('enqueues nothing when every patched field is undefined', async () => {
+  const { result } = renderHook(() => useCardActions('a1'));
+  const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };
+
+  await act(() => result.current.patch(card, { title: undefined }));
+
+  expect(mutate).not.toHaveBeenCalled();
+});
+
 it('captures the last-known values as intent.base before applying the local change', async () => {
   const { result } = renderHook(() => useCardActions('a1'));
   const card: any = {

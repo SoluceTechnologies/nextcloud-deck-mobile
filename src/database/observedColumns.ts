@@ -30,6 +30,7 @@ export const CALENDAR_OBSERVED_COLUMNS = [
 ];
 
 export const BOARD_OBSERVED_COLUMNS = [
+  'remote_id', // '' until the create drains; the list keys and routes on it.
   'title',
   'color',
   'archived',

@@ -9,10 +9,6 @@ export type CoalesceResult = {
   drop: string[];
 };
 
-/**
- * Collapses the queue of one entity. Called on entries that share an
- * `entity_id`, in FIFO order.
- */
 /** The create whose presence earlier in the same queue means this delete's row never reached the server. */
 function createKindOf(deleteKind: Intent['kind']): Intent['kind'] | null {
   switch (deleteKind) {
@@ -27,6 +23,10 @@ function createKindOf(deleteKind: Intent['kind']): Intent['kind'] | null {
   }
 }
 
+/**
+ * Collapses the queue of one entity. Called on entries that share an
+ * `entity_id`, in FIFO order.
+ */
 export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
   const deleteIndex = entries.findIndex((e) => createKindOf(e.intent.kind) !== null);
 

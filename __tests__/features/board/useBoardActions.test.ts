@@ -12,11 +12,20 @@ const prepareCreate = jest.fn((fn: (r: any) => void) => {
   fn(row);
   return row;
 });
-const db = { get: jest.fn(() => ({ prepareCreate })) };
+// `remove` reads the board's stacks, cards and labels before marking them deleted;
+// a test seeds them per table here.
+let rowsByTable: Record<string, any[]> = {};
+const db = {
+  get: jest.fn((table: string) => ({
+    prepareCreate,
+    query: jest.fn(() => ({ fetch: jest.fn(async () => rowsByTable[table] ?? []) })),
+  })),
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
   (useDatabase as jest.Mock).mockReturnValue(db);
+  rowsByTable = {};
 });
 
 it('does nothing without an account rather than enqueuing an orphan intent', async () => {
@@ -104,4 +113,29 @@ it('marks the row deleted locally when removing', async () => {
 
   await (mutate as jest.Mock).mock.calls[0][0].applyLocal();
   expect(markDeleted).toHaveBeenCalled();
+});
+
+it('marks the board’s stack and card rows deleted along with it, in one batch', async () => {
+  rowsByTable = {
+    stacks: [{ id: 's1', prepareMarkAsDeleted: () => ({ op: 'delete', table: 'stacks' }) }],
+    cards: [{ id: 'c1', prepareMarkAsDeleted: () => ({ op: 'delete', table: 'cards' }) }],
+    labels: [{ id: 'l1', prepareMarkAsDeleted: () => ({ op: 'delete', table: 'labels' }) }],
+  };
+  const board: any = {
+    id: 'b1',
+    remoteId: '7',
+    prepareMarkAsDeleted: () => ({ op: 'delete', table: 'boards' }),
+  };
+
+  const { result } = renderHook(() => useBoardActions('a1'));
+  await act(() => result.current.remove(board));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const ops = await (mutate as jest.Mock).mock.calls[0][0].applyLocal();
+  expect(ops).toEqual([
+    { op: 'delete', table: 'boards' },
+    { op: 'delete', table: 'stacks' },
+    { op: 'delete', table: 'cards' },
+    { op: 'delete', table: 'labels' },
+  ]);
 });

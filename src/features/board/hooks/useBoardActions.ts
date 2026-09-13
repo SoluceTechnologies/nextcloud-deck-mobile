@@ -1,7 +1,11 @@
+import { Q } from '@nozbe/watermelondb';
 import { useMemo } from 'react';
 
 import { useDatabase } from '@/database/DatabaseProvider';
 import type Board from '@/database/models/Board';
+import type Card from '@/database/models/Card';
+import type Label from '@/database/models/Label';
+import type Stack from '@/database/models/Stack';
 import { mutate } from '@/sync/outbox/enqueue';
 
 export type BoardActions = {
@@ -105,7 +109,26 @@ export function useBoardActions(accountId: string | null): BoardActions {
         // Enqueued even when remoteId is '' (never synced) — coalescing collapses
         // a create+delete pair for a row that never reached the server.
         intent: { kind: 'deleteBoard', boardId: board.id, boardRemoteId: board.remoteId },
-        applyLocal: () => board.prepareMarkAsDeleted(),
+        // The board's stacks, cards and labels go with it in the same batch, or
+        // they would linger as orphans (the dependencies picker, fed by the
+        // account-wide card list, still offering its cards) until a sync
+        // noticed. Card join rows (card_labels, card_assignees) are left alone:
+        // keyed by card id, they display nothing once the card row is gone, and
+        // the sync path owns their cleanup.
+        applyLocal: async () => {
+          const scope = [Q.where('account_id', accountId), Q.where('board_id', board.id)];
+          const [stacks, cards, labels] = await Promise.all([
+            db.get<Stack>('stacks').query(...scope).fetch(),
+            db.get<Card>('cards').query(...scope).fetch(),
+            db.get<Label>('labels').query(...scope).fetch(),
+          ]);
+          return [
+            board.prepareMarkAsDeleted(),
+            ...stacks.map((r) => r.prepareMarkAsDeleted()),
+            ...cards.map((r) => r.prepareMarkAsDeleted()),
+            ...labels.map((r) => r.prepareMarkAsDeleted()),
+          ];
+        },
       });
     };
 

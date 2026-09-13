@@ -65,7 +65,7 @@ describe('reconcile', () => {
   // server has not caught up). The remote key must not be read as "never
   // seen" and recreated — the same protection that blocks a remove must also
   // block a create.
-  it('does not plan a create for a key a protected row already holds', () => {
+  it('does not recreate a protected key whose row a queued removal already deleted', () => {
     const result = reconcile(
       params({
         remote: [{ id: 'k1', value: 'x' }],
