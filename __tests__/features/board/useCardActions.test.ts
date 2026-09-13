@@ -125,6 +125,20 @@ it('stamps doneAt when marking done and clears it when un-marking', async () => 
   expect(secondRow.doneAt).toBeUndefined();
 });
 
+// Deck stores `done` at second precision and echoes it without milliseconds; a
+// ms-precise base would differ from the echoed value and read as a conflict.
+it('stamps doneAt at the second Deck will echo, never with milliseconds', async () => {
+  const now = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_123);
+  const { result } = renderHook(() => useCardActions('a1'));
+  const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };
+
+  await act(() => result.current.setDone(card, true));
+
+  const row = await (mutate as jest.Mock).mock.calls[0][0].applyLocal();
+  expect(row.doneAt).toBe(1_700_000_000_000);
+  now.mockRestore();
+});
+
 it('moves a card to another stack at the given order', async () => {
   const { result } = renderHook(() => useCardActions('a1'));
   const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };

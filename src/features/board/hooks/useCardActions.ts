@@ -119,8 +119,10 @@ export function useCardActions(accountId: string | null): CardActions {
     };
 
     // doneAt is a timestamp, not a boolean — the column records *when*, not just *whether*.
+    // Deck stores `done` at second precision and echoes it without milliseconds; a
+    // ms-precise base would differ from the echoed value and read as a conflict.
     const setDone: CardActions['setDone'] = (card, done) =>
-      patch(card, { doneAt: done ? Date.now() : null });
+      patch(card, { doneAt: done ? Math.floor(Date.now() / 1000) * 1000 : null });
 
     const setArchived: CardActions['setArchived'] = async (card, archived) => {
       if (!accountId) return;
