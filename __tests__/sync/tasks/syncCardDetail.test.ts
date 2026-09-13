@@ -2,7 +2,7 @@ import { syncCardDetail } from '../../../src/sync/tasks/syncCardDetail';
 import { fetchComments } from '../../../src/services/deck/comments';
 import { fetchAttachments } from '../../../src/services/deck/attachments';
 import type { Account } from '../../../src/types';
-import type { DeckComment } from '../../../src/services/deck/types';
+import type { DeckAttachment, DeckComment } from '../../../src/services/deck/types';
 
 jest.mock('../../../src/services/deck/comments');
 jest.mock('../../../src/services/deck/attachments');
@@ -34,6 +34,19 @@ function comment(over: Partial<DeckComment> = {}): DeckComment {
   };
 }
 
+function attachment(over: Partial<DeckAttachment> = {}): DeckAttachment {
+  return {
+    remoteId: '3',
+    attachmentType: 'file',
+    fileName: 'photo.jpg',
+    mime: 'image/jpeg',
+    size: 1024,
+    createdAt: 2000,
+    createdBy: 'alice',
+    ...over,
+  };
+}
+
 /** A local row with the prepare* methods `reconcile`'s update/remove plans call. */
 function makeRow(over: Record<string, unknown>) {
   return {
@@ -53,7 +66,8 @@ function makeRow(over: Record<string, unknown>) {
 let cardRow: any;
 let stackRow: any;
 let boardRow: any;
-let existingRows: any[];
+let existingComments: any[];
+let existingAttachments: any[];
 
 function prepareCreate(tag: string) {
   return jest.fn((writer: (r: any) => void) => {
@@ -68,11 +82,11 @@ const collections: Record<string, any> = {
   stacks: { find: jest.fn(async () => stackRow) },
   boards: { find: jest.fn(async () => boardRow) },
   comments: {
-    query: jest.fn(() => ({ fetch: jest.fn(async () => existingRows) })),
+    query: jest.fn(() => ({ fetch: jest.fn(async () => existingComments) })),
     prepareCreate: prepareCreate('comments'),
   },
   attachments: {
-    query: jest.fn(() => ({ fetch: jest.fn(async () => existingRows) })),
+    query: jest.fn(() => ({ fetch: jest.fn(async () => existingAttachments) })),
     prepareCreate: prepareCreate('attachments'),
   },
 };
@@ -91,9 +105,27 @@ beforeEach(() => {
   cardRow = { id: 'c1', remoteId: '42', stackId: 's-local', boardId: 'b-local' };
   stackRow = { id: 's-local', remoteId: '5', boardId: 'b-local' };
   boardRow = { id: 'b-local', remoteId: '7' };
-  existingRows = [];
-  fetchCommentsMock.mockResolvedValue([]);
-  fetchAttachmentsMock.mockResolvedValue([]);
+  // Each defaults to one already-synced row, so a reconcile that wrongly
+  // treated `null` as `[]` would have something on hand to delete — see the
+  // two "answers null" tests below.
+  existingComments = [
+    makeRow({
+      id: 'cm1',
+      remoteId: '7',
+      message: 'old',
+      actorId: 'alice',
+      actorDisplayName: 'Alice',
+      createdAt: 1000,
+      parentId: null,
+    }),
+  ];
+  existingAttachments = [makeRow({ id: 'at1', ...attachment() })];
+  // The remote twin of cm1 with a different message: the "one batch" test
+  // observes exactly one update op.
+  fetchCommentsMock.mockResolvedValue([comment({ remoteId: '7', message: 'new' })]);
+  // The unchanged remote twin of at1: contributes no op, so tests that don't
+  // care about attachments see a clean batch.
+  fetchAttachmentsMock.mockResolvedValue([attachment()]);
 });
 
 describe('syncCardDetail', () => {
@@ -117,7 +149,7 @@ describe('syncCardDetail', () => {
 
   // A comment posted offline has remote_id = '' and must survive the pass.
   it('does not delete a locally created comment that has no remote id', async () => {
-    existingRows = [{ id: 'local-1', remoteId: '' }];
+    existingComments = [{ id: 'local-1', remoteId: '' }];
     fetchCommentsMock.mockResolvedValue([]);
 
     await syncCardDetail({ db, account, cardLocalId: 'c1' });
@@ -145,12 +177,8 @@ describe('syncCardDetail', () => {
   // so a local comment the page didn't happen to include must not be read as
   // "the server deleted it".
   it('does not delete a local comment missing from a partial page fetched at a later offset', async () => {
-    existingRows = [makeRow({ id: 'local-1', remoteId: '99' })];
+    existingComments = [makeRow({ id: 'local-1', remoteId: '99' })];
     fetchCommentsMock.mockResolvedValue(new Array(7).fill(comment({ remoteId: '5' })));
-    // Answering null keeps this test about the comments paging rule alone —
-    // otherwise the shared local-rows fixture above would also read as a
-    // deleted attachment, since that reconcile is unconditionally authoritative.
-    fetchAttachmentsMock.mockResolvedValue(null);
 
     await syncCardDetail({ db, account, cardLocalId: 'c1', offset: 20 });
 

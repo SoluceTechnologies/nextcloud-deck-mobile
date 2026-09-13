@@ -123,9 +123,7 @@ export async function syncCardDetail({
         }
       }
 
-      // At least one side answered with real data, so the pass has something
-      // to say — even a no-op batch — whereas two `null`s mean skip entirely.
-      if (comments !== null || attachments !== null) await db.batch(ops);
+      if (ops.length > 0) await db.batch(ops);
     },
     30000,
     'syncCardDetail',
