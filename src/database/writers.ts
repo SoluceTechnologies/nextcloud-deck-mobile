@@ -1,4 +1,4 @@
-import type { DeckBoard, DeckCard, DeckStack } from '@/services/deck/types';
+import type { DeckAttachment, DeckBoard, DeckCard, DeckComment, DeckStack } from '@/services/deck/types';
 
 /** The card fields a user mutation can own, and therefore protect from a sync overwrite. */
 export type CardFieldName =
@@ -144,6 +144,58 @@ export function cardUnchanged(row: Row, remote: DeckCard, ctx: CardWriteContext)
     same('doneAt', row.doneAt, remote.doneAt) &&
     same('duedate', row.duedate, remote.duedate) &&
     same('startdate', row.startdate, remote.startdate)
+  );
+}
+
+export function writeCommentRow(
+  row: Row,
+  remote: DeckComment,
+  ctx: { accountId: string; cardLocalId: string },
+): void {
+  row.accountId = ctx.accountId;
+  row.cardId = ctx.cardLocalId;
+  row.remoteId = remote.remoteId;
+  row.message = remote.message;
+  row.actorId = remote.actorId;
+  row.actorDisplayName = remote.actorDisplayName;
+  row.createdAt = remote.createdAt;
+  row.parentId = remote.parentId ?? undefined;
+}
+
+export function commentUnchanged(row: Row, remote: DeckComment): boolean {
+  return (
+    row.message === remote.message &&
+    row.actorId === remote.actorId &&
+    row.actorDisplayName === remote.actorDisplayName &&
+    row.createdAt === remote.createdAt &&
+    (row.parentId ?? null) === remote.parentId
+  );
+}
+
+export function writeAttachmentRow(
+  row: Row,
+  remote: DeckAttachment,
+  ctx: { accountId: string; cardLocalId: string },
+): void {
+  row.accountId = ctx.accountId;
+  row.cardId = ctx.cardLocalId;
+  row.remoteId = remote.remoteId;
+  row.attachmentType = remote.attachmentType;
+  row.fileName = remote.fileName;
+  row.mime = remote.mime;
+  row.size = remote.size;
+  row.createdAt = remote.createdAt;
+  row.createdBy = remote.createdBy;
+}
+
+export function attachmentUnchanged(row: Row, remote: DeckAttachment): boolean {
+  return (
+    row.attachmentType === remote.attachmentType &&
+    row.fileName === remote.fileName &&
+    row.mime === remote.mime &&
+    row.size === remote.size &&
+    row.createdAt === remote.createdAt &&
+    row.createdBy === remote.createdBy
   );
 }
 

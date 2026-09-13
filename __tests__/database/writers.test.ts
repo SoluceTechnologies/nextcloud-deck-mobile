@@ -5,10 +5,14 @@ import {
   boardUnchanged,
   writeStackRow,
   stackUnchanged,
+  writeCommentRow,
+  commentUnchanged,
+  writeAttachmentRow,
+  attachmentUnchanged,
   serverValuesOf,
   CARD_FIELD_NAMES,
 } from '../../src/database/writers';
-import type { DeckBoard, DeckCard, DeckStack } from '../../src/services/deck/types';
+import type { DeckAttachment, DeckBoard, DeckCard, DeckComment, DeckStack } from '../../src/services/deck/types';
 
 function remoteCard(overrides: Partial<DeckCard> = {}): DeckCard {
   return {
@@ -253,5 +257,75 @@ describe('stack writers', () => {
     expect(stackUnchanged(row, remoteStack, 'b-local')).toBe(true);
     expect(stackUnchanged(row, { ...remoteStack, title: 'In Progress' }, 'b-local')).toBe(false);
     expect(stackUnchanged(row, remoteStack, 'other-board')).toBe(false);
+  });
+});
+
+describe('comment writers', () => {
+  const remoteComment: DeckComment = {
+    remoteId: '9',
+    message: 'hello',
+    actorId: 'alice',
+    actorDisplayName: 'Alice',
+    createdAt: 1000,
+    parentId: null,
+  };
+
+  it('maps all comment columns', () => {
+    const row: any = {};
+    writeCommentRow(row, remoteComment, { accountId: 'acc-1', cardLocalId: 'card-local' });
+
+    expect(row).toEqual({
+      accountId: 'acc-1',
+      cardId: 'card-local',
+      remoteId: '9',
+      message: 'hello',
+      actorId: 'alice',
+      actorDisplayName: 'Alice',
+      createdAt: 1000,
+      parentId: undefined,
+    });
+  });
+
+  it('detects an unchanged comment', () => {
+    const row: any = {};
+    writeCommentRow(row, remoteComment, { accountId: 'acc-1', cardLocalId: 'card-local' });
+    expect(commentUnchanged(row, remoteComment)).toBe(true);
+    expect(commentUnchanged(row, { ...remoteComment, message: 'edited' })).toBe(false);
+  });
+});
+
+describe('attachment writers', () => {
+  const remoteAttachment: DeckAttachment = {
+    remoteId: '3',
+    attachmentType: 'deck_file',
+    fileName: 'contract.pdf',
+    mime: 'application/pdf',
+    size: 2048,
+    createdAt: 5000,
+    createdBy: 'alice',
+  };
+
+  it('maps all attachment columns', () => {
+    const row: any = {};
+    writeAttachmentRow(row, remoteAttachment, { accountId: 'acc-1', cardLocalId: 'card-local' });
+
+    expect(row).toEqual({
+      accountId: 'acc-1',
+      cardId: 'card-local',
+      remoteId: '3',
+      attachmentType: 'deck_file',
+      fileName: 'contract.pdf',
+      mime: 'application/pdf',
+      size: 2048,
+      createdAt: 5000,
+      createdBy: 'alice',
+    });
+  });
+
+  it('detects an unchanged attachment', () => {
+    const row: any = {};
+    writeAttachmentRow(row, remoteAttachment, { accountId: 'acc-1', cardLocalId: 'card-local' });
+    expect(attachmentUnchanged(row, remoteAttachment)).toBe(true);
+    expect(attachmentUnchanged(row, { ...remoteAttachment, fileName: 'other.pdf' })).toBe(false);
   });
 });

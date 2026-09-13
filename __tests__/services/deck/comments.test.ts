@@ -79,6 +79,13 @@ it('posts the message and returns the created comment', async () => {
   expect(created.remoteId).toBe('9');
 });
 
+// A create must return its row: a body-less 200 here is not "no comment",
+// it is a response the caller cannot trust to carry the new remote id.
+it('rejects when the create response carries no body', async () => {
+  mockFetch.mockResolvedValue(emptyBody());
+  await expect(postComment(account, '42', 'hi')).rejects.toThrow();
+});
+
 // An id that arrives as a number must not become the string "undefined".
 it('coerces a numeric id to a string', () => {
   expect(normalizeComment({ id: 7 } as never).remoteId).toBe('7');

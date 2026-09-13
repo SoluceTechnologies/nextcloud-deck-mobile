@@ -2,6 +2,7 @@ import type { Database } from '@nozbe/watermelondb';
 
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
+import type Comment from '@/database/models/Comment';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import { safeWrite } from '@/database/utils/safeTransaction';
@@ -13,6 +14,7 @@ import {
   updateBoard,
   updateStack,
 } from '@/services/deck/boards';
+import { postComment } from '@/services/deck/comments';
 import {
   addDependentCard,
   assignLabelToCard,
@@ -49,7 +51,10 @@ async function requireRemoteId(row: { remoteId: string }, what: string): Promise
   return row.remoteId;
 }
 
-async function cardRefOf(ctx: HandlerContext, cardLocalId: string): Promise<{ ref: CardRef; card: Card }> {
+export async function cardRefOf(
+  ctx: HandlerContext,
+  cardLocalId: string,
+): Promise<{ ref: CardRef; card: Card }> {
   const card = await ctx.db.get<Card>('cards').find(cardLocalId);
   const stack = await ctx.db.get<Stack>('stacks').find(card.stackId);
   const board = await ctx.db.get<Board>('boards').find(card.boardId);
@@ -284,5 +289,24 @@ export async function executeIntent(
       // The local row is already destroyed, so the payload carries the remote id.
       await deleteBoard(account, intent.boardRemoteId);
       return;
+
+    case 'createComment': {
+      const { ref } = await cardRefOf(ctx, intent.cardId);
+      const created = await postComment(account, ref.cardRemoteId, intent.message);
+      // R45: an id-less response must count as a failed attempt, not a
+      // silent write-back of the string "undefined" (see normalizeComment).
+      if (!created.remoteId || created.remoteId === 'undefined') {
+        throw new Error('createComment: no id in the response');
+      }
+
+      const comment = await db.get<Comment>('comments').find(intent.commentId);
+      await safeWrite(
+        db,
+        () => comment.update((r: Comment) => (r.remoteId = created.remoteId)),
+        10000,
+        'createComment:writeback',
+      );
+      return;
+    }
   }
 }

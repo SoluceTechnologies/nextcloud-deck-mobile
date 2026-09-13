@@ -72,6 +72,14 @@ describe('protectedFieldsOf', () => {
       protectedFieldsOf({ kind: 'deleteBoard', boardId: 'b1', boardRemoteId: '7' }),
     ).toEqual([]);
   });
+
+  // Explicit rather than left to the default: a comment touches no card
+  // column, so there is nothing here for a card sync to shield.
+  it('protects nothing for a comment creation', () => {
+    expect(
+      protectedFieldsOf({ kind: 'createComment', commentId: 'cm1', cardId: 'c1', message: 'hi' }),
+    ).toEqual([]);
+  });
 });
 
 describe('entityRefOf', () => {
@@ -100,6 +108,14 @@ describe('entityRefOf', () => {
     expect(
       entityRefOf({ kind: 'updateBoard', boardId: 'b1', title: 'Ops', color: null, archived: false }),
     ).toEqual({ entityType: 'board', entityId: 'b1' });
+  });
+
+  // A queued comment must not shield or coalesce with its card (R46): it has
+  // to be addressed by its own id even though it also carries a cardId.
+  it('addresses a comment intent by its own comment id, not the card it also carries', () => {
+    expect(
+      entityRefOf({ kind: 'createComment', commentId: 'cm1', cardId: 'c1', message: 'hi' }),
+    ).toEqual({ entityType: 'comment', entityId: 'cm1' });
   });
 });
 

@@ -31,6 +31,7 @@ export type Intent =
   | { kind: 'updateStack'; stackId: string; title: string; order: number }
   | { kind: 'deleteStack'; stackId: string; boardRemoteId: string; stackRemoteId: string }
   | { kind: 'createBoard'; boardId: string }
+  | { kind: 'createComment'; commentId: string; cardId: string; message: string }
   | {
       kind: 'updateBoard';
       boardId: string;

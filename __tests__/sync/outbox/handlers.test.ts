@@ -1,10 +1,12 @@
 import { executeIntent, DeferredIntentError } from '../../../src/sync/outbox/handlers';
 import * as boardsApi from '../../../src/services/deck/boards';
 import * as cardsApi from '../../../src/services/deck/cards';
+import * as commentsApi from '../../../src/services/deck/comments';
 import type { Account } from '../../../src/types';
 
 jest.mock('../../../src/services/deck/cards');
 jest.mock('../../../src/services/deck/boards');
+jest.mock('../../../src/services/deck/comments');
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
@@ -352,5 +354,44 @@ describe('executeIntent', () => {
     );
 
     expect(boardsApi.deleteBoard).toHaveBeenCalledWith(account, '7');
+  });
+
+  it('posts a comment and writes the server id back onto the local row', async () => {
+    const comment = row({ id: 'cm-local', remoteId: '' });
+    const db = makeDb({
+      'cm-local': comment,
+      'c-local': cardRow(),
+      's-local': stackRow,
+      'b-local': boardRow,
+    });
+    (commentsApi.postComment as jest.Mock).mockResolvedValue({ remoteId: '55', message: 'hi' });
+
+    await executeIntent(
+      { db, account },
+      { kind: 'createComment', commentId: 'cm-local', cardId: 'c-local', message: 'hi' },
+    );
+
+    expect(commentsApi.postComment).toHaveBeenCalledWith(account, '42', 'hi');
+    expect(comment.update).toHaveBeenCalled();
+    expect(comment.remoteId).toBe('55');
+  });
+
+  // R45: a response with no usable id must count as a failed attempt, not a
+  // silent write-back of the string "undefined".
+  it('fails a comment creation whose response carries no id', async () => {
+    const db = makeDb({
+      'cm-local': row({ id: 'cm-local', remoteId: '' }),
+      'c-local': cardRow(),
+      's-local': stackRow,
+      'b-local': boardRow,
+    });
+    (commentsApi.postComment as jest.Mock).mockResolvedValue({ remoteId: '', message: 'hi' });
+
+    await expect(
+      executeIntent(
+        { db, account },
+        { kind: 'createComment', commentId: 'cm-local', cardId: 'c-local', message: 'hi' },
+      ),
+    ).rejects.toThrow('createComment: no id in the response');
   });
 });

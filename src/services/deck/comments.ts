@@ -38,5 +38,8 @@ export async function postComment(
     body: { message },
     context: 'postComment',
   });
-  return normalizeComment(result.data ?? {});
+  // A create must return its row: a body-less answer here is not "nothing to
+  // report", it is a response the caller cannot trust to carry the new id.
+  if (result.data === null) throw new Error('postComment: empty response body');
+  return normalizeComment(result.data);
 }

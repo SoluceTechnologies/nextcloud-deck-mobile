@@ -25,6 +25,10 @@ export function protectedFieldsOf(intent: Intent): CardFieldName[] {
 }
 
 export function entityRefOf(intent: Intent): { entityType: string; entityId: string } {
+  // Checked before the 'cardId' rule below: a queued comment also carries a
+  // cardId, but it must be addressed by its own id so it neither shields nor
+  // coalesces with the card it comments on (R46).
+  if ('commentId' in intent) return { entityType: 'comment', entityId: intent.commentId };
   if ('cardId' in intent) return { entityType: 'card', entityId: intent.cardId };
   if ('stackId' in intent) return { entityType: 'stack', entityId: intent.stackId };
   if ('labelId' in intent) return { entityType: 'label', entityId: intent.labelId };
