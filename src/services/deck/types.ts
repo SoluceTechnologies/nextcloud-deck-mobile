@@ -68,3 +68,12 @@ export type DeckUpcoming = Record<
   'overdue' | 'today' | 'tomorrow' | 'nextSevenDays' | 'later' | 'nodue',
   DeckCard[]
 >;
+
+export type DeckComment = {
+  remoteId: string;
+  message: string;
+  actorId: string;
+  actorDisplayName: string;
+  createdAt: number;
+  parentId: string | null;
+};

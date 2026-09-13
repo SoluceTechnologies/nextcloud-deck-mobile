@@ -4,6 +4,7 @@ import type {
   DeckBoard,
   DeckBoardUser,
   DeckCard,
+  DeckComment,
   DeckLabel,
   DeckStack,
 } from './types';
@@ -135,6 +136,17 @@ export function normalizeCard(raw: Raw, boardRemoteId: string): DeckCard {
     ),
     labels: (Array.isArray(raw.labels) ? raw.labels : []).map(normalizeLabel),
     assignees: (Array.isArray(raw.assignedUsers) ? raw.assignedUsers : []).map(normalizeAssignee),
+  };
+}
+
+export function normalizeComment(raw: Raw): DeckComment {
+  return {
+    remoteId: String(raw.id),
+    message: String(raw.message ?? ''),
+    actorId: String(raw.actorId ?? ''),
+    actorDisplayName: String(raw.actorDisplayName ?? raw.actorId ?? ''),
+    createdAt: parseDeckDate(raw.creationDateTime) ?? 0,
+    parentId: raw.parentId == null ? null : String(raw.parentId),
   };
 }
 
