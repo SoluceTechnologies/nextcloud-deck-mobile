@@ -2,14 +2,12 @@ import { Q } from '@nozbe/watermelondb';
 import { useEffect, useMemo, useState } from 'react';
 
 import { useDatabase } from '@/database/DatabaseProvider';
+import { groupRelations } from '@/database/hooks/groupRelations';
 import type CardAssignee from '@/database/models/CardAssignee';
 import type CardLabel from '@/database/models/CardLabel';
 import type Label from '@/database/models/Label';
 
-export type BoardCardRelations = {
-  labelsByCard: Map<string, Label[]>;
-  assigneesByCard: Map<string, CardAssignee[]>;
-};
+export type BoardCardRelations = ReturnType<typeof groupRelations>;
 
 /**
  * One observation per table for the whole board — never one per card, which
@@ -62,28 +60,8 @@ export function useBoardCardRelations(
     };
   }, [accountId, boardLocalId, database]);
 
-  const labelsByCard = useMemo(() => {
-    const labelById = new Map(labels.map((label) => [label.id, label]));
-    const map = new Map<string, Label[]>();
-    for (const join of cardLabels) {
-      const label = labelById.get(join.labelId);
-      if (!label) continue;
-      const list = map.get(join.cardId);
-      if (list) list.push(label);
-      else map.set(join.cardId, [label]);
-    }
-    return map;
-  }, [cardLabels, labels]);
-
-  const assigneesByCard = useMemo(() => {
-    const map = new Map<string, CardAssignee[]>();
-    for (const assignee of assignees) {
-      const list = map.get(assignee.cardId);
-      if (list) list.push(assignee);
-      else map.set(assignee.cardId, [assignee]);
-    }
-    return map;
-  }, [assignees]);
-
-  return { labelsByCard, assigneesByCard };
+  return useMemo(
+    () => groupRelations(cardLabels, labels, assignees),
+    [cardLabels, labels, assignees],
+  );
 }
