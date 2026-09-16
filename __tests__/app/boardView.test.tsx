@@ -86,6 +86,14 @@ const renderScreen = () => render(<BoardScreen />, { wrapper: ThemeWrapper });
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks() does not undo a mockReturnValue set by a previous test
+  // (mirrors cardDetail.test.tsx's beforeEach reseed) — reseed this one
+  // explicitly so a test that overrides it (e.g. an offline board with no
+  // remote id yet) can't leak into the next.
+  const { useBoards } = require('../../src/database/hooks/useBoards');
+  (useBoards as jest.Mock).mockReturnValue([
+    { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: true, canManage: true, lastModified: 0 },
+  ]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
@@ -125,6 +133,25 @@ it('records the board as recently opened on mount', () => {
   const { recordRecentBoard } = require('../../src/features/today/recentBoards');
   renderScreen();
   expect(recordRecentBoard).toHaveBeenCalledWith(expect.anything(), 'a1', 'b1');
+});
+
+// R7: recordRecentBoard is gated on accountId + the LOCAL board id only —
+// never on remoteId. A board created offline has no remote id yet, so this
+// is the one case that actually distinguishes the correct guard from a
+// regression that folds recordRecentBoard under the same `!boardRemoteId`
+// check the snapshot fetch uses below it.
+it('still records an offline-created board (no remote id yet), but does not request its snapshot', () => {
+  const { useBoards } = require('../../src/database/hooks/useBoards');
+  (useBoards as jest.Mock).mockReturnValue([
+    { id: 'b1', remoteId: '', title: 'Team', color: null, archived: false, shared: false, canEdit: true, canManage: true, lastModified: 0 },
+  ]);
+  const { recordRecentBoard } = require('../../src/features/today/recentBoards');
+  const { requestBoardSnapshot } = require('../../src/sync/scheduler');
+
+  renderScreen();
+
+  expect(recordRecentBoard).toHaveBeenCalledWith(expect.anything(), 'a1', 'b1');
+  expect(requestBoardSnapshot).not.toHaveBeenCalled();
 });
 
 it('opens a card when its tile is tapped', () => {
