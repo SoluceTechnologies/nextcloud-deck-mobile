@@ -58,10 +58,25 @@ it('opens the card when the row body is pressed', () => {
   expect(onOpen).toHaveBeenCalledWith('c1');
 });
 
-it('paints an overdue due in the danger colour', () => {
-  const due = Date.now() - 7 * DAY_MS;
-  renderRow({ duedate: due });
+it('paints the due in the danger colour when overdue, and not otherwise', () => {
+  const { rerender } = render(
+    <TodayRow
+      item={item({ duedate: Date.now() - 7 * DAY_MS }) as any}
+      onToggleDone={jest.fn()}
+      onOpen={jest.fn()}
+    />,
+    { wrapper: ThemeWrapper },
+  );
   expect(screen.getByTestId('today-due-c1')).toHaveStyle({ color: lightTheme.colors.danger });
+
+  rerender(
+    <TodayRow
+      item={item({ duedate: Date.now() + 2 * DAY_MS }) as any}
+      onToggleDone={jest.fn()}
+      onOpen={jest.fn()}
+    />,
+  );
+  expect(screen.getByTestId('today-due-c1')).not.toHaveStyle({ color: lightTheme.colors.danger });
 });
 
 it('shows an assignee avatar only when there is one', () => {
