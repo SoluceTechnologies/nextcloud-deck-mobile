@@ -293,5 +293,26 @@
       "renameTitle": "Renommer la liste",
       "save": "Enregistrer"
     }
+  },
+  "search": {
+    "title": "Rechercher",
+    "placeholder": "Rechercher des tableaux, cartes, commentaires…",
+    "operators": "OPÉRATEURS",
+    "try": "ESSAYER",
+    "op": {
+      "title": "Chercher dans les titres",
+      "description": "Chercher dans les descriptions",
+      "list": "Filtrer par liste",
+      "tag": "Filtrer par étiquette",
+      "assigned": "Filtrer par personne assignée",
+      "date": "Filtrer par échéance"
+    },
+    "examples": ["notes de version", "tag:design", "assigned:me date:<tomorrow"],
+    "boards": "TABLEAUX",
+    "fromServer": "AUTRES RÉSULTATS DU SERVEUR",
+    "noResults": "Aucun résultat",
+    "noResultsHint": "Essayez un titre plus simple, un autre tableau ou un exemple.",
+    "offlineNote": "Hors ligne — résultats locaux uniquement",
+    "serverFailed": "Serveur injoignable — résultats locaux uniquement"
   }
 }

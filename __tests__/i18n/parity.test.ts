@@ -20,7 +20,8 @@ function keyPaths(obj: Record<string, unknown>, prefix = ''): string[] {
 // keys are likewise en/fr-only as of wiring the sync engine into the app,
 // "deck" is en/fr-only as of the Deck-unavailable gate, "boards" is
 // en/fr-only as of the board list row, "card" is en/fr-only as of the card
-// tile, and "board" is en/fr-only as of the stack column.
+// tile, "board" is en/fr-only as of the stack column, and "search" is
+// en/fr-only as of the Search tab.
 const withoutPendingTranslations = (paths: string[]) =>
   paths.filter(
     (path) =>
@@ -29,7 +30,8 @@ const withoutPendingTranslations = (paths: string[]) =>
       !path.startsWith('deck.') &&
       !path.startsWith('boards.') &&
       !path.startsWith('card.') &&
-      !path.startsWith('board.'),
+      !path.startsWith('board.') &&
+      !path.startsWith('search.'),
   );
 
 describe('locale parity', () => {

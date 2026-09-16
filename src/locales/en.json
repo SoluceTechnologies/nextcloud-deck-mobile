@@ -293,5 +293,26 @@
       "renameTitle": "Rename list",
       "save": "Save"
     }
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search boards, cards, comments…",
+    "operators": "OPERATORS",
+    "try": "TRY",
+    "op": {
+      "title": "Match card titles",
+      "description": "Search descriptions",
+      "list": "Filter by list",
+      "tag": "Filter by tag",
+      "assigned": "Filter by assignee",
+      "date": "Filter by due date"
+    },
+    "examples": ["release notes", "tag:design", "assigned:me date:<tomorrow"],
+    "boards": "BOARDS",
+    "fromServer": "MORE FROM THE SERVER",
+    "noResults": "No results",
+    "noResultsHint": "Try a simpler title, another board, or a search example.",
+    "offlineNote": "Offline — showing local results only",
+    "serverFailed": "The server could not be reached — showing local results only"
   }
 }

@@ -11,6 +11,7 @@ interface ItemProps {
   onPress?: () => void;
   onLongPress?: () => void;
   disabled?: boolean;
+  testID?: string;
   children?: React.ReactNode;
 }
 
@@ -22,6 +23,7 @@ function Item({
   onPress,
   onLongPress,
   disabled,
+  testID,
   children,
 }: ItemProps) {
   const body = children ?? (
@@ -48,7 +50,13 @@ function Item({
   if (!onPress) return inner;
 
   return (
-    <AnimatedPressable onPress={onPress} onLongPress={onLongPress} disabled={disabled} scaleTo={0.98}>
+    <AnimatedPressable
+      testID={testID}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      disabled={disabled}
+      scaleTo={0.98}
+    >
       {inner}
     </AnimatedPressable>
   );
