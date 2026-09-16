@@ -23,7 +23,12 @@ export type CardPatch = {
 };
 
 export type CardActions = {
-  create(input: { boardLocalId: string; stackLocalId: string; title: string }): Promise<void>;
+  create(input: {
+    boardLocalId: string;
+    stackLocalId: string;
+    title: string;
+    duedate?: number | null;
+  }): Promise<void>;
   setDone(card: Card, done: boolean): Promise<void>;
   patch(card: Card, fields: Partial<CardPatch>): Promise<void>;
   setArchived(card: Card, archived: boolean): Promise<void>;
@@ -51,7 +56,7 @@ export function useCardActions(accountId: string | null): CardActions {
   const db = useDatabase();
 
   return useMemo<CardActions>(() => {
-    const create: CardActions['create'] = async ({ boardLocalId, stackLocalId, title }) => {
+    const create: CardActions['create'] = async ({ boardLocalId, stackLocalId, title, duedate }) => {
       if (!accountId) return;
 
       const siblings = await db
@@ -79,6 +84,7 @@ export function useCardActions(accountId: string | null): CardActions {
         r.commentsCount = 0;
         r.dependentCardsJson = '[]';
         r.pending = true; // Not yet synced — the board shows it as such.
+        r.duedate = duedate ?? undefined;
       });
 
       await mutate({

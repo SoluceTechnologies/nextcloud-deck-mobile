@@ -77,6 +77,17 @@ it('enqueues createCard with the local row it just prepared', async () => {
   expect(await call.applyLocal()).toBe(prepareCreate.mock.results[0].value);
 });
 
+it('writes the given due date on a created card', async () => {
+  const { result } = renderHook(() => useCardActions('a1'));
+  queryResult = [];
+
+  await act(() => result.current.create({
+    boardLocalId: 'b1', stackLocalId: 's1', title: 'Loyer', duedate: 123,
+  }));
+
+  expect(prepareCreate.mock.results[0].value.duedate).toBe(123);
+});
+
 it('names only the changed fields on a patch intent', async () => {
   const { result } = renderHook(() => useCardActions('a1'));
   const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };
