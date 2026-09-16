@@ -26,19 +26,27 @@ jest.mock('../../../src/features/board/hooks/useCardActions', () => ({
 }));
 
 // CardPickerSheet is exercised on its own (CardPickerSheet.test.tsx); here it is
-// replaced with a stub that captures `onPick`, same idiom as
+// replaced with a stub that captures `onPick`/`onClose`, same idiom as
 // DependenciesSheet.test.tsx — a test can simulate a pick without driving the
-// real board → stack drill-down.
+// real board → stack drill-down. The real CardPickerSheet fully self-closes on
+// every successful pick (its own `pick()` calls `onPick` then `onClose`, not
+// just a cancel) — the stub mirrors that sequencing so a flow that mishandles
+// it (e.g. treating the post-pick onClose as a cancel) fails here too.
 let capturedOnPick: ((result: any) => void) | null = null;
+let capturedOnClose: (() => void) | null = null;
 jest.mock('../../../src/features/card/components/CardPickerSheet', () => ({
   CardPickerSheet: (props: any) => {
     capturedOnPick = props.onPick;
+    capturedOnClose = props.onClose;
     return null;
   },
 }));
 
 function pickCard(result: { boardLocalId: string; stackLocalId: string }) {
-  act(() => capturedOnPick?.(result));
+  act(() => {
+    capturedOnPick?.(result);
+    capturedOnClose?.();
+  });
 }
 
 const renderFlow = (p: Partial<any> = {}) =>
@@ -48,6 +56,7 @@ const renderFlow = (p: Partial<any> = {}) =>
 
 beforeEach(() => {
   capturedOnPick = null;
+  capturedOnClose = null;
   mockCreate.mockClear();
 });
 
@@ -71,6 +80,15 @@ it('creates the card in the picked list with the typed title', () => {
   expect(mockCreate).toHaveBeenCalledWith({
     boardLocalId: 'b1', stackLocalId: 's1', title: 'Loyer', duedate: null,
   });
+  expect(onClose).toHaveBeenCalled();
+});
+
+it('closes the whole flow when the picker is cancelled without a pick', () => {
+  const onClose = jest.fn();
+  renderFlow({ onClose });
+
+  act(() => capturedOnClose?.());
+
   expect(onClose).toHaveBeenCalled();
 });
 
