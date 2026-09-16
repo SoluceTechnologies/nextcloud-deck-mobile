@@ -24,16 +24,22 @@ type Target = { boardLocalId: string; stackLocalId: string };
  * caller's `onClose`, so a reopen always starts over at the picker rather than
  * resuming a stale target.
  *
+ * `step` is derived from `target` rather than tracked separately — the two
+ * are never set independently, so a second `useState` would only invite a
+ * future edit that updates one and forgets the other.
+ *
  * CardPickerSheet fully self-closes on every successful pick — its own
- * `pick()` calls `onPick` then `onClose`, not just on a cancel — so this
- * flow can't tell "picked" from "cancelled" from the close call alone.
- * `justPicked` is a ref rather than state because it must be readable
- * synchronously inside that same `onClose` call, before React has applied
- * the pick's state updates.
+ * `pick()` calls `onPick` then `onClose`, not just on a cancel (pinned by
+ * CardPickerSheet.test.tsx's "calls onPick and then onClose synchronously on
+ * a successful pick") — so this flow can't tell "picked" from "cancelled"
+ * from the close call alone. `justPicked` is a ref rather than state because
+ * it must be readable synchronously inside that same `onClose` call, before
+ * React has applied the pick's state updates — reading `target` there would
+ * hit the same stale pre-render value a `step` state would.
  */
 export function QuickAddCardFlow({ visible, accountId, onClose }: QuickAddCardFlowProps) {
-  const [step, setStep] = useState<'pick' | 'form'>('pick');
   const [target, setTarget] = useState<Target | null>(null);
+  const step = target ? 'form' : 'pick';
   const justPicked = useRef(false);
 
   const boards = useBoards(accountId);
@@ -41,7 +47,6 @@ export function QuickAddCardFlow({ visible, accountId, onClose }: QuickAddCardFl
   const actions = useCardActions(accountId);
 
   const close = () => {
-    setStep('pick');
     setTarget(null);
     onClose();
   };
@@ -49,7 +54,6 @@ export function QuickAddCardFlow({ visible, accountId, onClose }: QuickAddCardFl
   const handlePick = ({ boardLocalId, stackLocalId }: CardPickerResult) => {
     justPicked.current = true;
     setTarget({ boardLocalId, stackLocalId });
-    setStep('form');
   };
 
   // Fires both for a cancelled picker and for a completed pick — only the

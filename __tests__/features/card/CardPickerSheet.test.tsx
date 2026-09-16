@@ -49,6 +49,24 @@ it('resolves at the list in stack mode', () => {
   expect(onPick).toHaveBeenCalledWith({ boardLocalId: 'b1', stackLocalId: 's1' });
 });
 
+// QuickAddCardFlow relies on this exact ordering to tell a completed pick
+// apart from a genuine cancel (see QuickAddCardFlow.tsx's `justPicked` ref) —
+// pinned here so a future change to `pick()` that breaks it (e.g. only
+// closing on a cancel) fails at the source, not in a consumer's mock.
+it('calls onPick and then onClose synchronously on a successful pick', () => {
+  const calls: string[] = [];
+  const onPick = jest.fn(() => calls.push('onPick'));
+  const onClose = jest.fn(() => calls.push('onClose'));
+  render(
+    <CardPickerSheet visible accountId="a1" mode="stack" onClose={onClose} onPick={onPick} />,
+    { wrapper: ThemeWrapper },
+  );
+  fireEvent.press(screen.getByText('Commercial'));
+  fireEvent.press(screen.getByText('En cours'));
+
+  expect(calls).toEqual(['onPick', 'onClose']);
+});
+
 it('drills one level further in card mode', () => {
   const onPick = jest.fn();
   render(
