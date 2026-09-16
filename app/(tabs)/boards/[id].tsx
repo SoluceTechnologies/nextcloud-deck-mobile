@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useUiStore } from '@/stores/uiStore';
+import { useDatabase } from '@/database/DatabaseProvider';
 import { useBoardCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
 import { useBoardCardRelations } from '@/database/hooks/useBoardRelations';
@@ -15,6 +16,7 @@ import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { StackColumn } from '@/features/board/components/StackColumn';
 import { StackFormSheet } from '@/features/board/components/StackFormSheet';
 import { toCardTileCard, type CardTileData } from '@/features/board/components/CardTile';
+import { recordRecentBoard } from '@/features/today/recentBoards';
 import { requestBoardSnapshot } from '@/sync/scheduler';
 import { Button, ScreenHeader, ViewContainer } from '@/ui/components';
 
@@ -45,13 +47,22 @@ export default function BoardScreen() {
   // list" and "add a card to stack X" (see StackFormSheet's heading/placeholder).
   const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
 
+  const db = useDatabase();
   const boardRemoteId = board?.remoteId ?? '';
   useEffect(() => {
+    // Recent boards are sourced from in-app consultations (design spec
+    // §7.6), not from a successful sync — record the open even when the
+    // board has no remote id yet. recordRecentBoard is a local-only
+    // preference write (never an outbox intent), so it is called directly
+    // here rather than through a use*Actions mutate() hook.
+    if (accountId && board?.id) {
+      void recordRecentBoard(db, accountId, board.id).catch(() => undefined);
+    }
     // A board created offline has no remote id yet — nothing to fetch.
     if (!accountId || !boardRemoteId) return;
     requestBoardSnapshot(accountId, boardRemoteId);
     return () => useUiStore.getState().setActiveBoardRemoteId(null);
-  }, [accountId, boardRemoteId]);
+  }, [accountId, boardRemoteId, board?.id]);
 
   // Grouped once per data change, not per render of each column: a fresh
   // CardTileData snapshot per card (see toCardTileCard) so a column never

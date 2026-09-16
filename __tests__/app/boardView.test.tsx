@@ -49,6 +49,8 @@ jest.mock('../../src/features/board/hooks/useCardActions', () => ({
 
 jest.mock('../../src/sync/scheduler', () => ({ requestBoardSnapshot: jest.fn() }));
 
+jest.mock('../../src/features/today/recentBoards', () => ({ recordRecentBoard: jest.fn(async () => {}) }));
+
 jest.mock('../../src/utils/haptics', () => ({ haptic: jest.fn(), ImpactFeedbackStyle: { Light: 'light' } }));
 
 jest.mock('react-i18next', () => ({
@@ -115,6 +117,14 @@ it('requests a full snapshot for this board on open', () => {
   // the board's REMOTE id ('B1') since that's what the server-side fetch key
   // is keyed on (see requestBoardSnapshot in src/sync/scheduler.ts).
   expect(requestBoardSnapshot).toHaveBeenCalledWith('a1', 'B1');
+});
+
+// Recent boards are sourced from in-app consultations (spec §7.6): opening
+// the screen is what counts, regardless of remote-id/sync state.
+it('records the board as recently opened on mount', () => {
+  const { recordRecentBoard } = require('../../src/features/today/recentBoards');
+  renderScreen();
+  expect(recordRecentBoard).toHaveBeenCalledWith(expect.anything(), 'a1', 'b1');
 });
 
 it('opens a card when its tile is tapped', () => {
