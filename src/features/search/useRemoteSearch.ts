@@ -1,0 +1,90 @@
+import { useEffect, useRef, useState } from 'react';
+
+import { useActiveAccount } from '@/hooks/useAccounts';
+import { searchCards } from '@/services/deck/search';
+import type { DeckSearchHit } from '@/services/deck/search';
+import { getIsOnline } from '@/services/shared/network';
+import { trailingDebounce } from '@/utils/debounce';
+
+export type RemoteSearchHit = DeckSearchHit;
+export type RemoteSearchState = { hits: RemoteSearchHit[]; loading: boolean; failed: boolean };
+
+const DEBOUNCE_MS = 300;
+
+/**
+ * The one hook allowed to call a `src/services/deck/*` request directly (see
+ * useCardDetailSync for the precedent). Runs a debounced `searchCards` while
+ * online with an account and a non-blank input, and never touches the
+ * database: a remote hit is display data whose row already exists locally
+ * when its remoteId is in `knownRemoteIds`, so those are dropped and the rest
+ * are left for the screen to render as a separate, board-opening section.
+ */
+export function useRemoteSearch(
+  accountId: string | null,
+  input: string,
+  knownRemoteIds: Set<string>,
+): RemoteSearchState {
+  const account = useActiveAccount(accountId);
+  // Read fresh inside the debounced callback below, which is created once
+  // and so can't close over a given render's props (see accountRef in
+  // useCardDetailSync for the same reasoning).
+  const accountRef = useRef(account);
+  accountRef.current = account;
+  const knownRemoteIdsRef = useRef(knownRemoteIds);
+  knownRemoteIdsRef.current = knownRemoteIds;
+
+  const [hits, setHits] = useState<RemoteSearchHit[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  // The term of the most recently DISPATCHED request (updated only when a
+  // request actually fires, not on every render). A settling promise compares
+  // its own captured `term` against this to tell whether a newer search has
+  // superseded it — the reliable form of the stale-response guard, unlike a
+  // ref that tracks the latest `input` prop and gets mutated every render.
+  const latestTermRef = useRef<string | null>(null);
+  const activeRef = useRef(true);
+
+  const [debounced] = useState(() =>
+    trailingDebounce((term: string) => {
+      const acc = accountRef.current;
+      if (!acc) return;
+      latestTermRef.current = term;
+      setLoading(true);
+      setFailed(false);
+      searchCards(acc, term)
+        .then((page) => {
+          if (!activeRef.current || term !== latestTermRef.current) return;
+          const known = knownRemoteIdsRef.current;
+          setHits(page.hits.filter((h) => !known.has(h.card.remoteId)));
+        })
+        .catch(() => {
+          if (!activeRef.current || term !== latestTermRef.current) return;
+          setFailed(true);
+        })
+        .finally(() => {
+          if (!activeRef.current || term !== latestTermRef.current) return;
+          setLoading(false);
+        });
+    }, DEBOUNCE_MS),
+  );
+
+  useEffect(() => {
+    activeRef.current = true;
+    const term = input.trim();
+    if (accountRef.current && term.length > 0 && getIsOnline()) {
+      debounced.call(input);
+    } else {
+      debounced.cancel();
+    }
+    return () => {
+      activeRef.current = false;
+      debounced.cancel();
+    };
+    // accountId, not account: useActiveAccount hands back a referentially new
+    // object on any accounts-list refresh even when the id hasn't moved, and
+    // that alone must not reschedule the debounce (see useCardDetailSync).
+  }, [accountId, input, debounced]);
+
+  return { hits, loading, failed };
+}
