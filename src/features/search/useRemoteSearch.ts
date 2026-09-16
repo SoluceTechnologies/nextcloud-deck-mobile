@@ -37,33 +37,36 @@ export function useRemoteSearch(
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // The term of the most recently DISPATCHED request (updated only when a
-  // request actually fires, not on every render). A settling promise compares
-  // its own captured `term` against this to tell whether a newer search has
-  // superseded it — the reliable form of the stale-response guard, unlike a
-  // ref that tracks the latest `input` prop and gets mutated every render.
-  const latestTermRef = useRef<string | null>(null);
+  // Bumped once per effect run below — on a dispatch AND on the cancel
+  // branch alike, since both mean "whatever is in flight is no longer the
+  // request we want." A term-string comparison can't tell a same-term
+  // request for a different account apart from the one it replaced, and
+  // can't express "the input was cleared/went offline while a request was
+  // in flight" at all; a generation counter captures "is this still the
+  // current request" directly, which is the actual requirement.
+  const generationRef = useRef(0);
   const activeRef = useRef(true);
 
   const [debounced] = useState(() =>
     trailingDebounce((term: string) => {
       const acc = accountRef.current;
       if (!acc) return;
-      latestTermRef.current = term;
+      const generation = generationRef.current;
+      const stillCurrent = () => activeRef.current && generation === generationRef.current;
       setLoading(true);
       setFailed(false);
       searchCards(acc, term)
         .then((page) => {
-          if (!activeRef.current || term !== latestTermRef.current) return;
+          if (!stillCurrent()) return;
           const known = knownRemoteIdsRef.current;
           setHits(page.hits.filter((h) => !known.has(h.card.remoteId)));
         })
         .catch(() => {
-          if (!activeRef.current || term !== latestTermRef.current) return;
+          if (!stillCurrent()) return;
           setFailed(true);
         })
         .finally(() => {
-          if (!activeRef.current || term !== latestTermRef.current) return;
+          if (!stillCurrent()) return;
           setLoading(false);
         });
     }, DEBOUNCE_MS),
@@ -71,6 +74,7 @@ export function useRemoteSearch(
 
   useEffect(() => {
     activeRef.current = true;
+    generationRef.current += 1;
     const term = input.trim();
     if (accountRef.current && term.length > 0 && getIsOnline()) {
       debounced.call(input);

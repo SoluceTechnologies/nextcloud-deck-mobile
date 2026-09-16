@@ -40,7 +40,9 @@ beforeEach(() => {
   (useAccountStacks as jest.Mock).mockReturnValue(stacks);
   (useAccountCardRelations as jest.Mock).mockReturnValue({
     labelsByCard: new Map([['c1', [label()]]]),
-    assigneesByCard: new Map([['c2', [assignee()]]]),
+    assigneesByCard: new Map([
+      ['c2', [assignee(), assignee({ displayName: 'Bob Dupont', participant: 'xyz123' })]],
+    ]),
   });
 });
 
@@ -68,4 +70,35 @@ it('lists boards whose title matches the free text', () => {
 });
 it('exposes the remote ids of every cached card', () => {
   expect(renderHook(() => useLocalSearch('a1', 'x')).result.current.remoteIds.has('7')).toBe(true);  // c1.remoteId = '7'
+});
+
+// c3 is archived, and the previous test's c1 alone can't tell "every cached
+// card" apart from "every card that survives the archived/matched filters" —
+// c3.remoteId = '9' must still come through, since the remote merge needs to
+// recognize a hit as already-cached regardless of whether it is displayable.
+it('exposes the remote id of an archived card too', () => {
+  expect(renderHook(() => useLocalSearch('a1', 'x')).result.current.remoteIds.has('9')).toBe(true);
+});
+
+// c4 sits on board b3, which is absent from the useBoards fixture (b1, b2
+// only) — the same shape as a board that has since been archived. Without
+// the boardTitle-missing skip, this card would render with a group whose
+// boardTitle is undefined instead of being dropped.
+it('never lists a card whose board is missing (an archived board)', () => {
+  (useAccountCards as jest.Mock).mockReturnValue([
+    ...cards,
+    card({ id: 'c4', boardId: 'b3', stackId: 's3', remoteId: '10', title: 'Carte fantome', archived: false }),
+  ]);
+  const { result } = renderHook(() => useLocalSearch('a1', 'fantome'));
+  expect(result.current.groups).toEqual([]);
+});
+
+// c2's second assignee (Bob Dupont / xyz123) has an id that is NOT a
+// substring of his display name, unlike alice/"Alice Martin" above — so this
+// is the only assertion that distinguishes "assignees carries [displayName,
+// participant]" from "assignees carries displayName only" or "participant
+// only": dropping either half breaks one of these two lines.
+it('matches assigned: by display name and, separately, by a distinct participant id', () => {
+  expect(renderHook(() => useLocalSearch('a1', 'assigned:martin')).result.current.groups[0].cards[0].id).toBe('c2');
+  expect(renderHook(() => useLocalSearch('a1', 'assigned:xyz123')).result.current.groups[0].cards[0].id).toBe('c2');
 });
