@@ -314,5 +314,28 @@
     "noResultsHint": "Try a simpler title, another board, or a search example.",
     "offlineNote": "Offline — showing local results only",
     "serverFailed": "The server could not be reached — showing local results only"
+  },
+  "today": {
+    "title": "Today",
+    "overdueBanner_one": "{{count}} overdue",
+    "overdueBanner_other": "{{count}} overdue",
+    "overdueHint": "Complete or reschedule these before anything else.",
+    "sections": {
+      "overdue": "OVERDUE",
+      "today": "TODAY",
+      "tomorrow": "TOMORROW",
+      "week": "NEXT 7 DAYS"
+    },
+    "recent": "RECENT BOARDS",
+    "empty": "Nothing due — enjoy the calm.",
+    "addCard": "Add a card",
+    "markDone": "Mark done",
+    "form": {
+      "title": "New card",
+      "titlePlaceholder": "Card title",
+      "due": "Due date",
+      "noDue": "No due date",
+      "save": "Save"
+    }
   }
 }
