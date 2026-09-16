@@ -39,8 +39,11 @@ function Item({
     </View>
   );
 
+  // testID goes on whichever node is actually returned: the AnimatedPressable
+  // below when there's an onPress, this View when there isn't — never both,
+  // or a testID query would find two nodes for one id.
   const inner = (
-    <View style={styles.row}>
+    <View testID={onPress ? undefined : testID} style={styles.row}>
       {leading}
       {body}
       {trailing != null ? <View style={styles.trailing}>{trailing}</View> : null}

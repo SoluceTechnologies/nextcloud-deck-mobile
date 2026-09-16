@@ -126,3 +126,18 @@ it('notes that results are local only when offline', () => {
   fireEvent.changeText(screen.getByTestId('search-input'), 'loyer');
   expect(screen.getByText('search.offlineNote')).toBeTruthy();
 });
+
+// A remote hit whose board isn't in boardLocalIdByRemote gets no onPress (see
+// the previous test's comment on Item/SearchResults), which used to also
+// silently drop its testID — Item only forwarded testID to the AnimatedPressable
+// branch, never to the plain-View branch taken when there's no onPress.
+it('keeps its testID on a remote hit whose board cannot be resolved locally', () => {
+  (useRemoteSearch as jest.Mock).mockReturnValue({
+    hits: [{ card: { remoteId: '42', boardRemoteId: 'UNKNOWN', title: 'Orphan hit' }, boardTitle: 'Ghost', stackTitle: 'Nowhere' }],
+    loading: false,
+    failed: false,
+  });
+  renderScreen();
+  fireEvent.changeText(screen.getByTestId('search-input'), 'orphan');
+  expect(screen.getByTestId('result-hit-42')).toBeTruthy();
+});
