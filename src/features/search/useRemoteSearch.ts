@@ -80,6 +80,11 @@ export function useRemoteSearch(
       debounced.call(input);
     } else {
       debounced.cancel();
+      // Unlike hits/failed, loading describes "is a request outstanding
+      // right now" — the cancel branch answers that definitively, so it
+      // resets loading itself rather than waiting for whatever is in
+      // flight to settle (stillCurrent() will make that settle a no-op).
+      setLoading(false);
     }
     return () => {
       activeRef.current = false;

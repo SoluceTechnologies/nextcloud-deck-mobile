@@ -69,3 +69,16 @@ it('reports a failure instead of throwing', async () => {
   await act(async () => { jest.advanceTimersByTime(300); });
   expect(result.current.failed).toBe(true);
 });
+it('resets loading when an in-flight request is abandoned', async () => {
+  let resolvePending!: (v: unknown) => void;
+  (searchCards as jest.Mock).mockImplementationOnce(() => new Promise((r) => { resolvePending = r; }));
+  const { result, rerender } = renderHook(
+    ({ q }: { q: string }) => useRemoteSearch('a1', q, new Set()),
+    { initialProps: { q: 'loyer' } },
+  );
+  await act(async () => { jest.advanceTimersByTime(300); }); // dispatched, in flight
+  expect(result.current.loading).toBe(true);
+  rerender({ q: '' }); // cleared before it resolves -> cancel branch
+  await act(async () => { resolvePending({ hits: [], cursor: null }); }); // abandoned response settles
+  expect(result.current.loading).toBe(false);
+});
