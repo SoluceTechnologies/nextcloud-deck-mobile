@@ -24,13 +24,20 @@ export function DraggableCard({ data, stackId, onPress }: DraggableCardProps) {
     useDrag();
 
   function begin() {
+    // Haptic fires immediately on lift, independent of the measurement
+    // below. setActiveData (which mounts DragOverlay) waits for
+    // measureInWindow's callback so the overlay never mounts at a stale
+    // origin (0 on the first drag of the session, the previous card's
+    // origin afterwards) — see controller ruling R11: a few milliseconds'
+    // delay before the floating copy appears beats appearing wrong and
+    // snapping once the real measurement lands.
+    haptic();
     viewRef.current?.measureInWindow?.((winX, winY, winWidth) => {
       originX.value = winX;
       originY.value = winY;
       width.value = winWidth;
+      setActiveData(data);
     });
-    haptic();
-    setActiveData(data);
   }
 
   function finish(dropTarget: DragTarget | null) {

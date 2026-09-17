@@ -1,3 +1,5 @@
+import { createRef } from 'react';
+import { View } from 'react-native';
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
 import { State } from 'react-native-gesture-handler';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
@@ -46,6 +48,27 @@ function FrameSeed() {
   return null;
 }
 
+// begin() (DraggableCard.tsx) waits for measureInWindow's callback before
+// mounting the overlay, so the overlay never appears at a stale origin (see
+// R11). react-native's test host component never invokes that callback —
+// there's no native layer to answer it — so it's stubbed here on the
+// View's shared prototype, grabbed once from a throwaway instance; this
+// applies to every later View (including Reanimated.View, which the mock
+// makes literally the same View) in this file. Kept as a module variable so
+// one test below can override it with a controllable, non-synchronous stub.
+let viewProto: any;
+
+function stubMeasureInWindow(x: number, y: number, width: number) {
+  const probeRef = createRef<View>();
+  render(<View ref={probeRef} />);
+  viewProto = Object.getPrototypeOf(probeRef.current);
+  jest.spyOn(viewProto, 'measureInWindow').mockImplementation((cb: any) => cb(x, y, width));
+}
+
+beforeAll(() => {
+  stubMeasureInWindow(0, 0, 320);
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -85,15 +108,18 @@ it('reports a drop with the target computed by the controller', () => {
 });
 
 it('gives a haptic when the card lifts', () => {
+  // Isolates the lift's own haptic from finish()'s unconditional one: a full
+  // fireGestureHandler lifecycle fires haptic() twice (begin() on lift,
+  // finish() on finalize — see DraggableCard.tsx), so a loose
+  // toHaveBeenCalled() after a full BEGAN..END run can't tell them apart and
+  // would still pass with the lift's own call deleted. Calling onStart
+  // directly exercises only begin().
   setup();
+  const gesture = getByGestureTestId('drag-c1');
   act(() => {
-    fireGestureHandler(getByGestureTestId('drag-c1'), [
-      { state: State.BEGAN, absoluteX: 100, absoluteY: 210 },
-      { state: State.ACTIVE, absoluteX: 100, absoluteY: 210 },
-      { state: State.END, absoluteX: 100, absoluteY: 210 },
-    ]);
+    gesture.handlers.onStart?.({ absoluteX: 100, absoluteY: 210 } as any);
   });
-  expect(haptic).toHaveBeenCalled();
+  expect(haptic).toHaveBeenCalledTimes(1);
 });
 
 it('does not start a drag when disabled', () => {
@@ -120,6 +146,29 @@ it('renders the floating copy while a drag is active', () => {
   const gesture = getByGestureTestId('drag-c1');
   act(() => {
     gesture.handlers.onStart?.({ absoluteX: 100, absoluteY: 210 } as any);
+  });
+  expect(screen.getAllByText('Alpha')).toHaveLength(2);
+});
+
+it('does not mount the floating copy until its origin measurement resolves (R11)', () => {
+  // Overrides the module-wide synchronous stub for just this one
+  // measureInWindow call, so the callback is under this test's control
+  // instead of firing immediately.
+  let resolveMeasure = () => {};
+  jest.spyOn(viewProto, 'measureInWindow').mockImplementationOnce((cb: any) => {
+    resolveMeasure = () => cb(0, 0, 320);
+  });
+  setup();
+  const gesture = getByGestureTestId('drag-c1');
+  act(() => {
+    gesture.handlers.onStart?.({ absoluteX: 100, absoluteY: 210 } as any);
+  });
+  // Haptic fires on lift regardless of the pending measurement.
+  expect(haptic).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByText('Alpha')).toHaveLength(1);
+
+  act(() => {
+    resolveMeasure();
   });
   expect(screen.getAllByText('Alpha')).toHaveLength(2);
 });
