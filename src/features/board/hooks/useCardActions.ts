@@ -33,7 +33,7 @@ export type CardActions = {
   patch(card: Card, fields: Partial<CardPatch>): Promise<void>;
   setArchived(card: Card, archived: boolean): Promise<void>;
   remove(card: Card): Promise<void>;
-  move(card: Card, toStackLocalId: string, order?: number): Promise<void>;
+  move(card: Card, toStackLocalId: string, order?: number, localOrder?: number): Promise<void>;
   clone(card: Card): Promise<void>;
   addLabel(card: Card, labelLocalId: string): Promise<void>;
   removeLabel(card: Card, labelLocalId: string): Promise<void>;
@@ -148,7 +148,12 @@ export function useCardActions(accountId: string | null): CardActions {
       });
     };
 
-    const move: CardActions['move'] = async (card, toStackLocalId, order) => {
+    // A drag-and-drop move passes `localOrder`: the fractional position that keeps the
+    // row sorted correctly among its new siblings on screen, while `order` (resolved
+    // below) stays the integer position Deck's API expects in the intent. Without
+    // `localOrder`, both the row and the intent use the same resolved value, exactly as
+    // before this parameter existed.
+    const move: CardActions['move'] = async (card, toStackLocalId, order, localOrder) => {
       if (!accountId) return;
 
       // A move can land on another board's list — the local row must follow, or the
@@ -172,7 +177,7 @@ export function useCardActions(accountId: string | null): CardActions {
           card.prepareUpdate((r: Card) => {
             r.boardId = stack.boardId;
             r.stackId = toStackLocalId;
-            r.order = resolvedOrder;
+            r.order = localOrder ?? resolvedOrder;
           }),
       });
     };

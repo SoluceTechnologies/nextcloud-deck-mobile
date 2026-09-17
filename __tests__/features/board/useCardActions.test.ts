@@ -203,6 +203,21 @@ it('uses an explicit order as given, without recomputing it from the target stac
   expect(row.boardId).toBe('board-s2');
 });
 
+// A drag-and-drop drop supplies both: the fractional local order keeps the row sorted
+// correctly among its new on-screen siblings, while the intent still carries the
+// integer position Deck's API expects.
+it('writes the local order and sends the integer position on a drop', async () => {
+  const { result } = renderHook(() => useCardActions('a1'));
+  const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };
+
+  await act(() => result.current.move(card, 's2', 1, 3.5));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toMatchObject({ kind: 'moveCard', toStackId: 's2', order: 1 });
+  const row = await call.applyLocal();
+  expect(row.order).toBe(3.5);
+});
+
 it('archives a card through setCardArchived', async () => {
   const { result } = renderHook(() => useCardActions('a1'));
   const card: any = { id: 'c1', prepareUpdate: (fn: any) => { const r: any = {}; fn(r); return r; } };

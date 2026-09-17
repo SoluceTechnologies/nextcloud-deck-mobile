@@ -24,6 +24,7 @@ export type DragContextValue = {
   reportColumn: (stackId: string, state: ColumnState) => void;
   reportListTop: (y: number) => void;
   registerScroller: (stackId: string, scrollBy: (dy: number) => void) => () => void; // vertical autoscroll seams
+  scrollColumnBy: (stackId: string, dy: number) => void; // invokes a registered scroller — the screen's autoscroll loop
   onDrop: (result: DropResult) => void; // supplied by the screen
   enabled: boolean; // board.canEdit
 };
@@ -87,9 +88,16 @@ export function DragProvider({ enabled, onDrop, children }: DragProviderProps) {
     };
   }, []);
 
+  // The autoscroll loop (the screen) knows only the target column's id — this is the
+  // other half of the registerScroller seam, letting it reach the scrollBy a column
+  // registered without either side holding a reference to the other.
+  const scrollColumnBy = useCallback((stackId: string, dy: number) => {
+    scrollers.current.get(stackId)?.(dy);
+  }, []);
+
   const value: DragContextValue = {
     activeId, x, y, originX, originY, width, startX, startY, target, frame,
-    activeData, setActiveData, reportColumn, reportListTop, registerScroller,
+    activeData, setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
     onDrop, enabled,
   };
 

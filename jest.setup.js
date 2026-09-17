@@ -80,10 +80,10 @@ jest.mock('react-native-webview', () => {
 });
 
 jest.mock('react-native-reanimated', () => {
-  const { View, ScrollView } = require('react-native');
+  const { View, ScrollView, FlatList } = require('react-native');
   return {
     __esModule: true,
-    default: { View, ScrollView, createAnimatedComponent: (c) => c },
+    default: { View, ScrollView, FlatList, createAnimatedComponent: (c) => c },
     View,
     ScrollView,
     createAnimatedComponent: (c) => c,

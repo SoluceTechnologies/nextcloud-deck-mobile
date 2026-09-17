@@ -35,6 +35,7 @@ jest.mock('../../src/features/board/hooks/useStackActions', () => ({
 }));
 
 const mockCardCreate = jest.fn(() => Promise.resolve());
+const mockCardMove = jest.fn(() => Promise.resolve());
 jest.mock('../../src/features/board/hooks/useCardActions', () => ({
   useCardActions: () => ({
     create: mockCardCreate,
@@ -42,9 +43,48 @@ jest.mock('../../src/features/board/hooks/useCardActions', () => ({
     patch: jest.fn(() => Promise.resolve()),
     setArchived: jest.fn(() => Promise.resolve()),
     remove: jest.fn(() => Promise.resolve()),
-    move: jest.fn(() => Promise.resolve()),
+    move: mockCardMove,
     clone: jest.fn(() => Promise.resolve()),
   }),
+}));
+
+// The captured-prop idiom (see QuickAddCardFlow.test.tsx): DragProvider is stubbed to
+// capture the `enabled`/`onDrop` props the screen passes it, and DragOverlay is left
+// unmocked — with `activeData` fixed at null here, its own real "mount only while a
+// drag is active" check already renders it as null, so it doesn't need its own stub.
+// StackColumn/DraggableCard resolve `useDrag`/`useOptionalDrag` through this same
+// mock too, so both need a well-formed (if inert) context value to render against.
+let capturedDragProps: { enabled: boolean; onDrop: (result: any) => void } | null = null;
+const mockDragContextValue = {
+  activeId: { value: null },
+  x: { value: 0 },
+  y: { value: 0 },
+  originX: { value: 0 },
+  originY: { value: 0 },
+  width: { value: 0 },
+  startX: { value: 0 },
+  startY: { value: 0 },
+  target: { value: null },
+  frame: {
+    value: { stackIds: [], geometry: { gap: 0, columnWidth: 0, columnCount: 0 }, scrollX: 0, listTopY: 0, registry: {} },
+    modify: jest.fn(),
+  },
+  activeData: null,
+  setActiveData: jest.fn(),
+  reportColumn: jest.fn(),
+  reportListTop: jest.fn(),
+  registerScroller: jest.fn(() => jest.fn()),
+  scrollColumnBy: jest.fn(),
+  onDrop: jest.fn(),
+  enabled: true,
+};
+jest.mock('../../src/features/board/dnd/DragContext', () => ({
+  DragProvider: (props: any) => {
+    capturedDragProps = { enabled: props.enabled, onDrop: props.onDrop };
+    return props.children;
+  },
+  useDrag: () => mockDragContextValue,
+  useOptionalDrag: () => mockDragContextValue,
 }));
 
 jest.mock('../../src/sync/scheduler', () => ({ requestBoardSnapshot: jest.fn() }));
@@ -86,6 +126,7 @@ const renderScreen = () => render(<BoardScreen />, { wrapper: ThemeWrapper });
 
 beforeEach(() => {
   jest.clearAllMocks();
+  capturedDragProps = null;
   // clearAllMocks() does not undo a mockReturnValue set by a previous test
   // (mirrors cardDetail.test.tsx's beforeEach reseed) — reseed this one
   // explicitly so a test that overrides it (e.g. an offline board with no
@@ -164,4 +205,26 @@ it('opens a card when its tile is tapped', () => {
 it('offers an add-list affordance after the last column', () => {
   renderScreen();
   expect(screen.getByText('board.addList')).toBeTruthy();
+});
+
+// board.canEdit is true in the fixture — spec §7.4 wants the gesture disabled, not
+// hidden, when it's false, but that's DragProvider's/DraggableCard's own concern
+// (Task 13); this only checks the screen passes the right value through.
+it('enables dragging only when the board can be edited', () => {
+  renderScreen();
+  expect(capturedDragProps?.enabled).toBe(true);
+});
+
+it('commits a drop as one move with the computed orders', () => {
+  renderScreen();
+  act(() => capturedDragProps?.onDrop({ cardId: 'c1', fromStackId: 's1', toStackId: 's2', index: 0 }));
+  expect(mockCardMove).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }), 's2', 0, expect.any(Number));
+});
+
+// s1 holds only c1 (fixture) — dropped back into s1 at index 0, its own (only) current
+// position among the OTHER cards in s1 (none), so nothing actually moved.
+it('ignores a drop that leaves the card where it was', () => {
+  renderScreen();
+  act(() => capturedDragProps?.onDrop({ cardId: 'c1', fromStackId: 's1', toStackId: 's1', index: 0 }));
+  expect(mockCardMove).not.toHaveBeenCalled();
 });
