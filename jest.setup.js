@@ -87,7 +87,13 @@ jest.mock('react-native-reanimated', () => {
     View,
     ScrollView,
     createAnimatedComponent: (c) => c,
-    useSharedValue: (v) => ({ value: v }),
+    useSharedValue: (v) => {
+      const sv = { value: v };
+      sv.modify = (updater) => {
+        sv.value = updater ? updater(sv.value) : sv.value;
+      };
+      return sv;
+    },
     useAnimatedStyle: () => ({}),
     useAnimatedRef: () => ({ current: null }),
     useAnimatedScrollHandler: (h) => h,
@@ -96,5 +102,6 @@ jest.mock('react-native-reanimated', () => {
     withTiming: (v) => v,
     withSpring: (v) => v,
     LinearTransition: {},
+    runOnJS: (fn) => (...args) => fn(...args),
   };
 });

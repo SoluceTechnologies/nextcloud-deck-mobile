@@ -1,0 +1,86 @@
+import { useRef } from 'react';
+import { View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, { runOnJS, useAnimatedStyle } from 'react-native-reanimated';
+
+import { haptic } from '@/utils/haptics';
+import { CardTile, type CardTileData } from '../components/CardTile';
+import { useDrag } from './DragContext';
+import { targetAt, type DragTarget } from './dragController';
+
+const LONG_PRESS_MS = 350;
+const ACTIVE_OPACITY = 0.4;
+
+export type DraggableCardProps = {
+  data: CardTileData;
+  stackId: string;
+  onPress: () => void;
+};
+
+export function DraggableCard({ data, stackId, onPress }: DraggableCardProps) {
+  const cardId = data.card.id;
+  const viewRef = useRef<View>(null);
+  const { activeId, x, y, originX, originY, width, startX, startY, target, frame, setActiveData, onDrop, enabled } =
+    useDrag();
+
+  function begin() {
+    viewRef.current?.measureInWindow?.((winX, winY, winWidth) => {
+      originX.value = winX;
+      originY.value = winY;
+      width.value = winWidth;
+    });
+    haptic();
+    setActiveData(data);
+  }
+
+  function finish(dropTarget: DragTarget | null) {
+    if (dropTarget) {
+      onDrop({ cardId, fromStackId: stackId, toStackId: dropTarget.stackId, index: dropTarget.index });
+    }
+    haptic();
+    setActiveData(null);
+  }
+
+  const gesture = Gesture.Pan()
+    .activateAfterLongPress(LONG_PRESS_MS)
+    .enabled(enabled)
+    .withTestId(`drag-${cardId}`)
+    .onStart((e) => {
+      'worklet';
+      activeId.value = cardId;
+      x.value = e.absoluteX;
+      y.value = e.absoluteY;
+      startX.value = e.absoluteX;
+      startY.value = e.absoluteY;
+      runOnJS(begin)();
+    })
+    .onUpdate((e) => {
+      'worklet';
+      x.value = e.absoluteX;
+      y.value = e.absoluteY;
+      target.value = targetAt(e.absoluteX, e.absoluteY, cardId, frame.value);
+    })
+    .onFinalize(() => {
+      'worklet';
+      // onFinalize always fires, even when onStart never did — e.g. a plain
+      // tap released before activateAfterLongPress elapses. Without this
+      // guard that would call finish() with whatever target.value was left
+      // over from a previous, unrelated drag anywhere on the board.
+      if (activeId.value !== cardId) return;
+      const t = target.value;
+      activeId.value = null;
+      runOnJS(finish)(t);
+    });
+
+  const style = useAnimatedStyle(() => ({
+    opacity: activeId.value === cardId ? ACTIVE_OPACITY : 1,
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Reanimated.View ref={viewRef} style={style}>
+        <CardTile data={data} onPress={onPress} />
+      </Reanimated.View>
+    </GestureDetector>
+  );
+}

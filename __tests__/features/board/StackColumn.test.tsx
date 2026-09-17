@@ -1,7 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 
 import { ThemeWrapper } from '../../helpers/theme';
 import { StackColumn } from '../../../src/features/board/components/StackColumn';
+import { DragProvider } from '../../../src/features/board/dnd/DragContext';
 
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
@@ -58,4 +60,20 @@ it('offers an add-card affordance that reports its stack', () => {
 it('takes the width it is given', () => {
   render(<StackColumn {...(props({ width: 280 }) as any)} />, { wrapper: ThemeWrapper });
   expect(screen.getByTestId('stack-column')).toHaveStyle({ width: 280 });
+});
+
+it('wraps each tile in a draggable card when draggable', () => {
+  render(
+    <DragProvider enabled onDrop={jest.fn()}>
+      <StackColumn {...(props({ draggable: true }) as any)} />
+    </DragProvider>,
+    { wrapper: ThemeWrapper },
+  );
+  expect(getByGestureTestId('drag-c1')).toBeTruthy();
+  expect(getByGestureTestId('drag-c2')).toBeTruthy();
+});
+
+it('renders plain, non-draggable tiles when draggable is not set', () => {
+  render(<StackColumn {...(props() as any)} />, { wrapper: ThemeWrapper });
+  expect(() => getByGestureTestId('drag-c1')).toThrow();
 });
