@@ -173,6 +173,33 @@ it('does not mount the floating copy until its origin measurement resolves (R11)
   expect(screen.getAllByText('Alpha')).toHaveLength(2);
 });
 
+it('does not remount a ghost overlay when the measurement resolves after the gesture already finalized', () => {
+  // measureInWindow is its own async round trip stacked on top of the
+  // runOnJS hop that reaches begin(), while onFinalize's runOnJS(finish)
+  // needs only one hop — so an ordinary short gesture (activate, then
+  // release right away) can let finish() null activeData before this
+  // callback fires. Without a guard, that stale callback would
+  // unconditionally remount a floating copy that nothing afterwards clears.
+  let resolveMeasure = () => {};
+  jest.spyOn(viewProto, 'measureInWindow').mockImplementationOnce((cb: any) => {
+    resolveMeasure = () => cb(0, 0, 320);
+  });
+  setup();
+  const gesture = getByGestureTestId('drag-c1');
+  act(() => {
+    gesture.handlers.onStart?.({ absoluteX: 100, absoluteY: 210 } as any);
+  });
+  act(() => {
+    gesture.handlers.onFinalize?.({} as any, true);
+  });
+  expect(screen.getAllByText('Alpha')).toHaveLength(1); // finalized before the measurement resolved
+
+  act(() => {
+    resolveMeasure();
+  });
+  expect(screen.getAllByText('Alpha')).toHaveLength(1); // still just the one card — no ghost remount
+});
+
 it('does not report a finish when the gesture never activated (e.g. a tap released before the long press)', () => {
   // onFinalize always fires, even when onStart never did (a Pan configured
   // with activateAfterLongPress fails to activate on a quick release) —

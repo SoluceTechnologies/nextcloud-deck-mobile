@@ -36,7 +36,15 @@ export function DraggableCard({ data, stackId, onPress }: DraggableCardProps) {
       originX.value = winX;
       originY.value = winY;
       width.value = winWidth;
-      setActiveData(data);
+      // measureInWindow is its own async round trip on top of the runOnJS
+      // hop that got us here, so an ordinary short gesture (activate, then
+      // release right away) can let onFinalize's runOnJS(finish) reach JS
+      // and null activeId before this callback fires. Without this guard,
+      // an already-finalized gesture would unconditionally remount a ghost
+      // overlay that nothing afterwards clears.
+      if (activeId.value === cardId) {
+        setActiveData(data);
+      }
     });
   }
 
