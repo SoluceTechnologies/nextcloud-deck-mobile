@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useActiveAccount } from '@/hooks/useAccounts';
 import { searchCards } from '@/services/deck/search';
 import type { DeckSearchHit } from '@/services/deck/search';
-import { getIsOnline } from '@/services/shared/network';
+import { useIsOnline } from '@/services/shared/network';
 import { trailingDebounce } from '@/utils/debounce';
 
 export type RemoteSearchHit = DeckSearchHit;
@@ -25,6 +25,7 @@ export function useRemoteSearch(
   knownRemoteIds: Set<string>,
 ): RemoteSearchState {
   const account = useActiveAccount(accountId);
+  const online = useIsOnline();
   // Read fresh inside the debounced callback below, which is created once
   // and so can't close over a given render's props (see accountRef in
   // useCardDetailSync for the same reasoning).
@@ -76,7 +77,7 @@ export function useRemoteSearch(
     activeRef.current = true;
     generationRef.current += 1;
     const term = input.trim();
-    if (accountRef.current && term.length > 0 && getIsOnline()) {
+    if (accountRef.current && term.length > 0 && online) {
       debounced.call(input);
     } else {
       debounced.cancel();
@@ -93,7 +94,11 @@ export function useRemoteSearch(
     // accountId, not account: useActiveAccount hands back a referentially new
     // object on any accounts-list refresh even when the id hasn't moved, and
     // that alone must not reschedule the debounce (see useCardDetailSync).
-  }, [accountId, input, debounced]);
+    // online is a dep so a reconnect re-runs this effect and re-dispatches
+    // whatever the current input is, instead of leaving local-only results
+    // on screen with no offline indicator (see useIsOnline vs the old
+    // one-shot getIsOnline() snapshot this replaced).
+  }, [accountId, input, debounced, online]);
 
   return { hits, loading, failed };
 }
