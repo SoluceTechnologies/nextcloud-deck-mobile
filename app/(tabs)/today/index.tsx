@@ -27,7 +27,10 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const accountId = useAccountStore((s) => s.activeAccountId);
-  const me = useActiveAccount(accountId)?.username ?? '';
+  // CardAssignee.participant is the Nextcloud uid (see normalize.ts's
+  // uidOf), which davUserId — not the free-typed username — is kept in
+  // step with (see nextcloud.ts). The two can differ (email alias, case).
+  const me = useActiveAccount(accountId)?.davUserId ?? '';
 
   const boards = useBoards(accountId);
   const stacks = useAccountStacks(accountId);

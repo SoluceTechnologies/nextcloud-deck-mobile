@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { ThemeWrapper } from '../helpers/theme';
 import TodayScreen from '../../app/(tabs)/today/index';
 import { useAccountCards } from '../../src/database/hooks/useBoards';
+import { useAccountCardRelations } from '../../src/database/hooks/useAccountRelations';
+import { useActiveAccount } from '../../src/hooks/useAccounts';
 import { haptic } from '../../src/utils/haptics';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -48,8 +50,11 @@ jest.mock('../../src/database/hooks/useRecentBoards', () => ({
   ]),
 }));
 
+// username is what the user typed at login; davUserId is the server's stable
+// identity (see nextcloud.ts) and can differ — deliberately mismatched here
+// so a test that reads the wrong field fails instead of passing by accident.
 jest.mock('../../src/hooks/useAccounts', () => ({
-  useActiveAccount: jest.fn(() => ({ username: 'me' })),
+  useActiveAccount: jest.fn(() => ({ username: 'me-as-typed', davUserId: 'me' })),
 }));
 
 // "mock" prefix required so babel-plugin-jest-hoist allows referencing it
@@ -148,4 +153,23 @@ it('drops a card whose board is not in useBoards, but keeps a card whose board r
   renderScreen();
   expect(screen.queryByText('Orphan card')).toBeNull();
   expect(screen.getByTestId('today-row-c1')).toBeTruthy();
+});
+
+// Important-1 regression: concernsMe (upcoming.ts) compares against the
+// Nextcloud uid stored on CardAssignee.participant, which is davUserId, not
+// the free-typed username — they can differ (email alias, case). The fixture
+// mock's username ('me-as-typed') deliberately differs from davUserId ('me')
+// so reading the wrong field on the screen fails this instead of passing by
+// coincidence, the way the previously-empty assigneesByCard mock let it.
+it("shows a card assigned to the account's davUserId, and hides one assigned only to someone else", () => {
+  (useAccountCardRelations as jest.Mock).mockReturnValue({
+    labelsByCard: new Map(),
+    assigneesByCard: new Map([
+      ['c1', [{ participant: 'me', assigneeType: 0 }]], // c1: assigned to this account
+      ['c2', [{ participant: 'someone-else', assigneeType: 0 }]], // c2: assigned to another user
+    ]),
+  });
+  renderScreen();
+  expect(screen.getByTestId('today-row-c1')).toBeTruthy();
+  expect(screen.queryByTestId('today-row-c2')).toBeNull();
 });
