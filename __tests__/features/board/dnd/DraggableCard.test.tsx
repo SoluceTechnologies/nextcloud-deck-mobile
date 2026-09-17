@@ -104,7 +104,7 @@ it('reports a drop with the target computed by the controller', () => {
       { state: State.END, absoluteX: 400, absoluteY: 260 },
     ]);
   });
-  expect(onDrop).toHaveBeenCalledWith({ cardId: 'c1', fromStackId: 's1', toStackId: 's2', index: expect.any(Number) });
+  expect(onDrop).toHaveBeenCalledWith({ cardId: 'c1', fromStackId: 's1', toStackId: 's2', index: 1 });
 });
 
 it('gives a haptic when the card lifts', () => {
