@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 
 import { ThemeWrapper } from '../helpers/theme';
 import { useAccountStore } from '../../src/stores/accountStore';
@@ -213,6 +214,36 @@ it('offers an add-list affordance after the last column', () => {
 it('enables dragging only when the board can be edited', () => {
   renderScreen();
   expect(capturedDragProps?.enabled).toBe(true);
+});
+
+// Completes the "only" half of the test above — a hardcoded enabled={true} on the
+// screen would pass that one but not this one.
+it('disables dragging when the board cannot be edited', () => {
+  const { useBoards } = require('../../src/database/hooks/useBoards');
+  (useBoards as jest.Mock).mockReturnValue([
+    { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: false, canManage: true, lastModified: 0 },
+  ]);
+  renderScreen();
+  expect(capturedDragProps?.enabled).toBe(false);
+});
+
+// The drop tests below call capturedDragProps.onDrop(...) directly and never
+// render through to StackColumn/DraggableCard, so nothing else in this file
+// would catch a regression that stopped forwarding draggable={board?.canEdit}.
+// drag-<cardId> is the gesture test id DraggableCard registers (Task 13) — it
+// exists only on the draggable path, never on the plain CardTile path.
+it('wires draggable to StackColumn when the board can be edited', () => {
+  renderScreen();
+  expect(getByGestureTestId('drag-c1')).toBeTruthy();
+});
+
+it('does not wire draggable to StackColumn when the board cannot be edited', () => {
+  const { useBoards } = require('../../src/database/hooks/useBoards');
+  (useBoards as jest.Mock).mockReturnValue([
+    { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: false, canManage: true, lastModified: 0 },
+  ]);
+  renderScreen();
+  expect(() => getByGestureTestId('drag-c1')).toThrow();
 });
 
 it('commits a drop as one move with the computed orders', () => {
