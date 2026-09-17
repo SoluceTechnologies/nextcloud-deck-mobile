@@ -37,6 +37,12 @@ jest.mock('../../src/features/search/useRemoteSearch', () => ({
   useRemoteSearch: jest.fn(() => ({ hits: [], loading: false, failed: false })),
 }));
 
+// The flow itself is Today's concern (today.test.tsx) — Search only needs to
+// prove it offers the same entry point, so the heavy sheet is stubbed out.
+jest.mock('../../src/features/card/components/QuickAddCardFlow', () => ({
+  QuickAddCardFlow: () => null,
+}));
+
 jest.mock('../../src/services/shared/network', () => ({
   useIsOnline: jest.fn(() => true),
 }));
@@ -131,6 +137,11 @@ it('notes that results are local only when offline', () => {
 // the previous test's comment on Item/SearchResults), which used to also
 // silently drop its testID — Item only forwarded testID to the AnimatedPressable
 // branch, never to the plain-View branch taken when there's no onPress.
+it('offers the quick add from the search tab', () => {
+  renderScreen();
+  expect(screen.getByTestId('search-add-card')).toBeTruthy();
+});
+
 it('keeps its testID on a remote hit whose board cannot be resolved locally', () => {
   (useRemoteSearch as jest.Mock).mockReturnValue({
     hits: [{ card: { remoteId: '42', boardRemoteId: 'UNKNOWN', title: 'Orphan hit' }, boardTitle: 'Ghost', stackTitle: 'Nowhere' }],

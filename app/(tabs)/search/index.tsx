@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Settings, X } from 'lucide-react-native';
+import { Plus, Settings, X } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useBoards } from '@/database/hooks/useBoards';
@@ -12,8 +12,9 @@ import { useRemoteSearch } from '@/features/search/useRemoteSearch';
 import { useIsOnline } from '@/services/shared/network';
 import { OperatorsSection } from '@/features/search/components/OperatorsSection';
 import { SearchResults } from '@/features/search/components/SearchResults';
+import { QuickAddCardFlow } from '@/features/card/components/QuickAddCardFlow';
 import {
-  IconButton, ScreenHeader, TextField, ViewContainer,
+  Button, IconButton, ScreenHeader, TextField, ViewContainer,
 } from '@/ui/components';
 
 export default function SearchScreen() {
@@ -22,6 +23,7 @@ export default function SearchScreen() {
   const router = useRouter();
   const accountId = useAccountStore((s) => s.activeAccountId);
   const [query, setQuery] = useState('');
+  const [addVisible, setAddVisible] = useState(false);
 
   const local = useLocalSearch(accountId, query);
   const remote = useRemoteSearch(accountId, query, local.remoteIds);
@@ -97,7 +99,18 @@ export default function SearchScreen() {
             />
           )}
         </ScrollView>
+
+        <Button
+          testID="search-add-card"
+          variant="secondary"
+          icon={<Plus size={18} color={colors.primary} />}
+          title={t('today.addCard')}
+          style={styles.addCard}
+          onPress={() => setAddVisible(true)}
+        />
       </SafeAreaView>
+
+      <QuickAddCardFlow visible={addVisible} accountId={accountId} onClose={() => setAddVisible(false)} />
     </ViewContainer>
   );
 }
@@ -106,4 +119,5 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   filterSection: { paddingHorizontal: 16, marginBottom: 8 },
   content: { paddingHorizontal: 16, paddingBottom: 24 },
+  addCard: { marginHorizontal: 16, marginBottom: 12 },
 });
