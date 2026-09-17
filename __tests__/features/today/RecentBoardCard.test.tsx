@@ -27,9 +27,12 @@ it('paints the edge with the board colour and marks a shared board', () => {
   expect(screen.queryByText('boards.shared')).toBeNull();
 });
 
-it('reports its id on press', () => {
+it('reports its id on press, as an accessible button labelled with the board title', () => {
   const onPress = jest.fn();
   render(<RecentBoardCard board={board() as any} onPress={onPress} />, { wrapper: ThemeWrapper });
-  fireEvent.press(screen.getByText('Commercial'));
+  const card = screen.getByLabelText('Commercial');
+  expect(card.props.accessibilityRole).toBe('button');
+
+  fireEvent.press(card);
   expect(onPress).toHaveBeenCalledWith('b1');
 });

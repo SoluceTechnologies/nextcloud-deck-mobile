@@ -52,9 +52,13 @@ it('reports a done toggle by id without opening the card', () => {
   expect(onOpen).not.toHaveBeenCalled();
 });
 
-it('opens the card when the row body is pressed', () => {
+it('opens the card when the row body is pressed, as an accessible button labelled with the title', () => {
   const { onOpen } = renderRow();
-  fireEvent.press(screen.getByTestId('today-row-c1'));
+  const row = screen.getByTestId('today-row-c1');
+  expect(row.props.accessibilityRole).toBe('button');
+  expect(row.props.accessibilityLabel).toBe('Payer le loyer');
+
+  fireEvent.press(row);
   expect(onOpen).toHaveBeenCalledWith('c1');
 });
 

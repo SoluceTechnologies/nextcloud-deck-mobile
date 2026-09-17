@@ -21,6 +21,8 @@ export function RecentBoardCard({ board, onPress }: RecentBoardCardProps) {
         styles.root,
         { backgroundColor: colors.item, borderColor: colors.border, borderRadius: radius.md },
       ]}
+      accessibilityRole="button"
+      accessibilityLabel={board.title}
     >
       <View
         testID={`recent-edge-${board.id}`}

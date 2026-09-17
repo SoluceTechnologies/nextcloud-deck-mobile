@@ -39,6 +39,8 @@ export function TodayRow({ item, onToggleDone, onOpen }: TodayRowProps) {
         testID={`today-row-${item.id}`}
         onPress={() => onOpen(item.id)}
         style={styles.body}
+        accessibilityRole="button"
+        accessibilityLabel={item.title}
       >
         <View style={styles.content}>
           <Typography variant="body1" numberOfLines={2}>
