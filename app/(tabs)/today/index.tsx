@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +59,20 @@ export default function TodayScreen() {
     () => groupUpcoming(cards, assigneesByCard, me, Date.now()),
     [cards, assigneesByCard, me],
   );
-  const isEmpty = UPCOMING_BUCKETS.every((bucket) => groups[bucket].length === 0);
+
+  // Spec Sec.10 wants every list virtualized; this screen used to .map() every
+  // bucket straight into a ScrollView, mounting every due card at once. One
+  // SectionList over the non-empty buckets only mounts what's on screen.
+  // Buckets with no cards are omitted entirely (same as the old `if
+  // (groups[bucket].length === 0) return null`), so an empty `sections` is
+  // exactly the "nothing due" case — SectionList's own ListEmptyComponent
+  // covers it without a separate isEmpty flag.
+  const sections = useMemo(
+    () => UPCOMING_BUCKETS
+      .filter((bucket) => groups[bucket].length > 0)
+      .map((bucket) => ({ bucket, data: groups[bucket] })),
+    [groups],
+  );
 
   const [addVisible, setAddVisible] = useState(false);
 
@@ -73,66 +86,65 @@ export default function TodayScreen() {
       <SafeAreaView edges={['top']} style={styles.flex}>
         <ScreenHeader title={t('today.title')} />
 
-        <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-          <OverdueBanner count={groups.overdue.length} />
-
-          {UPCOMING_BUCKETS.map((bucket) => {
-            if (groups[bucket].length === 0) return null;
-            return (
-              <View key={bucket}>
-                <SectionHeader title={t(`today.sections.${bucket}`)} />
-                {groups[bucket].map((card) => (
-                  <TodayRow
-                    key={card.id}
-                    item={{
-                      id: card.id,
-                      title: card.title,
-                      duedate: card.duedate as number, // groupUpcoming only keeps duedate != null
-                      boardTitle: boardTitleById.get(card.boardId) ?? '',
-                      stackTitle: stackTitleById.get(card.stackId) ?? '',
-                      assigneeName: assigneesByCard.get(card.id)?.[0]?.displayName ?? null,
-                    }}
-                    onToggleDone={() => handleToggleDone(card)}
-                    onOpen={(id) => router.push(`/card/${id}`)}
-                  />
-                ))}
-              </View>
-            );
-          })}
-
-          {isEmpty ? (
+        <SectionList
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          sections={sections}
+          keyExtractor={(card) => card.id}
+          renderSectionHeader={({ section }) => (
+            <SectionHeader title={t(`today.sections.${section.bucket}`)} />
+          )}
+          renderItem={({ item: card }) => (
+            <TodayRow
+              item={{
+                id: card.id,
+                title: card.title,
+                duedate: card.duedate as number, // groupUpcoming only keeps duedate != null
+                boardTitle: boardTitleById.get(card.boardId) ?? '',
+                stackTitle: stackTitleById.get(card.stackId) ?? '',
+                assigneeName: assigneesByCard.get(card.id)?.[0]?.displayName ?? null,
+              }}
+              onToggleDone={() => handleToggleDone(card)}
+              onOpen={(id) => router.push(`/card/${id}`)}
+            />
+          )}
+          ListHeaderComponent={<OverdueBanner count={groups.overdue.length} />}
+          ListEmptyComponent={
             <Typography testID="today-empty" color="secondary" align="center" style={styles.empty}>
               {t('today.empty')}
             </Typography>
-          ) : null}
-
-          {recentBoards.length > 0 ? (
-            <View style={styles.recentSection}>
-              <SectionHeader title={t('today.recent')} />
-              <FlatList
-                horizontal
-                data={recentBoards}
-                keyExtractor={(board) => board.id}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.recentList}
-                renderItem={({ item }) => (
-                  <RecentBoardCard
-                    board={{ id: item.id, title: item.title, color: item.color ?? null, shared: item.shared }}
-                    onPress={(id) => router.push(`/boards/${id}`)}
+          }
+          ListFooterComponent={
+            <>
+              {recentBoards.length > 0 ? (
+                <View style={styles.recentSection}>
+                  <SectionHeader title={t('today.recent')} />
+                  <FlatList
+                    horizontal
+                    data={recentBoards}
+                    keyExtractor={(board) => board.id}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.recentList}
+                    renderItem={({ item }) => (
+                      <RecentBoardCard
+                        board={{ id: item.id, title: item.title, color: item.color ?? null, shared: item.shared }}
+                        onPress={(id) => router.push(`/boards/${id}`)}
+                      />
+                    )}
                   />
-                )}
-              />
-            </View>
-          ) : null}
+                </View>
+              ) : null}
 
-          <Button
-            testID="today-add-card"
-            variant="secondary"
-            icon={<Plus size={18} color={colors.primary} />}
-            title={t('today.addCard')}
-            onPress={() => setAddVisible(true)}
-          />
-        </ScrollView>
+              <Button
+                testID="today-add-card"
+                variant="secondary"
+                icon={<Plus size={18} color={colors.primary} />}
+                title={t('today.addCard')}
+                onPress={() => setAddVisible(true)}
+              />
+            </>
+          }
+        />
       </SafeAreaView>
 
       <QuickAddCardFlow visible={addVisible} accountId={accountId} onClose={() => setAddVisible(false)} />
