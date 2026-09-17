@@ -1,4 +1,5 @@
 // __tests__/database/accountRelations.test.tsx
+import { Q } from '@nozbe/watermelondb';
 import { renderHook, waitFor } from '@testing-library/react-native';
 
 import { groupRelations } from '../../src/database/hooks/groupRelations';
@@ -73,12 +74,16 @@ describe('useAccountStacks', () => {
   });
 
   it('emits every stack of the account sorted by order', async () => {
-    const { db } = makeRelationDb({ ...emptyRows, stacks: [{ order: 2 }, { order: 0 }] });
+    const { db, query } = makeRelationDb({ ...emptyRows, stacks: [{ order: 2 }, { order: 0 }] });
     mockUseDatabase.mockReturnValue(db);
 
     const { result } = renderHook(() => useAccountStacks('a1'));
 
     await waitFor(() => expect(result.current.map((s: any) => s.order)).toEqual([0, 2]));
+    // Guards the multi-account privacy invariant: without this the mock
+    // rows would still flow through even if the query lost its account
+    // scoping, silently leaking another account's stacks into Search/Today.
+    expect(query).toHaveBeenCalledWith(Q.where('account_id', 'a1'));
   });
 
   it('unsubscribes on unmount', () => {
@@ -104,7 +109,7 @@ describe('useAccountLabels', () => {
   });
 
   it('emits every label of the account', async () => {
-    const { db } = makeRelationDb({
+    const { db, query } = makeRelationDb({
       ...emptyRows,
       labels: [{ id: 'l1', title: 'A' }, { id: 'l2', title: 'B' }],
     });
@@ -113,6 +118,7 @@ describe('useAccountLabels', () => {
     const { result } = renderHook(() => useAccountLabels('a1'));
 
     await waitFor(() => expect(result.current).toHaveLength(2));
+    expect(query).toHaveBeenCalledWith(Q.where('account_id', 'a1'));
   });
 
   it('unsubscribes on unmount', () => {
@@ -140,6 +146,12 @@ describe('useAccountCardRelations', () => {
 
     await waitFor(() => expect(result.current.labelsByCard.get('c1')).toHaveLength(2));
     expect(query).toHaveBeenCalledTimes(3);
+    // Each of the three subscriptions (card_labels, labels, card_assignees)
+    // must be scoped to this account on its own — dropping or mis-scoping
+    // any one of them would leak another account's rows into Search/Today.
+    expect(query).toHaveBeenNthCalledWith(1, Q.where('account_id', 'a1'));
+    expect(query).toHaveBeenNthCalledWith(2, Q.where('account_id', 'a1'));
+    expect(query).toHaveBeenNthCalledWith(3, Q.where('account_id', 'a1'));
   });
 
   it('drops a join whose label is not cached', async () => {
