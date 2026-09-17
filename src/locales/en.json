@@ -307,7 +307,7 @@
       "assigned": "Filter by assignee",
       "date": "Filter by due date"
     },
-    "examples": ["release notes", "tag:design", "assigned:me date:<tomorrow"],
+    "examples": ["release notes", "tag:design", "tag:design date:<tomorrow"],
     "boards": "BOARDS",
     "fromServer": "MORE FROM THE SERVER",
     "noResults": "No results",

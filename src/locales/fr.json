@@ -307,7 +307,7 @@
       "assigned": "Filtrer par personne assignée",
       "date": "Filtrer par échéance"
     },
-    "examples": ["notes de version", "tag:design", "assigned:me date:<tomorrow"],
+    "examples": ["notes de version", "tag:design", "tag:design date:<tomorrow"],
     "boards": "TABLEAUX",
     "fromServer": "AUTRES RÉSULTATS DU SERVEUR",
     "noResults": "Aucun résultat",
