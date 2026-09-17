@@ -3,7 +3,7 @@ import Reanimated, { useAnimatedStyle, withTiming } from 'react-native-reanimate
 
 import { useSettingsStore } from '@/stores/settingsStore';
 import { CardTile } from '../components/CardTile';
-import { useDrag } from './DragContext';
+import { useDrag, useDragActiveData } from './DragContext';
 
 const LIFTED_SCALE = 1.04;
 
@@ -11,7 +11,8 @@ function noop() {}
 
 /** The floating copy of the card being dragged, following the finger. Mounted only while a drag is active — see `activeData` on DragContext. */
 export function DragOverlay() {
-  const { activeId, x, y, originX, originY, width, startX, startY, activeData } = useDrag();
+  const { activeId, x, y, originX, originY, width, startX, startY } = useDrag();
+  const activeData = useDragActiveData();
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
 
   // Reads `activeId` too, even though this component only exists while a

@@ -25,7 +25,7 @@ import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { StackColumn } from '@/features/board/components/StackColumn';
 import { StackFormSheet } from '@/features/board/components/StackFormSheet';
 import { toCardTileCard, type CardTileData } from '@/features/board/components/CardTile';
-import { DragProvider, useDrag } from '@/features/board/dnd/DragContext';
+import { DragProvider, useDrag, useDragActiveData } from '@/features/board/dnd/DragContext';
 import { DragOverlay } from '@/features/board/dnd/DragOverlay';
 import type { DropResult } from '@/features/board/dnd/dragController';
 import { edgeDirection, orderFor } from '@/features/board/dnd/dropTarget';
@@ -127,21 +127,29 @@ export default function BoardScreen() {
   // exactly the siblings it would land among. `cards` is already sorted by `order`
   // (useBoardCards), so `others` stays sorted too, matching what orderFor expects.
   // Exactly one mutate: cardActions.move is the only write this ever issues.
-  const handleDrop = ({ cardId, fromStackId, toStackId, index }: DropResult) => {
-    const card = cards.find((c) => c.id === cardId);
-    if (!card) return;
+  // useCallback so this stays referentially stable across a re-render that
+  // doesn't change cards/cardActions (e.g. the add-card sheet opening) —
+  // DragProvider's onDrop prop feeds straight into its memoized context
+  // value (see DragContext.tsx), so an unstable closure here would
+  // re-render every mounted DraggableCard on every such screen re-render.
+  const handleDrop = useCallback(
+    ({ cardId, fromStackId, toStackId, index }: DropResult) => {
+      const card = cards.find((c) => c.id === cardId);
+      if (!card) return;
 
-    const others = cards.filter((c) => c.stackId === toStackId && c.id !== cardId);
-    if (toStackId === fromStackId) {
-      // Same list: a drop back at the card's own current position (among the
-      // others) changes nothing — skip the write rather than reorder a no-op.
-      const currentIndex = others.filter((c) => c.order < card.order).length;
-      if (currentIndex === index) return;
-    }
+      const others = cards.filter((c) => c.stackId === toStackId && c.id !== cardId);
+      if (toStackId === fromStackId) {
+        // Same list: a drop back at the card's own current position (among the
+        // others) changes nothing — skip the write rather than reorder a no-op.
+        const currentIndex = others.filter((c) => c.order < card.order).length;
+        if (currentIndex === index) return;
+      }
 
-    const { local, remote } = orderFor(index, others.map((c) => c.order));
-    void cardActions.move(card, toStackId, remote, local).catch(() => undefined);
-  };
+      const { local, remote } = orderFor(index, others.map((c) => c.order));
+      void cardActions.move(card, toStackId, remote, local).catch(() => undefined);
+    },
+    [cards, cardActions],
+  );
 
   if (!board) return null;
 
@@ -193,7 +201,8 @@ type BoardColumnsProps = {
 function BoardColumns({ board, stacks, columnWidth, windowWidth, renderStack, onAddList }: BoardColumnsProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { frame, x, y, target, activeData, scrollColumnBy } = useDrag();
+  const { frame, x, y, target, scrollColumnBy } = useDrag();
+  const activeData = useDragActiveData();
   const listRef = useRef<FlatList<Stack>>(null);
   // The vertical scrollable area's own height (its own onLayout below) — distinct
   // from the window height, since the header above it isn't part of it.

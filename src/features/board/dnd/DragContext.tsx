@@ -1,9 +1,15 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { CardTileData } from '../components/CardTile';
 import type { ColumnState, DragFrame, DragTarget, DropResult } from './dragController';
 
+/**
+ * The stable "machinery": shared values and callbacks that never change
+ * identity across a drag lift/drop. Deliberately excludes `activeData` (see
+ * ActiveDataContext below) — DraggableCard and StackColumn read only this,
+ * so a lift/drop (which changes only activeData) never re-renders them.
+ */
 export type DragContextValue = {
   // UI-thread state
   activeId: SharedValue<string | null>;
@@ -19,7 +25,6 @@ export type DragContextValue = {
   target: SharedValue<DragTarget | null>;
   frame: SharedValue<DragFrame>; // updated by the screen (scrollX, stackIds, geometry) and the columns (registry, listTopY)
   // JS-side
-  activeData: CardTileData | null; // what the overlay draws; null hides it
   setActiveData: (data: CardTileData | null) => void;
   reportColumn: (stackId: string, state: ColumnState) => void;
   reportListTop: (y: number) => void;
@@ -38,6 +43,17 @@ const emptyFrame: DragFrame = {
 };
 
 const DragReactContext = createContext<DragContextValue | null>(null);
+
+// Narrow, high-churn context: what the overlay draws, null while nothing is
+// lifted. Split out of DragContextValue so its every lift/drop update only
+// re-renders its two actual readers (DragOverlay, BoardColumns) rather than
+// every mounted DraggableCard tile — a context update bypasses React.memo
+// entirely, so folding this into the machinery context above would re-render
+// (and reconcile a fresh Gesture.Pan() for) every tile on the board on the
+// first frame of every gesture. `undefined` (vs. the valid `null` "nothing
+// active" value) distinguishes "no provider" for the same missing-provider
+// guard useDrag() already has.
+const ActiveDataReactContext = createContext<CardTileData | null | undefined>(undefined);
 
 export type DragProviderProps = {
   enabled: boolean;
@@ -95,13 +111,30 @@ export function DragProvider({ enabled, onDrop, children }: DragProviderProps) {
     scrollers.current.get(stackId)?.(dy);
   }, []);
 
-  const value: DragContextValue = {
-    activeId, x, y, originX, originY, width, startX, startY, target, frame,
-    activeData, setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
-    onDrop, enabled,
-  };
+  // Every field here is already reference-stable across renders (refs and
+  // useCallback above) except the screen-supplied onDrop/enabled — so this
+  // only gets a new identity when one of those actually changes, and a
+  // setActiveData-triggered re-render (lift/drop) leaves it untouched. That
+  // stability is what lets DragReactContext's consumers (DraggableCard via
+  // useDrag, StackColumn via useOptionalDrag) skip re-rendering on lift/drop.
+  const value = useMemo<DragContextValue>(
+    () => ({
+      activeId, x, y, originX, originY, width, startX, startY, target, frame,
+      setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
+      onDrop, enabled,
+    }),
+    [
+      activeId, x, y, originX, originY, width, startX, startY, target, frame,
+      setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
+      onDrop, enabled,
+    ],
+  );
 
-  return <DragReactContext.Provider value={value}>{children}</DragReactContext.Provider>;
+  return (
+    <DragReactContext.Provider value={value}>
+      <ActiveDataReactContext.Provider value={activeData}>{children}</ActiveDataReactContext.Provider>
+    </DragReactContext.Provider>
+  );
 }
 
 /** Requires a DragProvider ancestor — for the drag machinery itself (DraggableCard, DragOverlay), which is only ever mounted inside one. */
@@ -114,4 +147,11 @@ export function useDrag(): DragContextValue {
 /** Tolerates a missing DragProvider — for StackColumn, which renders with or without one depending on its `draggable` prop. */
 export function useOptionalDrag(): DragContextValue | null {
   return useContext(DragReactContext);
+}
+
+/** The floating copy's data, null while nothing is lifted — for DragOverlay and BoardColumns only (see ActiveDataReactContext above). */
+export function useDragActiveData(): CardTileData | null {
+  const ctx = useContext(ActiveDataReactContext);
+  if (ctx === undefined) throw new Error('useDragActiveData must be used within a DragProvider');
+  return ctx;
 }

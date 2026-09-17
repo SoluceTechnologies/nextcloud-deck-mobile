@@ -55,6 +55,9 @@ jest.mock('../../src/features/board/hooks/useCardActions', () => ({
 // drag is active" check already renders it as null, so it doesn't need its own stub.
 // StackColumn/DraggableCard resolve `useDrag`/`useOptionalDrag` through this same
 // mock too, so both need a well-formed (if inert) context value to render against.
+// activeData/setActiveData stay on this one object even though the real module now
+// splits them into a second context (see DragContext.tsx) — useDragActiveData below
+// just reads the same field, so nothing here needs to track that split.
 let capturedDragProps: { enabled: boolean; onDrop: (result: any) => void } | null = null;
 const mockDragContextValue = {
   activeId: { value: null },
@@ -86,6 +89,7 @@ jest.mock('../../src/features/board/dnd/DragContext', () => ({
   },
   useDrag: () => mockDragContextValue,
   useOptionalDrag: () => mockDragContextValue,
+  useDragActiveData: () => mockDragContextValue.activeData,
 }));
 
 jest.mock('../../src/sync/scheduler', () => ({ requestBoardSnapshot: jest.fn() }));
