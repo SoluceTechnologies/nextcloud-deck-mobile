@@ -16,6 +16,9 @@
     "back": "Atrás"
   },
   "tabs": {
+    "today": "Hoy",
+    "boards": "Tableros",
+    "search": "Buscar",
     "settings": "Ajustes"
   },
   "setup": {
@@ -167,6 +170,173 @@
     "remedy": "Opciones más seguras: llegar al servidor mediante una VPN como Tailscale o WireGuard, o configurar un certificado gratuito con DuckDNS y Let's Encrypt.",
     "connect": "Conectar de todos modos",
     "cancel": "Cancelar"
+  },
+  "sync": {
+    "title": "Sincronización",
+    "queued": "Cambios en cola",
+    "failed": "Cambios fallidos",
+    "empty": "Todo está sincronizado.",
+    "retry": "Reintentar",
+    "discard": "Descartar",
+    "discardTitle": "¿Descartar el cambio?",
+    "discardMsg": "Este cambio se perderá de forma permanente y no se podrá recuperar.",
+    "conflicts": "Conflictos",
+    "conflictTitle": "Se mantuvo el cambio del servidor",
+    "dismiss": "Cerrar"
+  },
+  "deck": {
+    "unavailableTitle": "Deck no está disponible",
+    "unavailableHint": "La aplicación Deck no está habilitada en este servidor. Pide a un administrador que la instale, o cambia a otra cuenta."
+  },
+  "boards": {
+    "title": "Tableros",
+    "filter": "Filtrar tableros",
+    "openSection": "TABLEROS ABIERTOS",
+    "count_one": "{{count}} TABLERO",
+    "count_other": "{{count}} TABLEROS",
+    "shared": "Compartido",
+    "updated": "Actualizado {{when}}",
+    "empty": "Aún no hay tableros",
+    "emptyFiltered": "Ningún tablero coincide con ese filtro",
+    "sortTitle": "Ordenar por título",
+    "sortRecent": "Ordenar por recientes",
+    "form": {
+      "newTitle": "Nuevo tablero",
+      "renameTitle": "Cambiar nombre del tablero",
+      "titlePlaceholder": "Nombre del tablero",
+      "save": "Guardar"
+    },
+    "actions": {
+      "open": "Abrir",
+      "rename": "Cambiar nombre",
+      "color": "Cambiar color",
+      "archive": "Archivar",
+      "unarchive": "Desarchivar",
+      "delete": "Eliminar",
+      "deleteTitle": "¿Eliminar este tablero?",
+      "deleteMessage": "«{{title}}» y todas sus tarjetas se eliminarán para todas las personas con acceso.",
+      "cancel": "Cancelar"
+    }
+  },
+  "card": {
+    "overdue": "{{count}} d de retraso",
+    "dueToday": "Vence hoy",
+    "dueTomorrow": "Vence mañana",
+    "dueOn": "Vence {{when}}",
+    "noTitle": "Sin título",
+    "markDone": "Marcar como hecha",
+    "markNotDone": "Marcar como no hecha",
+    "startDate": "Fecha de inicio",
+    "noStartDate": "Sin fecha de inicio",
+    "dueDate": "Fecha de vencimiento",
+    "noDueDate": "Sin fecha de vencimiento",
+    "needsAttention": "Requiere atención",
+    "labels": "Etiquetas",
+    "noLabels": "Ninguna",
+    "newLabel": "Nueva etiqueta",
+    "create": "Crear",
+    "assignees": "Personas asignadas",
+    "noAssignees": "Ninguna",
+    "assignPeople": "Asignar personas",
+    "searchPeople": "Buscar usuarios, grupos o equipos…",
+    "typeTwo": "Escribe al menos dos caracteres",
+    "dependencies": "Dependencias",
+    "noDependencies": "Ninguna",
+    "addDependency": "Añadir una dependencia",
+    "dependencyNeedsSync": "Esta tarjeta debe sincronizarse antes de poder enlazarla.",
+    "color": "Color de la tarjeta",
+    "noColor": "Sin color de tarjeta",
+    "clearColor": "Quitar color",
+    "files": "Archivos",
+    "noFiles": "Sin archivos",
+    "description": "Descripción",
+    "noDescription": "Sin descripción",
+    "rawEditorNotice": "Esta descripción usa un formato que el editor enriquecido no puede conservar. Editando como Markdown sin formato.",
+    "save": "Guardar",
+    "comments": "Comentarios",
+    "noComments": "Sin comentarios",
+    "loadMore": "Cargar más",
+    "writeComment": "Escribe un comentario…",
+    "commentPending": "Enviando…",
+    "you": "Tú",
+    "send": "Enviar",
+    "deleted": "Esta tarjeta ya no existe.",
+    "menu": {
+      "title": "Más",
+      "move": "Mover",
+      "copy": "Copiar",
+      "archive": "Archivar",
+      "unarchive": "Desarchivar",
+      "delete": "Eliminar",
+      "deleteTitle": "¿Eliminar esta tarjeta?",
+      "deleteMessage": "«{{title}}» se eliminará para todas las personas con acceso.",
+      "cancel": "Cancelar"
+    },
+    "picker": {
+      "chooseBoard": "Elegir un tablero",
+      "chooseList": "Elegir una lista",
+      "chooseCard": "Elegir una tarjeta",
+      "empty": "Nada aquí"
+    }
+  },
+  "board": {
+    "addCard": "Añadir una tarjeta",
+    "addList": "Añadir una lista",
+    "listTitle": "Nombre de la lista",
+    "cardTitle": "Título de la tarjeta",
+    "emptyList": "Sin tarjetas",
+    "cardCount_one": "{{count}} tarjeta",
+    "cardCount_other": "{{count}} tarjetas",
+    "form": {
+      "newTitle": "Nueva lista",
+      "newCard": "Nueva tarjeta",
+      "renameTitle": "Cambiar nombre de la lista",
+      "save": "Guardar"
+    }
+  },
+  "search": {
+    "title": "Buscar",
+    "placeholder": "Buscar tableros, tarjetas, comentarios…",
+    "operators": "OPERADORES",
+    "try": "PROBAR",
+    "op": {
+      "title": "Buscar en los títulos",
+      "description": "Buscar en las descripciones",
+      "list": "Filtrar por lista",
+      "tag": "Filtrar por etiqueta",
+      "assigned": "Filtrar por persona asignada",
+      "date": "Filtrar por fecha de vencimiento"
+    },
+    "examples": ["notas de la versión", "tag:design", "tag:design date:<tomorrow"],
+    "boards": "TABLEROS",
+    "fromServer": "MÁS RESULTADOS DEL SERVIDOR",
+    "noResults": "Sin resultados",
+    "noResultsHint": "Prueba con un título más simple, otro tablero o un ejemplo de búsqueda.",
+    "offlineNote": "Sin conexión — mostrando solo resultados locales",
+    "serverFailed": "No se pudo contactar con el servidor — mostrando solo resultados locales"
+  },
+  "today": {
+    "title": "Hoy",
+    "overdueBanner_one": "{{count}} con retraso",
+    "overdueBanner_other": "{{count}} con retraso",
+    "overdueHint": "Termina o reprograma estas antes que nada.",
+    "sections": {
+      "overdue": "ATRASADAS",
+      "today": "HOY",
+      "tomorrow": "MAÑANA",
+      "week": "PRÓXIMOS 7 DÍAS"
+    },
+    "recent": "TABLEROS RECIENTES",
+    "empty": "Nada pendiente — disfruta de la calma.",
+    "addCard": "Añadir una tarjeta",
+    "markDone": "Marcar como hecha",
+    "form": {
+      "title": "Nueva tarjeta",
+      "titlePlaceholder": "Título de la tarjeta",
+      "due": "Fecha de vencimiento",
+      "noDue": "Sin fecha de vencimiento",
+      "save": "Guardar"
+    }
   },
   "offline": {
     "banner": "Sin conexión — los cambios se sincronizarán al reconectar."

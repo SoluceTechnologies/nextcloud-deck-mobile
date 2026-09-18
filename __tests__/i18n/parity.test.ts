@@ -5,46 +5,39 @@ import es from '../../src/locales/es.json';
 import itLocale from '../../src/locales/it.json';
 import ru from '../../src/locales/ru.json';
 
+// A language's plural forms are its own (CLDR): de/es/it need one+other,
+// ru needs one+few+many+other. Comparing raw key sets would therefore call a
+// correctly-pluralised Russian file a mismatch, so compare stems — the suffix
+// set is the language's business, the stem set is the contract.
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
 function keyPaths(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) => {
     const path = prefix ? `${prefix}.${k}` : k;
     return v && typeof v === 'object' && !Array.isArray(v)
       ? keyPaths(v as Record<string, unknown>, path)
-      : [path];
+      : [path.replace(PLURAL_SUFFIX, '')];
   });
 }
 
-// The "tabs" keys are translated for en and fr only as of the Deck bootstrap;
-// de/es/it/ru still carry only their pre-existing "tabs.settings" key and fall
-// back to English for the rest until someone translates them. The "sync"
-// keys are likewise en/fr-only as of wiring the sync engine into the app,
-// "deck" is en/fr-only as of the Deck-unavailable gate, "boards" is
-// en/fr-only as of the board list row, "card" is en/fr-only as of the card
-// tile, "board" is en/fr-only as of the stack column, "search" is
-// en/fr-only as of the Search tab, and "today" is en/fr-only as of the
-// Today tab's row, banner and recent-board card.
-const withoutPendingTranslations = (paths: string[]) =>
-  paths.filter(
-    (path) =>
-      !path.startsWith('tabs.') &&
-      !path.startsWith('sync.') &&
-      !path.startsWith('deck.') &&
-      !path.startsWith('boards.') &&
-      !path.startsWith('card.') &&
-      !path.startsWith('board.') &&
-      !path.startsWith('search.') &&
-      !path.startsWith('today.'),
-  );
+function stems(obj: Record<string, unknown>): string[] {
+  return [...new Set(keyPaths(obj))].sort();
+}
 
 describe('locale parity', () => {
-  const base = withoutPendingTranslations(keyPaths(en)).sort();
+  const base = stems(en);
   it.each([
-    ['fr', fr],
-    ['de', de],
-    ['es', es],
-    ['it', itLocale],
-    ['ru', ru],
+    ['fr', fr], ['de', de], ['es', es], ['it', itLocale], ['ru', ru],
   ])('%s has exactly the same keys as en', (_name, locale) => {
-    expect(withoutPendingTranslations(keyPaths(locale as Record<string, unknown>)).sort()).toEqual(base);
+    expect(stems(locale as Record<string, unknown>)).toEqual(base);
   });
+});
+
+it('gives ru all four of its CLDR plural forms', () => {
+  for (const stem of [['boards', 'count'], ['board', 'cardCount'], ['today', 'overdueBanner']]) {
+    const section = (ru as any)[stem[0]];
+    for (const form of ['one', 'few', 'many', 'other']) {
+      expect(section).toHaveProperty(`${stem[1]}_${form}`);
+    }
+  }
 });

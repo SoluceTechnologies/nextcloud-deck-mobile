@@ -16,6 +16,9 @@
     "back": "Zurück"
   },
   "tabs": {
+    "today": "Heute",
+    "boards": "Boards",
+    "search": "Suche",
     "settings": "Einstellungen"
   },
   "setup": {
@@ -167,6 +170,173 @@
     "remedy": "Sicherere Optionen: den Server über ein VPN wie Tailscale oder WireGuard erreichen oder ein kostenloses Zertifikat mit DuckDNS und Let's Encrypt einrichten.",
     "connect": "Trotzdem verbinden",
     "cancel": "Abbrechen"
+  },
+  "sync": {
+    "title": "Synchronisierung",
+    "queued": "Ausstehende Änderungen",
+    "failed": "Fehlgeschlagene Änderungen",
+    "empty": "Alles ist synchronisiert.",
+    "retry": "Erneut versuchen",
+    "discard": "Verwerfen",
+    "discardTitle": "Änderung verwerfen?",
+    "discardMsg": "Diese Änderung geht dauerhaft verloren und kann nicht wiederhergestellt werden.",
+    "conflicts": "Konflikte",
+    "conflictTitle": "Änderung des Servers beibehalten",
+    "dismiss": "Schließen"
+  },
+  "deck": {
+    "unavailableTitle": "Deck ist nicht verfügbar",
+    "unavailableHint": "Die App Deck ist auf diesem Server nicht aktiviert. Bitten Sie einen Administrator, sie zu installieren, oder wechseln Sie zu einem anderen Konto."
+  },
+  "boards": {
+    "title": "Boards",
+    "filter": "Boards filtern",
+    "openSection": "OFFENE BOARDS",
+    "count_one": "{{count}} BOARD",
+    "count_other": "{{count}} BOARDS",
+    "shared": "Geteilt",
+    "updated": "Aktualisiert {{when}}",
+    "empty": "Noch keine Boards",
+    "emptyFiltered": "Kein Board entspricht diesem Filter",
+    "sortTitle": "Nach Titel sortieren",
+    "sortRecent": "Nach Aktualität sortieren",
+    "form": {
+      "newTitle": "Neues Board",
+      "renameTitle": "Board umbenennen",
+      "titlePlaceholder": "Board-Name",
+      "save": "Speichern"
+    },
+    "actions": {
+      "open": "Öffnen",
+      "rename": "Umbenennen",
+      "color": "Farbe ändern",
+      "archive": "Archivieren",
+      "unarchive": "Dearchivieren",
+      "delete": "Löschen",
+      "deleteTitle": "Dieses Board löschen?",
+      "deleteMessage": "„{{title}}“ und alle seine Karten werden für alle mit Zugriff gelöscht.",
+      "cancel": "Abbrechen"
+    }
+  },
+  "card": {
+    "overdue": "{{count}} T. überfällig",
+    "dueToday": "Heute fällig",
+    "dueTomorrow": "Morgen fällig",
+    "dueOn": "Fällig {{when}}",
+    "noTitle": "Ohne Titel",
+    "markDone": "Als erledigt markieren",
+    "markNotDone": "Als nicht erledigt markieren",
+    "startDate": "Startdatum",
+    "noStartDate": "Kein Startdatum",
+    "dueDate": "Fälligkeitsdatum",
+    "noDueDate": "Kein Fälligkeitsdatum",
+    "needsAttention": "Erfordert Aufmerksamkeit",
+    "labels": "Labels",
+    "noLabels": "Keine",
+    "newLabel": "Neues Label",
+    "create": "Erstellen",
+    "assignees": "Zugewiesene Personen",
+    "noAssignees": "Keine",
+    "assignPeople": "Personen zuweisen",
+    "searchPeople": "Nutzer, Gruppen oder Teams suchen…",
+    "typeTwo": "Geben Sie mindestens zwei Zeichen ein",
+    "dependencies": "Abhängigkeiten",
+    "noDependencies": "Keine",
+    "addDependency": "Abhängigkeit hinzufügen",
+    "dependencyNeedsSync": "Diese Karte muss synchronisiert werden, bevor sie verknüpft werden kann.",
+    "color": "Kartenfarbe",
+    "noColor": "Keine Kartenfarbe",
+    "clearColor": "Farbe entfernen",
+    "files": "Dateien",
+    "noFiles": "Keine Dateien",
+    "description": "Beschreibung",
+    "noDescription": "Keine Beschreibung",
+    "rawEditorNotice": "Diese Beschreibung verwendet Formatierungen, die der Rich-Text-Editor nicht beibehalten kann. Bearbeitung als reines Markdown.",
+    "save": "Speichern",
+    "comments": "Kommentare",
+    "noComments": "Keine Kommentare",
+    "loadMore": "Mehr laden",
+    "writeComment": "Kommentar schreiben…",
+    "commentPending": "Wird gesendet…",
+    "you": "Sie",
+    "send": "Senden",
+    "deleted": "Diese Karte existiert nicht mehr.",
+    "menu": {
+      "title": "Mehr",
+      "move": "Verschieben",
+      "copy": "Kopieren",
+      "archive": "Archivieren",
+      "unarchive": "Dearchivieren",
+      "delete": "Löschen",
+      "deleteTitle": "Diese Karte löschen?",
+      "deleteMessage": "„{{title}}“ wird für alle mit Zugriff gelöscht.",
+      "cancel": "Abbrechen"
+    },
+    "picker": {
+      "chooseBoard": "Board auswählen",
+      "chooseList": "Liste auswählen",
+      "chooseCard": "Karte auswählen",
+      "empty": "Nichts hier"
+    }
+  },
+  "board": {
+    "addCard": "Karte hinzufügen",
+    "addList": "Liste hinzufügen",
+    "listTitle": "Listenname",
+    "cardTitle": "Kartentitel",
+    "emptyList": "Keine Karten",
+    "cardCount_one": "{{count}} Karte",
+    "cardCount_other": "{{count}} Karten",
+    "form": {
+      "newTitle": "Neue Liste",
+      "newCard": "Neue Karte",
+      "renameTitle": "Liste umbenennen",
+      "save": "Speichern"
+    }
+  },
+  "search": {
+    "title": "Suche",
+    "placeholder": "Boards, Karten, Kommentare durchsuchen…",
+    "operators": "OPERATOREN",
+    "try": "AUSPROBIEREN",
+    "op": {
+      "title": "Kartentitel durchsuchen",
+      "description": "Beschreibungen durchsuchen",
+      "list": "Nach Liste filtern",
+      "tag": "Nach Label filtern",
+      "assigned": "Nach zugewiesener Person filtern",
+      "date": "Nach Fälligkeitsdatum filtern"
+    },
+    "examples": ["Versionshinweise", "tag:design", "tag:design date:<tomorrow"],
+    "boards": "BOARDS",
+    "fromServer": "WEITERE ERGEBNISSE VOM SERVER",
+    "noResults": "Keine Ergebnisse",
+    "noResultsHint": "Versuchen Sie einen einfacheren Titel, ein anderes Board oder ein Suchbeispiel.",
+    "offlineNote": "Offline — es werden nur lokale Ergebnisse angezeigt",
+    "serverFailed": "Der Server konnte nicht erreicht werden — es werden nur lokale Ergebnisse angezeigt"
+  },
+  "today": {
+    "title": "Heute",
+    "overdueBanner_one": "{{count}} überfällig",
+    "overdueBanner_other": "{{count}} überfällig",
+    "overdueHint": "Erledigen Sie diese zuerst, oder verschieben Sie sie.",
+    "sections": {
+      "overdue": "ÜBERFÄLLIG",
+      "today": "HEUTE",
+      "tomorrow": "MORGEN",
+      "week": "NÄCHSTE 7 TAGE"
+    },
+    "recent": "ZULETZT VERWENDETE BOARDS",
+    "empty": "Nichts fällig — genießen Sie die Ruhe.",
+    "addCard": "Karte hinzufügen",
+    "markDone": "Als erledigt markieren",
+    "form": {
+      "title": "Neue Karte",
+      "titlePlaceholder": "Kartentitel",
+      "due": "Fälligkeitsdatum",
+      "noDue": "Kein Fälligkeitsdatum",
+      "save": "Speichern"
+    }
   },
   "offline": {
     "banner": "Offline — Änderungen werden bei der nächsten Verbindung synchronisiert."

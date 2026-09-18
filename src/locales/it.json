@@ -16,6 +16,9 @@
     "back": "Indietro"
   },
   "tabs": {
+    "today": "Oggi",
+    "boards": "Bacheche",
+    "search": "Cerca",
     "settings": "Impostazioni"
   },
   "setup": {
@@ -167,6 +170,173 @@
     "remedy": "Opzioni più sicure: raggiungere il server tramite una VPN come Tailscale o WireGuard, oppure configurare un certificato gratuito con DuckDNS e Let's Encrypt.",
     "connect": "Connetti comunque",
     "cancel": "Annulla"
+  },
+  "sync": {
+    "title": "Sincronizzazione",
+    "queued": "Modifiche in coda",
+    "failed": "Modifiche non riuscite",
+    "empty": "Tutto è sincronizzato.",
+    "retry": "Riprova",
+    "discard": "Scarta",
+    "discardTitle": "Scartare la modifica?",
+    "discardMsg": "Questa modifica andrà persa definitivamente e non potrà essere recuperata.",
+    "conflicts": "Conflitti",
+    "conflictTitle": "Mantenuta la modifica del server",
+    "dismiss": "Chiudi"
+  },
+  "deck": {
+    "unavailableTitle": "Deck non è disponibile",
+    "unavailableHint": "L'app Deck non è abilitata su questo server. Chiedi a un amministratore di installarla, oppure passa a un altro account."
+  },
+  "boards": {
+    "title": "Bacheche",
+    "filter": "Filtra bacheche",
+    "openSection": "BACHECHE APERTE",
+    "count_one": "{{count}} BACHECA",
+    "count_other": "{{count}} BACHECHE",
+    "shared": "Condivisa",
+    "updated": "Aggiornata {{when}}",
+    "empty": "Ancora nessuna bacheca",
+    "emptyFiltered": "Nessuna bacheca corrisponde a questo filtro",
+    "sortTitle": "Ordina per titolo",
+    "sortRecent": "Ordina per recenti",
+    "form": {
+      "newTitle": "Nuova bacheca",
+      "renameTitle": "Rinomina bacheca",
+      "titlePlaceholder": "Nome della bacheca",
+      "save": "Salva"
+    },
+    "actions": {
+      "open": "Apri",
+      "rename": "Rinomina",
+      "color": "Cambia colore",
+      "archive": "Archivia",
+      "unarchive": "Rimuovi dall'archivio",
+      "delete": "Elimina",
+      "deleteTitle": "Eliminare questa bacheca?",
+      "deleteMessage": "\"{{title}}\" e tutte le sue schede verranno eliminate per chiunque vi abbia accesso.",
+      "cancel": "Annulla"
+    }
+  },
+  "card": {
+    "overdue": "{{count}} gg di ritardo",
+    "dueToday": "Scade oggi",
+    "dueTomorrow": "Scade domani",
+    "dueOn": "Scade {{when}}",
+    "noTitle": "Senza titolo",
+    "markDone": "Segna come completata",
+    "markNotDone": "Segna come non completata",
+    "startDate": "Data di inizio",
+    "noStartDate": "Nessuna data di inizio",
+    "dueDate": "Data di scadenza",
+    "noDueDate": "Nessuna data di scadenza",
+    "needsAttention": "Richiede attenzione",
+    "labels": "Etichette",
+    "noLabels": "Nessuna",
+    "newLabel": "Nuova etichetta",
+    "create": "Crea",
+    "assignees": "Assegnatari",
+    "noAssignees": "Nessuno",
+    "assignPeople": "Assegna persone",
+    "searchPeople": "Cerca utenti, gruppi o team…",
+    "typeTwo": "Digita almeno due caratteri",
+    "dependencies": "Dipendenze",
+    "noDependencies": "Nessuna",
+    "addDependency": "Aggiungi una dipendenza",
+    "dependencyNeedsSync": "Questa scheda deve essere sincronizzata prima di poter essere collegata.",
+    "color": "Colore della scheda",
+    "noColor": "Nessun colore",
+    "clearColor": "Rimuovi colore",
+    "files": "File",
+    "noFiles": "Nessun file",
+    "description": "Descrizione",
+    "noDescription": "Nessuna descrizione",
+    "rawEditorNotice": "Questa descrizione usa una formattazione che l'editor avanzato non può mantenere. Modifica come Markdown semplice.",
+    "save": "Salva",
+    "comments": "Commenti",
+    "noComments": "Nessun commento",
+    "loadMore": "Carica altro",
+    "writeComment": "Scrivi un commento…",
+    "commentPending": "Invio…",
+    "you": "Tu",
+    "send": "Invia",
+    "deleted": "Questa scheda non esiste più.",
+    "menu": {
+      "title": "Altro",
+      "move": "Sposta",
+      "copy": "Copia",
+      "archive": "Archivia",
+      "unarchive": "Rimuovi dall'archivio",
+      "delete": "Elimina",
+      "deleteTitle": "Eliminare questa scheda?",
+      "deleteMessage": "\"{{title}}\" verrà eliminata per chiunque vi abbia accesso.",
+      "cancel": "Annulla"
+    },
+    "picker": {
+      "chooseBoard": "Scegli una bacheca",
+      "chooseList": "Scegli una lista",
+      "chooseCard": "Scegli una scheda",
+      "empty": "Niente qui"
+    }
+  },
+  "board": {
+    "addCard": "Aggiungi una scheda",
+    "addList": "Aggiungi una lista",
+    "listTitle": "Nome della lista",
+    "cardTitle": "Titolo della scheda",
+    "emptyList": "Nessuna scheda",
+    "cardCount_one": "{{count}} scheda",
+    "cardCount_other": "{{count}} schede",
+    "form": {
+      "newTitle": "Nuova lista",
+      "newCard": "Nuova scheda",
+      "renameTitle": "Rinomina lista",
+      "save": "Salva"
+    }
+  },
+  "search": {
+    "title": "Cerca",
+    "placeholder": "Cerca bacheche, schede, commenti…",
+    "operators": "OPERATORI",
+    "try": "PROVA",
+    "op": {
+      "title": "Cerca nei titoli delle schede",
+      "description": "Cerca nelle descrizioni",
+      "list": "Filtra per lista",
+      "tag": "Filtra per etichetta",
+      "assigned": "Filtra per assegnatario",
+      "date": "Filtra per scadenza"
+    },
+    "examples": ["note di rilascio", "tag:design", "tag:design date:<tomorrow"],
+    "boards": "BACHECHE",
+    "fromServer": "ALTRI RISULTATI DAL SERVER",
+    "noResults": "Nessun risultato",
+    "noResultsHint": "Prova un titolo più semplice, un'altra bacheca o un esempio di ricerca.",
+    "offlineNote": "Offline — vengono mostrati solo i risultati locali",
+    "serverFailed": "Impossibile raggiungere il server — vengono mostrati solo i risultati locali"
+  },
+  "today": {
+    "title": "Oggi",
+    "overdueBanner_one": "{{count}} in ritardo",
+    "overdueBanner_other": "{{count}} in ritardo",
+    "overdueHint": "Completa o riprogramma queste prima di ogni altra cosa.",
+    "sections": {
+      "overdue": "IN RITARDO",
+      "today": "OGGI",
+      "tomorrow": "DOMANI",
+      "week": "PROSSIMI 7 GIORNI"
+    },
+    "recent": "BACHECHE RECENTI",
+    "empty": "Niente in scadenza — goditi la calma.",
+    "addCard": "Aggiungi una scheda",
+    "markDone": "Segna come completata",
+    "form": {
+      "title": "Nuova scheda",
+      "titlePlaceholder": "Titolo della scheda",
+      "due": "Data di scadenza",
+      "noDue": "Nessuna data di scadenza",
+      "save": "Salva"
+    }
   },
   "offline": {
     "banner": "Offline — le modifiche verranno sincronizzate alla riconnessione."
