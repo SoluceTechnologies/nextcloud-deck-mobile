@@ -2,6 +2,8 @@ import { syncBoards } from '../../../src/sync/tasks/syncBoards';
 import { fetchBoards } from '../../../src/services/deck/boards';
 import { loadQueuedIntents } from '../../../src/sync/outbox/pending';
 import { markLocalWrite } from '../../../src/sync/localWrites';
+import { drainOutbox } from '../../../src/sync/outbox/drain';
+import { executeIntent } from '../../../src/sync/outbox/handlers';
 import type { Account } from '../../../src/types';
 import type { DeckBoard } from '../../../src/services/deck/types';
 
@@ -10,9 +12,14 @@ jest.mock('../../../src/sync/outbox/pending');
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
+jest.mock('../../../src/sync/outbox/handlers', () => {
+  const actual = jest.requireActual('../../../src/sync/outbox/handlers');
+  return { ...actual, executeIntent: jest.fn() };
+});
 
 const mockFetchBoards = fetchBoards as jest.Mock;
 const mockLoadQueuedIntents = loadQueuedIntents as jest.Mock;
+const mockExecuteIntent = executeIntent as jest.Mock;
 
 const account: Account = {
   id: 'acc-1',
@@ -261,5 +268,54 @@ describe('syncBoards', () => {
 
     const ops = (batch as any).mock.calls[0]?.[0] ?? [];
     expect(ops.filter((o: any) => o._op === 'update')).toHaveLength(1);
+  });
+
+  // The drain and this pass are not serialized: a reconnect can fire both at
+  // once. If a send completes and destroys its outbox row *while this pass's
+  // fetch is still in flight*, the epoch captured before the fetch is stale by
+  // the time it resolves — the drain's own write raced it, same as a direct
+  // local edit would. Without the drain bumping the epoch on a successful
+  // send, this pass has no way to notice and reverts the row to the
+  // pre-mutation value the fetch happened to carry.
+  it('aborts when an outbox drain completes while its fetch is still in flight', async () => {
+    const outboxRow: any = {
+      id: 'o1',
+      accountId: 'acc-1',
+      entityId: 'c1',
+      kind: 'setCardArchived',
+      payloadJson: JSON.stringify({ kind: 'setCardArchived', cardId: 'c1', archived: true }),
+      serverValuesJson: '{}',
+      createdAt: 1,
+      attempts: 0,
+      nextAttemptAt: 0,
+      state: 'queued',
+      lastError: undefined,
+      destroyed: false,
+    };
+    outboxRow.destroyPermanently = jest.fn(async () => {
+      outboxRow.destroyed = true;
+    });
+    const outboxDb = {
+      get: jest.fn(() => ({
+        query: jest.fn(() => ({
+          fetch: jest.fn(async () => [outboxRow].filter((r) => !r.destroyed)),
+        })),
+      })),
+    } as any;
+    mockExecuteIntent.mockResolvedValue(undefined);
+
+    mockFetchBoards.mockImplementation(async () => {
+      // The reconnect's other half: a full drain runs — and finishes,
+      // destroying its row — before this in-flight fetch resolves.
+      await drainOutbox({ db: outboxDb, account });
+      return [board({ title: 'Reverted' })];
+    });
+    const { db, batch } = makeDb([makeRow({ title: 'Renamed locally' })]);
+
+    const result = await syncBoards({ db, account, full: false });
+
+    expect(outboxRow.destroyed).toBe(true);
+    expect(result).toBe(false);
+    expect(batch).not.toHaveBeenCalled();
   });
 });

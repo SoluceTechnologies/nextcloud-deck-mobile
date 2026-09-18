@@ -3,6 +3,7 @@ import { Q, type Database } from '@nozbe/watermelondb';
 import type OutboxEntry from '@/database/models/OutboxEntry';
 import { safeWrite } from '@/database/utils/safeTransaction';
 import { HttpError } from '@/services/shared/errors';
+import { bumpWriteEpoch } from '@/sync/localWrites';
 import type { Account } from '@/types';
 
 import { coalesceIntents, type CoalesceEntry } from './coalesce';
@@ -141,6 +142,13 @@ async function drainOnce({ db, account, now, onConflict }: DrainParams): Promise
         Object.fromEntries(resolved.conflictedFields.map((f) => [f, serverValues[f]])),
       );
       await safeWrite(db, () => row.destroyPermanently(), 10000, 'outbox:sent');
+      // A fetch already in flight captured the epoch before this send landed,
+      // so without this it would still match and the fetch's pre-mutation
+      // snapshot would overwrite what the server just accepted (or, for a
+      // delete, resurrect a row whose destroy already succeeded remotely).
+      // Non-notifying: see `bumpWriteEpoch`'s own doc for why plain
+      // `markLocalWrite` is wrong here.
+      bumpWriteEpoch();
     } catch (error) {
       // A DeferredIntentError means the prerequisite create has not landed yet.
       // It is counted and backed off like any other transient failure, for two

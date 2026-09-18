@@ -7,6 +7,18 @@ export function markLocalWrite(): void {
   for (const fn of listeners) fn();
 }
 
+/**
+ * Same race guard as `markLocalWrite`, without the notification: the drain calls
+ * this after a send lands, so a fetch already in flight aborts instead of
+ * reverting the row the send just changed. Plain `markLocalWrite` would re-enter
+ * `drainOutbox` through its own `onLocalWrite` listener — harmless, but an extra
+ * no-op pass on every drain for no benefit, since the drain that just ran already
+ * saw everything there was to send.
+ */
+export function bumpWriteEpoch(): void {
+  epoch += 1;
+}
+
 export function localWriteEpoch(): number {
   return epoch;
 }
