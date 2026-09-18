@@ -1,15 +1,24 @@
 import { syncBoardContent } from '../../../src/sync/tasks/syncBoardContent';
 import { fetchStacks } from '../../../src/services/deck/boards';
+import { loadQueuedIntents } from '../../../src/sync/outbox/pending';
 import { markLocalWrite } from '../../../src/sync/localWrites';
 import type { Account } from '../../../src/types';
 import type { DeckCard, DeckStack } from '../../../src/services/deck/types';
 
 jest.mock('../../../src/services/deck/boards');
+// Only loadQueuedIntents is mocked; loadPendingCards/pendingEntityIds/mergeServerValues
+// stay real so every existing card-shield test keeps driving them through the fake
+// db's `outbox` fixture below, unchanged.
+jest.mock('../../../src/sync/outbox/pending', () => ({
+  ...jest.requireActual('../../../src/sync/outbox/pending'),
+  loadQueuedIntents: jest.fn(),
+}));
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
 
 const mockFetchStacks = fetchStacks as jest.Mock;
+const mockLoadQueuedIntents = loadQueuedIntents as jest.Mock;
 
 const account: Account = {
   id: 'acc-1',
@@ -114,7 +123,10 @@ const boardRow = makeRow('boards', { id: 'b-local', remoteId: '7' });
 const mockFetch = jest.fn();
 (globalThis as any).fetch = mockFetch;
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockLoadQueuedIntents.mockResolvedValue([]);
+});
 
 describe('syncBoardContent', () => {
   it('does nothing when the board is not in the local cache yet', async () => {
@@ -447,5 +459,71 @@ describe('syncBoardContent', () => {
 
     const ops = (batch as any).mock.calls[0]?.[0] ?? [];
     expect(ops.some((o: any) => o._op === 'delete' && o._tag === 'card_labels')).toBe(false);
+  });
+
+  it('does not revert a stack whose update is still queued', async () => {
+    // Local row was renamed optimistically; the server still has the old title.
+    mockLoadQueuedIntents.mockResolvedValue([
+      { entry: { entityId: 's1' }, intent: { kind: 'updateStack', stackId: 's1', title: 'New', order: 0 } },
+    ]);
+    mockFetchStacks.mockResolvedValue([stack([], { remoteId: '11', title: 'Old' })]);
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      stacks: [
+        makeRow('stacks', {
+          id: 's1',
+          boardId: 'b-local',
+          remoteId: '11',
+          title: 'New',
+          order: 0,
+          lastModified: 4000,
+        }),
+      ],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: false });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'update' && o._tag === 'stacks')).toEqual([]);
+  });
+
+  it('does not resurrect a stack whose delete is still queued', async () => {
+    // The row is already gone locally; a full snapshot still lists it.
+    mockLoadQueuedIntents.mockResolvedValue([
+      {
+        entry: { entityId: 's9' },
+        intent: { kind: 'deleteStack', stackId: 's9', boardRemoteId: '1', stackRemoteId: '99' },
+      },
+    ]);
+    mockFetchStacks.mockResolvedValue([stack([], { remoteId: '99' })]);
+    const { db, batch } = makeDb({ boards: [boardRow] });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: true });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'create' && o._tag === 'stacks')).toEqual([]);
+  });
+
+  it('still reconciles a stack with nothing queued', async () => {
+    mockLoadQueuedIntents.mockResolvedValue([]);
+    mockFetchStacks.mockResolvedValue([stack([], { remoteId: '11', title: 'Renamed' })]);
+    const { db, batch } = makeDb({
+      boards: [boardRow],
+      stacks: [
+        makeRow('stacks', {
+          id: 's1',
+          boardId: 'b-local',
+          remoteId: '11',
+          title: 'Old',
+          order: 0,
+          lastModified: 4000,
+        }),
+      ],
+    });
+
+    await syncBoardContent({ db, account, boardRemoteId: '7', full: false });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'update' && o._tag === 'stacks')).toHaveLength(1);
   });
 });

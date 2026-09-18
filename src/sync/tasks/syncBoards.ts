@@ -6,6 +6,7 @@ import { safeWrite } from '@/database/utils/safeTransaction';
 import { boardUnchanged, writeBoardRow } from '@/database/writers';
 import { fetchBoards } from '@/services/deck/boards';
 import { localWriteEpoch } from '@/sync/localWrites';
+import { loadQueuedIntents } from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
 import { buildLabelOps } from '@/sync/tasks/syncLabels';
 import type { Account } from '@/types';
@@ -61,6 +62,19 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
       // offline board collides on that empty key.
       const synced = fresh.filter((r) => r.remoteId);
 
+      // Same shape as the card shield in syncBoardContent: a queued update is
+      // protected through its row's remote id, while a queued delete has already
+      // destroyed its row, so its remote id comes off the intent — without that
+      // second half a full snapshot recreates the board before the DELETE drains.
+      const queuedBoards = await loadQueuedIntents(db, account.id, 'board');
+      const queuedBoardIds = new Set(queuedBoards.map(({ entry }) => entry.entityId));
+      const protectedBoardIds = new Set(
+        fresh.filter((r) => queuedBoardIds.has(r.id) && r.remoteId).map((r) => r.remoteId),
+      );
+      for (const { intent } of queuedBoards) {
+        if (intent.kind === 'deleteBoard') protectedBoardIds.add(intent.boardRemoteId);
+      }
+
       const plan = reconcile({
         remote,
         rows: synced,
@@ -68,6 +82,7 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
         rowKey: (r) => r.remoteId,
         unchanged: boardUnchanged,
         deleteMissing: full,
+        protectedRowIds: protectedBoardIds,
       });
 
       const labelRows = await db
@@ -85,6 +100,10 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
         localIdByRemote.set(b.remoteId, created.id);
       }
       for (const { row, remote: b } of plan.update) {
+        // `reconcile`'s protectedRowIds only guards create/remove/duplicate rows,
+        // not update — a queued rename still needs its own check here, or the
+        // stale value this pass just fetched would revert it before the drain runs.
+        if (protectedBoardIds.has(row.remoteId)) continue;
         ops.push(row.prepareUpdate((r: Board) => writeBoardRow(r, b, account.id)));
       }
       for (const row of plan.remove) {

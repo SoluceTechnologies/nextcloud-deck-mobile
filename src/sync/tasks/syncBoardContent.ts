@@ -19,7 +19,12 @@ import {
 import { fetchStacks } from '@/services/deck/boards';
 import type { DeckCard } from '@/services/deck/types';
 import { localWriteEpoch } from '@/sync/localWrites';
-import { loadPendingCards, mergeServerValues, pendingEntityIds } from '@/sync/outbox/pending';
+import {
+  loadPendingCards,
+  loadQueuedIntents,
+  mergeServerValues,
+  pendingEntityIds,
+} from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
 import { buildCardRelationOps } from '@/sync/tasks/cardRelations';
 import type { Account } from '@/types';
@@ -162,6 +167,17 @@ export async function syncBoardContent({
       // offline stack collides on that empty key.
       const syncedStackRows = stackRows.filter((r) => r.remoteId);
 
+      // Mirrors the board shield in syncBoards and the card shield below: queued
+      // updates protected through the row, queued deletes through the intent.
+      const queuedStacks = await loadQueuedIntents(db, account.id, 'stack');
+      const queuedStackIds = new Set(queuedStacks.map(({ entry }) => entry.entityId));
+      const protectedStackIds = new Set(
+        stackRows.filter((r) => queuedStackIds.has(r.id) && r.remoteId).map((r) => r.remoteId),
+      );
+      for (const { intent } of queuedStacks) {
+        if (intent.kind === 'deleteStack') protectedStackIds.add(intent.stackRemoteId);
+      }
+
       // Stacks always come back whole, even on a delta call, so this pass is
       // always authoritative for the stack set.
       const stackPlan = reconcile({
@@ -171,6 +187,7 @@ export async function syncBoardContent({
         rowKey: (r) => r.remoteId,
         unchanged: (row, remote) => stackUnchanged(row, remote, boardLocalId),
         deleteMissing: true,
+        protectedRowIds: protectedStackIds,
       });
 
       const stackLocalIdByRemote = new Map(stackRows.map((r) => [r.remoteId, r.id]));
@@ -180,6 +197,10 @@ export async function syncBoardContent({
         stackLocalIdByRemote.set(s.remoteId, created.id);
       }
       for (const { row, remote: s } of stackPlan.update) {
+        // `reconcile`'s protectedRowIds only guards create/remove/duplicate rows,
+        // not update — a queued rename still needs its own check here, or the
+        // stale value this pass just fetched would revert it before the drain runs.
+        if (protectedStackIds.has(row.remoteId)) continue;
         ops.push(row.prepareUpdate((r: Stack) => writeStackRow(r, s, stackCtx)));
       }
       for (const row of stackPlan.remove) {

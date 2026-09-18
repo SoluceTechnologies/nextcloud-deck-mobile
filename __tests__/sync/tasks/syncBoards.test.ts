@@ -1,15 +1,18 @@
 import { syncBoards } from '../../../src/sync/tasks/syncBoards';
 import { fetchBoards } from '../../../src/services/deck/boards';
+import { loadQueuedIntents } from '../../../src/sync/outbox/pending';
 import { markLocalWrite } from '../../../src/sync/localWrites';
 import type { Account } from '../../../src/types';
 import type { DeckBoard } from '../../../src/services/deck/types';
 
 jest.mock('../../../src/services/deck/boards');
+jest.mock('../../../src/sync/outbox/pending');
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
 
 const mockFetchBoards = fetchBoards as jest.Mock;
+const mockLoadQueuedIntents = loadQueuedIntents as jest.Mock;
 
 const account: Account = {
   id: 'acc-1',
@@ -87,7 +90,10 @@ function makeRow(over: Record<string, unknown> = {}) {
   };
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockLoadQueuedIntents.mockResolvedValue([]);
+});
 
 describe('syncBoards', () => {
   it('sends the newest known lastModified minus a 2 s overlap on a delta pass', async () => {
@@ -213,5 +219,47 @@ describe('syncBoards', () => {
     const calls = (batch as any).mock.calls;
     const ops = calls[0]?.[0] as any[];
     expect(ops?.some((op: any) => op._tag === 'label' && op.title === 'Urgent')).toBe(true);
+  });
+
+  it('does not revert a board whose update is still queued', async () => {
+    // Local row was renamed optimistically; the server still has the old title.
+    mockLoadQueuedIntents.mockResolvedValue([
+      {
+        entry: { entityId: 'b1' },
+        intent: { kind: 'updateBoard', boardId: 'b1', title: 'New', color: null, archived: false },
+      },
+    ]);
+    mockFetchBoards.mockResolvedValue([board({ remoteId: '11', title: 'Old' })]);
+    const { db, batch } = makeDb([makeRow({ id: 'b1', remoteId: '11', title: 'New' })]);
+
+    await syncBoards({ db, account, full: false });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'update')).toEqual([]);
+  });
+
+  it('does not resurrect a board whose delete is still queued', async () => {
+    // The row is already gone locally; a full snapshot still lists it.
+    mockLoadQueuedIntents.mockResolvedValue([
+      { entry: { entityId: 'b9' }, intent: { kind: 'deleteBoard', boardId: 'b9', boardRemoteId: '99' } },
+    ]);
+    mockFetchBoards.mockResolvedValue([board({ remoteId: '99' })]);
+    const { db, batch } = makeDb([]);
+
+    await syncBoards({ db, account, full: true });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'create')).toEqual([]);
+  });
+
+  it('still reconciles a board with nothing queued', async () => {
+    mockLoadQueuedIntents.mockResolvedValue([]);
+    mockFetchBoards.mockResolvedValue([board({ remoteId: '11', title: 'Renamed' })]);
+    const { db, batch } = makeDb([makeRow({ id: 'b1', remoteId: '11', title: 'Old' })]);
+
+    await syncBoards({ db, account, full: false });
+
+    const ops = (batch as any).mock.calls[0]?.[0] ?? [];
+    expect(ops.filter((o: any) => o._op === 'update')).toHaveLength(1);
   });
 });
