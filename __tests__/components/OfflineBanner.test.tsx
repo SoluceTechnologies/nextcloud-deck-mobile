@@ -3,9 +3,6 @@ import { render, screen } from '@testing-library/react-native';
 import { OfflineBanner } from '../../src/components/OfflineBanner';
 import { ThemeWrapper } from '../helpers/theme';
 
-jest.mock('react-native-safe-area-context', () =>
-  require('react-native-safe-area-context/jest/mock').default,
-);
 jest.mock('react-i18next', () => ({
   ...jest.requireActual('react-i18next'),
   useTranslation: () => ({ t: (k: string) => k }),
