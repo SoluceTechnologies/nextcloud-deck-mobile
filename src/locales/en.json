@@ -337,5 +337,8 @@
       "noDue": "No due date",
       "save": "Save"
     }
+  },
+  "offline": {
+    "banner": "Offline — changes will sync when you reconnect."
   }
 }

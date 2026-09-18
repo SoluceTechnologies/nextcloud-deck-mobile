@@ -167,5 +167,8 @@
     "remedy": "Opciones más seguras: llegar al servidor mediante una VPN como Tailscale o WireGuard, o configurar un certificado gratuito con DuckDNS y Let's Encrypt.",
     "connect": "Conectar de todos modos",
     "cancel": "Cancelar"
+  },
+  "offline": {
+    "banner": "Sin conexión — los cambios se sincronizarán al reconectar."
   }
 }

@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { Providers } from '@/components/Providers';
 import { RootNavigator } from '@/components/RootNavigator';
 import FakeSplash from '@/components/FakeSplash';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { useAppInitialization } from '@/hooks/useAppInitialization';
 import '@/utils/i18n';
 import { useCapabilitiesSync } from '@/hooks/useCapabilitiesSync';
@@ -44,6 +45,7 @@ export default function RootLayout() {
     <Providers>
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <ThemedStatusBar />
+        {isAppReady ? <OfflineBanner /> : null}
         {isAppReady ? <RootNavigator /> : <FakeSplash />}
       </View>
     </Providers>

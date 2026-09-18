@@ -337,5 +337,8 @@
       "noDue": "Aucune échéance",
       "save": "Enregistrer"
     }
+  },
+  "offline": {
+    "banner": "Hors ligne — vos modifications seront synchronisées à la reconnexion."
   }
 }
