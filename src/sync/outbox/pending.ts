@@ -67,3 +67,32 @@ export function mergeServerValues(
 export function pendingEntityIds(pending: PendingCards): Set<string> {
   return new Set(pending.keys());
 }
+
+/**
+ * The queued intents filed against boards or stacks. `loadPendingCards` answers a
+ * card-shaped question — which columns a queued mutation owns — because cards are
+ * reconciled field by field. Boards and stacks are reconciled whole, so their
+ * shield only needs to know which entities have something in flight and what it is.
+ */
+export async function loadQueuedIntents(
+  db: Database,
+  accountId: string,
+  entityType: 'board' | 'stack',
+): Promise<PendingEntry[]> {
+  const rows = await db
+    .get<OutboxEntry>('outbox')
+    .query(
+      Q.where('account_id', accountId),
+      Q.where('state', OUTBOX_QUEUED),
+      Q.where('entity_type', entityType),
+    )
+    .fetch();
+
+  const queued: PendingEntry[] = [];
+  for (const entry of rows) {
+    const intent = parseIntent(entry);
+    if (!intent) continue;
+    queued.push({ entry, intent });
+  }
+  return queued;
+}
