@@ -71,7 +71,18 @@ const mockDragContextValue = {
   target: { value: null },
   frame: {
     value: { stackIds: [], geometry: { gap: 0, columnWidth: 0, columnCount: 0 }, scrollX: 0, listTopY: 0, registry: {} },
-    modify: jest.fn(),
+    // Mirrors the real SharedValue.modify(): the modifier runs on the UI
+    // runtime, so a plain JS closure crashes on device. A jest.fn() that
+    // swallows the call would hide exactly that, so validate and apply.
+    modify: jest.fn((updater?: (f: any) => any) => {
+      if (updater && typeof (updater as any).__workletHash !== 'number') {
+        throw new Error(
+          '[Worklets] Tried to synchronously call a Remote Function. ' +
+            'SharedValue.modify() requires a worklet modifier.',
+        );
+      }
+      if (updater) mockDragContextValue.frame.value = updater(mockDragContextValue.frame.value);
+    }),
   },
   activeData: null,
   setActiveData: jest.fn(),

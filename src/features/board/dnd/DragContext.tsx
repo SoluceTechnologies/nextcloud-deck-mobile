@@ -83,16 +83,30 @@ export function DragProvider({ enabled, onDrop, children }: DragProviderProps) {
   const [activeData, setActiveData] = useState<CardTileData | null>(null);
   const scrollers = useRef(new Map<string, (dy: number) => void>());
 
+  // Both reporters are called from the JS thread (a column's onLayout, and the
+  // measureInWindow callback under it) but write through modify(), whose
+  // modifier the runtime executes on the UI thread. The 'worklet' directive is
+  // what makes that legal: without it the modifier stays a JS-runtime function
+  // and the UI runtime refuses to call it ("Tried to synchronously call a
+  // Remote Function"). modify() is the right API here rather than assigning
+  // frame.value, because the scroll handler writes scrollX from the UI thread
+  // and a JS-side read-modify-write could clobber it with a stale copy.
   const reportColumn = useCallback(
     (stackId: string, state: ColumnState) => {
-      frame.modify((f) => ({ ...f, registry: { ...f.registry, [stackId]: state } }));
+      frame.modify((f) => {
+        'worklet';
+        return { ...f, registry: { ...f.registry, [stackId]: state } };
+      });
     },
     [frame],
   );
 
   const reportListTop = useCallback(
     (topY: number) => {
-      frame.modify((f) => ({ ...f, listTopY: topY }));
+      frame.modify((f) => {
+        'worklet';
+        return { ...f, listTopY: topY };
+      });
     },
     [frame],
   );

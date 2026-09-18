@@ -211,9 +211,16 @@ function BoardColumns({ board, stacks, columnWidth, windowWidth, renderStack, on
   // Keeps the UI-thread-visible column geometry in step with what's actually on
   // screen, so targetAt (dragController.ts) never needs a JS round trip mid-gesture.
   useEffect(() => {
+    // Mapped out here, not inside the modifier: the modifier is a worklet and
+    // runs on the UI thread, so everything it closes over crosses the runtime
+    // boundary — and `stacks` holds WatermelonDB models, which cannot. Plain
+    // ids and numbers can.
+    const stackIds = stacks.map((s) => s.id);
+    const geometry = { gap: GAP, columnWidth, columnCount: stacks.length };
     frame.modify((f) => {
-      f.stackIds = stacks.map((s) => s.id);
-      f.geometry = { gap: GAP, columnWidth, columnCount: stacks.length };
+      'worklet';
+      f.stackIds = stackIds;
+      f.geometry = geometry;
       return f;
     });
   }, [frame, stacks, columnWidth]);
@@ -251,7 +258,11 @@ function BoardColumns({ board, stacks, columnWidth, windowWidth, renderStack, on
   }, [activeData, x, y, target, frame, windowWidth, columnWidth, scrollColumnBy]);
 
   const onScroll = useAnimatedScrollHandler((e) => {
+    // Already on the UI thread here, so this modifier needs no boundary
+    // crossing — the directive is for uniformity with the JS-side writers, so
+    // "every modify() modifier is a worklet" holds everywhere and greps clean.
     frame.modify((f) => {
+      'worklet';
       f.scrollX = e.contentOffset.x;
       return f;
     });
