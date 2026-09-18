@@ -3,8 +3,10 @@ import { useMemo } from 'react';
 
 import { useDatabase } from '@/database/DatabaseProvider';
 import type Board from '@/database/models/Board';
+import type Card from '@/database/models/Card';
+import type OutboxEntry from '@/database/models/OutboxEntry';
 import type Stack from '@/database/models/Stack';
-import { mutate } from '@/sync/outbox/enqueue';
+import { mutate, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
 
 export type StackActions = {
   create(title: string): Promise<void>;
@@ -82,7 +84,35 @@ export function useStackActions(accountId: string | null, boardLocalId: string |
           boardRemoteId: board.remoteId,
           stackRemoteId: stack.remoteId,
         },
-        applyLocal: () => stack.prepareMarkAsDeleted(),
+        // The stack's cards go with it in the same batch, or they would linger as
+        // rows pointing at a destroyed stack — surfacing in Today and Search
+        // (both filter orphans by board, not stack) with a blank stack name,
+        // and inflating the board's done/total count — until a sync noticed.
+        // Mirrors useBoardActions.remove one scope down. A card already moved
+        // to another stack is not among them and keeps its intents.
+        applyLocal: async () => {
+          const cards = await db
+            .get<Card>('cards')
+            .query(Q.where('account_id', accountId), Q.where('stack_id', stack.id))
+            .fetch();
+          const cardIds = cards.map((r) => r.id);
+          const cardIntents =
+            cardIds.length === 0
+              ? []
+              : await db
+                  .get<OutboxEntry>('outbox')
+                  .query(
+                    Q.where('account_id', accountId),
+                    Q.where('state', OUTBOX_QUEUED),
+                    Q.where('entity_id', Q.oneOf(cardIds)),
+                  )
+                  .fetch();
+          return [
+            stack.prepareMarkAsDeleted(),
+            ...cards.map((r) => r.prepareMarkAsDeleted()),
+            ...cardIntents.map((r) => r.prepareDestroyPermanently()),
+          ];
+        },
       });
     };
 
