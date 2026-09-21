@@ -242,6 +242,7 @@
     "typeTwo": "Saisissez au moins deux caractères",
     "dependencies": "Dépendances",
     "noDependencies": "Aucune",
+    "noDependenciesHint": "Liez cette carte à une autre.",
     "addDependency": "Ajouter une dépendance",
     "dependencyNeedsSync": "Cette carte doit être synchronisée avant de pouvoir être liée.",
     "color": "Couleur de la carte",
@@ -249,6 +250,7 @@
     "clearColor": "Effacer la couleur",
     "files": "Fichiers",
     "noFiles": "Aucun fichier",
+    "noFilesHint": "Joignez une photo, un document ou un fichier Nextcloud.",
     "preview": {
       "unsupported": "Ce fichier ne peut pas être prévisualisé dans l'application.",
       "tooLarge": "Ce fichier est trop volumineux pour être prévisualisé ici.",
@@ -257,10 +259,12 @@
     },
     "description": "Description",
     "noDescription": "Aucune description",
+    "addDescription": "Ajouter une description…",
     "rawEditorNotice": "Cette description utilise une mise en forme que l'éditeur enrichi ne sait pas conserver. Édition en Markdown brut.",
     "save": "Enregistrer",
     "comments": "Commentaires",
     "noComments": "Aucun commentaire",
+    "noCommentsHint": "Lancez la conversation sur cette carte.",
     "loadMore": "Afficher plus",
     "writeComment": "Écrire un commentaire…",
     "commentPending": "Envoi…",
@@ -296,6 +300,12 @@
       "chooseList": "Choisir une liste",
       "chooseCard": "Choisir une carte",
       "empty": "Rien ici"
+    },
+    "details": {
+      "title": "DÉTAILS",
+      "createdBy": "Créée par",
+      "created": "Créée",
+      "modified": "Modifiée"
     }
   },
   "board": {

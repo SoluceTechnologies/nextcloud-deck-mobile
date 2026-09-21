@@ -2,7 +2,9 @@ import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import type Comment from '@/database/models/Comment';
-import { Item, Sheet } from '@/ui/components';
+import { Pencil, Reply, Trash2 } from 'lucide-react-native';
+
+import { ActionList, Sheet, type SheetAction } from '@/ui/components';
 
 export interface CommentMenuProps {
   visible: boolean;
@@ -45,17 +47,46 @@ export function CommentMenu({ visible, comment, mine, onClose, onEdit, onReply, 
   // to name its parent by that id — so replying waits until it has one.
   const canReply = comment !== null && comment.remoteId !== '';
 
-  const actions = [
-    ...(mine ? [{ key: 'edit', title: t('card.comment.edit'), onPress: run(onEdit) }] : []),
-    ...(canReply ? [{ key: 'reply', title: t('card.comment.reply'), onPress: run(onReply) }] : []),
-    ...(mine ? [{ key: 'delete', title: t('card.comment.delete'), onPress: handleDelete }] : []),
+  const actions: SheetAction[] = [
+    ...(mine
+      ? [
+          {
+            key: 'edit',
+            testID: 'comment-action-edit',
+            title: t('card.comment.edit'),
+            icon: <Pencil />,
+            onPress: run(onEdit),
+          },
+        ]
+      : []),
+    ...(canReply
+      ? [
+          {
+            key: 'reply',
+            testID: 'comment-action-reply',
+            title: t('card.comment.reply'),
+            icon: <Reply />,
+            onPress: run(onReply),
+          },
+        ]
+      : []),
+    ...(mine
+      ? [
+          {
+            key: 'delete',
+            testID: 'comment-action-delete',
+            title: t('card.comment.delete'),
+            icon: <Trash2 />,
+            destructive: true,
+            onPress: handleDelete,
+          },
+        ]
+      : []),
   ];
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('card.comment.actions')}>
-      {actions.map((action) => (
-        <Item key={action.key} testID={`comment-action-${action.key}`} title={action.title} onPress={action.onPress} />
-      ))}
+      <ActionList actions={actions} />
     </Sheet>
   );
 }

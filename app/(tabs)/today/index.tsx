@@ -127,7 +127,11 @@ export default function TodayScreen() {
                   renderItem={({ item }) => (
                     <RecentBoardCard
                       board={{ id: item.id, title: item.title, color: item.color ?? null, shared: item.shared }}
-                      onPress={(id) => router.push(`/boards/${id}`)}
+                      // withAnchor loads the board list underneath: this push
+                      // crosses into the boards tab's own stack, which would
+                      // otherwise hold this board and nothing else — leaving no
+                      // way back to the list, from the header or the tab bar.
+                      onPress={(id) => router.push(`/boards/${id}`, { withAnchor: true })}
                     />
                   )}
                 />

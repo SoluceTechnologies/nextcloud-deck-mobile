@@ -242,6 +242,7 @@
     "typeTwo": "Geben Sie mindestens zwei Zeichen ein",
     "dependencies": "Abhängigkeiten",
     "noDependencies": "Keine",
+    "noDependenciesHint": "Verknüpfe diese Karte mit einer anderen.",
     "addDependency": "Abhängigkeit hinzufügen",
     "dependencyNeedsSync": "Diese Karte muss synchronisiert werden, bevor sie verknüpft werden kann.",
     "color": "Kartenfarbe",
@@ -249,6 +250,7 @@
     "clearColor": "Farbe entfernen",
     "files": "Dateien",
     "noFiles": "Keine Dateien",
+    "noFilesHint": "Hänge ein Foto, ein Dokument oder eine Nextcloud-Datei an.",
     "preview": {
       "unsupported": "Diese Datei kann in der App nicht angezeigt werden.",
       "tooLarge": "Diese Datei ist zu groß für eine Vorschau hier.",
@@ -257,10 +259,12 @@
     },
     "description": "Beschreibung",
     "noDescription": "Keine Beschreibung",
+    "addDescription": "Beschreibung hinzufügen…",
     "rawEditorNotice": "Diese Beschreibung verwendet Formatierungen, die der Rich-Text-Editor nicht beibehalten kann. Bearbeitung als reines Markdown.",
     "save": "Speichern",
     "comments": "Kommentare",
     "noComments": "Keine Kommentare",
+    "noCommentsHint": "Beginne das Gespräch zu dieser Karte.",
     "loadMore": "Mehr laden",
     "writeComment": "Kommentar schreiben…",
     "commentPending": "Wird gesendet…",
@@ -296,6 +300,12 @@
       "chooseList": "Liste auswählen",
       "chooseCard": "Karte auswählen",
       "empty": "Nichts hier"
+    },
+    "details": {
+      "title": "DETAILS",
+      "createdBy": "Erstellt von",
+      "created": "Erstellt",
+      "modified": "Geändert"
     }
   },
   "board": {

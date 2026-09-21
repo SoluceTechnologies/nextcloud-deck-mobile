@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react-native';
+import { Link2, Plus, X } from 'lucide-react-native';
 
 import { useAccountCards } from '@/database/hooks/useBoards';
 import { CardPickerSheet, type CardPickerResult } from './CardPickerSheet';
-import { IconButton, Item, List, Sheet, Typography } from '@/ui/components';
+import { EmptyState, IconButton, IconTile, Item, List, Sheet, Typography } from '@/ui/components';
 
 export type Dependency = { remoteId: string; title: string };
 
@@ -69,6 +69,7 @@ export function DependenciesSheet({
             <View key={dep.remoteId} testID={`dependency-row-${dep.remoteId}`}>
               <Item
                 title={dep.title}
+                leading={<IconTile><Link2 /></IconTile>}
                 trailing={
                   <IconButton
                     testID={`dependency-remove-${dep.remoteId}`}
@@ -86,9 +87,12 @@ export function DependenciesSheet({
           ))}
         </List>
       ) : (
-        <Typography color="secondary" align="center">
-          {t('card.noDependencies')}
-        </Typography>
+        <EmptyState
+          testID="dependencies-empty"
+          icon={<Link2 />}
+          title={t('card.noDependencies')}
+          description={t('card.noDependenciesHint')}
+        />
       )}
 
       {needsSyncNotice ? (
@@ -97,7 +101,13 @@ export function DependenciesSheet({
         </Typography>
       ) : null}
 
-      <Item title={t('card.addDependency')} onPress={() => setPickerVisible(true)} />
+      <List>
+        <Item
+          title={t('card.addDependency')}
+          leading={<IconTile tint="primary"><Plus /></IconTile>}
+          onPress={() => setPickerVisible(true)}
+        />
+      </List>
 
       <CardPickerSheet
         visible={pickerVisible}

@@ -1,4 +1,8 @@
-import { participantsOf, filterParticipants } from '../../../src/features/card/participants';
+import {
+  filterParticipants,
+  participantName,
+  participantsOf,
+} from '../../../src/features/card/participants';
 
 // board.usersJson/aclJson hold what writeBoardRow stored: DeckBoardUser[]
 // ({ uid, displayName }) and DeckAclEntry[] ({ uid, displayName, type }) — not
@@ -49,4 +53,41 @@ it('returns nothing below two characters', () => {
   const all = [{ participant: 'alice', displayName: 'Alice', assigneeType: 0 }];
   expect(filterParticipants(all, 'a')).toEqual([]);
   expect(filterParticipants(all, 'al')).toHaveLength(1);
+});
+
+// Deck reports a card's owner as a bare uid; on an SSO server that is an
+// opaque UUID, which is what the details block was printing.
+describe('participantName', () => {
+  const people = [
+    { participant: 'keycloak-3ddbe54d', displayName: 'Charles Gauthereau', assigneeType: 0 },
+    { participant: 'devs', displayName: 'Devs', assigneeType: 1 },
+  ];
+
+  it('resolves an id to the name the board carries for it', () => {
+    expect(participantName(people, 'keycloak-3ddbe54d')).toBe('Charles Gauthereau');
+  });
+
+  // The owner may have left the board since creating the card, so the board's
+  // people list no longer names them.
+  it('falls back to the signed-in account when the board does not list them', () => {
+    const self = { davUserId: 'gone', displayName: 'Me' };
+    expect(participantName(people, 'gone', self)).toBe('Me');
+  });
+
+  // The board wins: a shared board names everyone, and the account only knows
+  // about itself.
+  it('prefers the board entry over the account', () => {
+    const self = { davUserId: 'keycloak-3ddbe54d', displayName: 'Stale Name' };
+    expect(participantName(people, 'keycloak-3ddbe54d', self)).toBe('Charles Gauthereau');
+  });
+
+  // A stable identifier beats a blank row.
+  it('falls back to the raw id when nothing names them', () => {
+    expect(participantName(people, 'stranger')).toBe('stranger');
+    expect(participantName(people, 'stranger', { davUserId: 'me', displayName: 'Me' })).toBe('stranger');
+  });
+
+  it('is empty for an empty id', () => {
+    expect(participantName(people, '')).toBe('');
+  });
 });

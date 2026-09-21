@@ -156,6 +156,13 @@ beforeEach(() => {
   (useBoards as jest.Mock).mockReturnValue([
     { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: true, canManage: true, lastModified: 0 },
   ]);
+  // Same trap, one hook over: the empty-board tests below override this, and
+  // clearAllMocks() leaves that override in place for everything after them.
+  const { useBoardStacks } = require('../../src/database/hooks/useBoardContent');
+  (useBoardStacks as jest.Mock).mockReturnValue([
+    { id: 's1', title: 'À faire', order: 0 },
+    { id: 's2', title: 'En cours', order: 1 },
+  ]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
   const { useIsOnline } = require('../../src/services/shared/network');
   (useIsOnline as jest.Mock).mockReturnValue(true);
@@ -328,4 +335,34 @@ describe('the empty board', () => {
     renderScreen();
     expect(screen.queryByTestId('board-loading')).toBeNull();
   });
+});
+
+// The add-list sheet is the real StackFormSheet over the real Sheet, so this
+// walks the whole affordance: open, type, submit, and the board's own handler.
+it('creates a list from the add-list sheet', () => {
+  renderScreen();
+  fireEvent.press(screen.getByText('board.addList'));
+
+  fireEvent.changeText(screen.getByPlaceholderText('board.listTitle'), '  Backlog  ');
+  fireEvent.press(screen.getByText('board.form.save'));
+
+  expect(mockStackCreate).toHaveBeenCalledWith('Backlog');
+  expect(mockCardCreate).not.toHaveBeenCalled();
+});
+
+// The same sheet is reused for "add a card to stack X"; the board has to route
+// the submission to the card action instead, with the stack it was opened from.
+it('creates a card from the same sheet when it was opened from a column', () => {
+  renderScreen();
+  fireEvent.press(screen.getAllByText('board.addCard')[0]);
+
+  fireEvent.changeText(screen.getByPlaceholderText('board.cardTitle'), 'Alpha 2');
+  fireEvent.press(screen.getByText('board.form.save'));
+
+  expect(mockCardCreate).toHaveBeenCalledWith({
+    boardLocalId: 'b1',
+    stackLocalId: 's1',
+    title: 'Alpha 2',
+  });
+  expect(mockStackCreate).not.toHaveBeenCalled();
 });

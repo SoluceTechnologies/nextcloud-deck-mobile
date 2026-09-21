@@ -44,7 +44,7 @@ function Sheet({ visible, onClose, title, children }: SheetProps) {
               </IconButton>
             }
           />
-          {children}
+          <View style={styles.content}>{children}</View>
         </View>
       </AnimatedPressable>
     </Modal>
@@ -57,12 +57,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
+  // The gutter belongs to the content, not the sheet: ScreenHeader pads itself
+  // by 16 already, so a gutter on the sheet pushed the close button and the
+  // title to 32 while the fields below them sat at 16. This is the same layout
+  // the settings screens use — a self-padded header over padded content.
   sheet: {
     width: '100%',
-    paddingHorizontal: 16,
     paddingTop: 8,
     gap: 12,
   },
+  content: { paddingHorizontal: 16, gap: 12 },
   grabber: {
     width: 40,
     height: 4,

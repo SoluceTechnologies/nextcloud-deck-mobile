@@ -3,7 +3,9 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Ellipsis, X } from 'lucide-react-native';
+import {
+  CalendarClock, CalendarDays, ChevronRight, Ellipsis, Link2, Palette, Tag, Users, X,
+} from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useActiveAccount } from '@/hooks/useAccounts';
@@ -29,12 +31,28 @@ import { dueStateOf } from '@/features/card/dueState';
 import { useCardDetailSync } from '@/features/card/hooks/useCardDetailSync';
 import { DescriptionEditor } from '@/features/card/markdown/DescriptionEditor';
 import { DescriptionView } from '@/features/card/markdown/DescriptionView';
-import { parseArray, participantsOf, type Participant } from '@/features/card/participants';
+import {
+  parseArray, participantName, participantsOf, type Participant,
+} from '@/features/card/participants';
 // Pure URL builder, not a request — trustedFetch/deckRequest never run from a screen.
 import { attachmentDownloadUrl } from '@/services/deck/attachments';
 import {
-  Checkbox, IconButton, Item, List, ScreenHeader, SectionHeader, Typography, ViewContainer,
+  Checkbox, IconButton, IconTile, Item, List, ScreenHeader, SectionHeader, Typography,
+  ViewContainer,
 } from '@/ui/components';
+import { formatRelative } from '@/utils/relativeTime';
+
+/** A read-only fact: its label above the value, unlike Item's value-under-title. */
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Typography variant="caption" color="secondary">
+        {label}
+      </Typography>
+      <Typography variant="body1">{value}</Typography>
+    </View>
+  );
+}
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -152,7 +170,9 @@ export default function CardDetailScreen() {
   return (
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
-        <ScreenHeader title={card.title} left={closeButton} right={menuButton} />
+        {/* No title here: the identity card directly below carries it in full,
+            and is the one that can be tapped to rename. */}
+        <ScreenHeader left={closeButton} right={menuButton} />
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <CardIdentity
             title={card.title}
@@ -161,6 +181,7 @@ export default function CardDetailScreen() {
             onChangeTitle={(title) => void cardActions.patch(card, { title }).catch(() => undefined)}
           />
           <View testID="card-sections" style={styles.sections}>
+            {/* Status and scheduling — what the card is doing right now. */}
             <List>
               <Item
                 title={t(card.doneAt ? 'card.markNotDone' : 'card.markDone')}
@@ -180,36 +201,29 @@ export default function CardDetailScreen() {
               <DateRow
                 label={t('card.startDate')}
                 emptyLabel={t('card.noStartDate')}
+                icon={<IconTile><CalendarDays /></IconTile>}
                 value={card.startdate ?? null}
                 onChange={(v) => void cardActions.patch(card, { startdate: v }).catch(() => undefined)}
               />
               <DateRow
                 label={t('card.dueDate')}
                 emptyLabel={t('card.noDueDate')}
+                icon={<IconTile><CalendarClock /></IconTile>}
                 value={card.duedate ?? null}
                 overdueLine={overdueLine}
                 onChange={(v) => void cardActions.patch(card, { duedate: v }).catch(() => undefined)}
               />
-              <Item
-                title={t('card.color')}
-                description={card.color ?? t('card.noColor')}
-                leading={
-                  <View
-                    style={[
-                      styles.colorDot,
-                      card.color
-                        ? { backgroundColor: card.color }
-                        : { borderWidth: 1, borderColor: colors.border },
-                    ]}
-                  />
-                }
-                onPress={() => setColorSheetVisible(true)}
-              />
+            </List>
+
+            {/* Everything that classifies the card, each opening its own sheet. */}
+            <List>
               <Item
                 title={t('card.labels')}
                 description={
                   cardLabels.length > 0 ? cardLabels.map((l) => l.title).join(', ') : t('card.noLabels')
                 }
+                leading={<IconTile><Tag /></IconTile>}
+                trailing={<ChevronRight size={20} color={colors.textTertiary} />}
                 onPress={() => setLabelsSheetVisible(true)}
               />
               <Item
@@ -219,6 +233,8 @@ export default function CardDetailScreen() {
                     ? cardAssignees.map((a) => a.displayName).join(', ')
                     : t('card.noAssignees')
                 }
+                leading={<IconTile><Users /></IconTile>}
+                trailing={<ChevronRight size={20} color={colors.textTertiary} />}
                 onPress={() => setAssigneesSheetVisible(true)}
               />
               <Item
@@ -228,24 +244,38 @@ export default function CardDetailScreen() {
                     ? dependencies.map((d) => d.title).join(', ')
                     : t('card.noDependencies')
                 }
+                leading={<IconTile><Link2 /></IconTile>}
+                trailing={<ChevronRight size={20} color={colors.textTertiary} />}
                 onPress={() => setDependenciesSheetVisible(true)}
               />
+              <Item
+                title={t('card.color')}
+                description={card.color ?? t('card.noColor')}
+                leading={
+                  // The card's own colour reads better as the glyph's tint than
+                  // as a separate dot next to a generic one.
+                  card.color ? (
+                    <View style={[styles.colorTile, { backgroundColor: card.color }]}>
+                      <Palette size={20} color="#ffffff" />
+                    </View>
+                  ) : (
+                    <IconTile><Palette /></IconTile>
+                  )
+                }
+                trailing={<ChevronRight size={20} color={colors.textTertiary} />}
+                onPress={() => setColorSheetVisible(true)}
+              />
             </List>
+            <DescriptionView
+              markdown={card.description}
+              onToggleTask={(next) => void cardActions.patch(card, { description: next }).catch(() => undefined)}
+              onEdit={() => setDescriptionEditorVisible(true)}
+            />
             <AttachmentsSection
               attachments={attachments}
               loading={detailLoading}
               onOpen={setPreviewing}
             />
-            <View>
-              <SectionHeader title={t('card.description')} />
-              <List ignoreBorder>
-                <DescriptionView
-                  markdown={card.description}
-                  onToggleTask={(next) => void cardActions.patch(card, { description: next }).catch(() => undefined)}
-                  onEdit={() => setDescriptionEditorVisible(true)}
-                />
-              </List>
-            </View>
             <CommentsSection
               comments={comments}
               hasMore={hasMore}
@@ -263,6 +293,36 @@ export default function CardDetailScreen() {
               }
               onDelete={(comment) => void cardActions.removeComment(comment).catch(() => undefined)}
             />
+
+            {/* Provenance, last because it is reference rather than action.
+                Every value here is a column the card already carries. */}
+            <View>
+              <SectionHeader title={t('card.details.title')} />
+              <List>
+                {card.owner ? (
+                  <DetailRow
+                    label={t('card.details.createdBy')}
+                    // The raw owner is a bare uid — an opaque UUID on an SSO
+                    // server — so it is resolved against the board's people.
+                    value={participantName(participants, card.owner, activeAccount)}
+                  />
+                ) : null}
+                {card.createdAt > 0 ? (
+                  <DetailRow
+                    label={t('card.details.created')}
+                    value={formatRelative(card.createdAt)}
+                  />
+                ) : null}
+                {/* Same guard as the board list: lastModified is the server's
+                    clock and reads 0 until the card has actually synced. */}
+                {card.lastModified > 0 ? (
+                  <DetailRow
+                    label={t('card.details.modified')}
+                    value={formatRelative(card.lastModified)}
+                  />
+                ) : null}
+              </List>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -367,5 +427,6 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   sections: { marginTop: 24, gap: 24 },
-  colorDot: { width: 20, height: 20, borderRadius: 10 },
+  colorTile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  detailRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 2 },
 });

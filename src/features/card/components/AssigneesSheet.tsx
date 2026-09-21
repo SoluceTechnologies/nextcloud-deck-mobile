@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react-native';
+import { Check, Search } from 'lucide-react-native';
 
 import { useAvatar } from '@/features/account/hooks/useAvatar';
 import { filterParticipants, participantKey, type Participant } from '@/features/card/participants';
 import type { Account } from '@/types';
-import { AnimatedPressable, Avatar, Icon, Sheet, TextField, Typography } from '@/ui/components';
+import { AnimatedPressable, Avatar, EmptyState, Icon, Sheet, TextField, Typography } from '@/ui/components';
 
 export interface AssigneesSheetProps {
   visible: boolean;
@@ -95,9 +95,12 @@ export function AssigneesSheet({
       />
       {selected.map((p) => row(p, true))}
       {query.trim().length < 2 ? (
-        <Typography color="secondary" align="center">
-          {t('card.typeTwo')}
-        </Typography>
+        <EmptyState
+          testID="assignees-hint"
+          icon={<Search />}
+          title={t('card.searchPeople')}
+          description={t('card.typeTwo')}
+        />
       ) : (
         results.slice(0, MAX_RESULTS).map((p) => row(p, false))
       )}

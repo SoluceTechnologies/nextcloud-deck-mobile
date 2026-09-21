@@ -1,9 +1,11 @@
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { Archive, ArchiveRestore, Copy, MoveRight, Trash2 } from 'lucide-react-native';
+
 import type Card from '@/database/models/Card';
 import { useIsOnline } from '@/services/shared/network';
-import { Item, Sheet } from '@/ui/components';
+import { ActionList, Sheet, type SheetAction } from '@/ui/components';
 
 export interface CardMenuProps {
   visible: boolean;
@@ -48,22 +50,29 @@ export function CardMenu({ visible, card, onClose, onMove, onCopy, onArchive, on
   const canCopy = card.remoteId !== '' && online;
 
   // Computed up front so a hidden action leaves no trace in the rendered tree.
-  const actions = [
-    { key: 'move', title: t('card.menu.move'), onPress: run(onMove) },
-    ...(canCopy ? [{ key: 'copy', title: t('card.menu.copy'), onPress: run(onCopy) }] : []),
+  const actions: SheetAction[] = [
+    { key: 'move', title: t('card.menu.move'), icon: <MoveRight />, onPress: run(onMove) },
+    ...(canCopy
+      ? [{ key: 'copy', title: t('card.menu.copy'), icon: <Copy />, onPress: run(onCopy) }]
+      : []),
     {
       key: 'archive',
       title: t(card.archived ? 'card.menu.unarchive' : 'card.menu.archive'),
+      icon: card.archived ? <ArchiveRestore /> : <Archive />,
       onPress: run(onArchive),
     },
-    { key: 'delete', title: t('card.menu.delete'), onPress: handleDelete },
+    {
+      key: 'delete',
+      title: t('card.menu.delete'),
+      icon: <Trash2 />,
+      destructive: true,
+      onPress: handleDelete,
+    },
   ];
 
   return (
     <Sheet visible={visible} onClose={onClose} title={card.title}>
-      {actions.map((action) => (
-        <Item key={action.key} title={action.title} onPress={action.onPress} />
-      ))}
+      <ActionList actions={actions} />
     </Sheet>
   );
 }

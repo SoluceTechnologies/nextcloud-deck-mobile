@@ -1,6 +1,8 @@
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../../helpers/theme';
+import { lightTheme } from '../../../src/theme';
 import { BoardActionsSheet } from '../../../src/features/board/components/BoardActionsSheet';
 
 // Sheet renders via useSafeAreaInsets(), which throws without a provider —
@@ -83,4 +85,16 @@ it('does not delete until the confirmation is accepted', () => {
   expect(p.onDelete).toHaveBeenCalledTimes(1);
 
   alert.mockRestore();
+});
+
+// Delete is the one irreversible action in this sheet, so it must not look
+// like the four above it.
+it('marks only the delete as destructive', () => {
+  renderSheet(props());
+  expect(StyleSheet.flatten(screen.getByText('boards.actions.delete').props.style).color).toBe(
+    lightTheme.colors.danger,
+  );
+  expect(StyleSheet.flatten(screen.getByText('boards.actions.rename').props.style).color).toBe(
+    lightTheme.colors.text,
+  );
 });

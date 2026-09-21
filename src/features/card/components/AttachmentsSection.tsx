@@ -1,10 +1,10 @@
 import type { ComponentType } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { File, FileText, Image as ImageIcon } from 'lucide-react-native';
+import { File, FileText, Image as ImageIcon, Paperclip } from 'lucide-react-native';
 
 import type Attachment from '@/database/models/Attachment';
-import { Icon, Item, List, SectionHeader, Spinner, Typography } from '@/ui/components';
+import { EmptyState, Icon, Item, List, SectionHeader, Spinner, Typography } from '@/ui/components';
 
 export interface AttachmentsSectionProps {
   attachments: Attachment[];
@@ -44,9 +44,12 @@ export function AttachmentsSection({ attachments, loading, onOpen }: Attachments
         loading ? (
           <Spinner testID="files-loading" />
         ) : (
-          <Typography color="secondary" align="center">
-            {t('card.noFiles')}
-          </Typography>
+          <EmptyState
+            testID="files-empty"
+            icon={<Paperclip />}
+            title={t('card.noFiles')}
+            description={t('card.noFilesHint')}
+          />
         )
       ) : (
         <List>

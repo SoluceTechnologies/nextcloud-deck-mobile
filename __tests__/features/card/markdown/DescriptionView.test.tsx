@@ -58,7 +58,8 @@ it('shows the empty label for a blank description', () => {
   render(<DescriptionView markdown="" onToggleTask={jest.fn()} onEdit={jest.fn()} />, {
     wrapper: ThemeWrapper,
   });
-  expect(screen.getByText('card.noDescription')).toBeTruthy();
+  // The empty description is now a tap target into the editor, not a caption.
+  expect(screen.getByText('card.addDescription')).toBeTruthy();
 });
 
 // This is the whole point of the feature: a tapped box must persist.
@@ -92,5 +93,15 @@ it('opens the editor from the edit affordance', () => {
     wrapper: ThemeWrapper,
   });
   fireEvent.press(screen.getByTestId('description-edit'));
+  expect(onEdit).toHaveBeenCalled();
+});
+
+// The whole empty block opens the editor, so the pencil is not the only way in.
+it('opens the editor from the empty description itself', () => {
+  const onEdit = jest.fn();
+  render(<DescriptionView markdown="" onToggleTask={jest.fn()} onEdit={onEdit} />, {
+    wrapper: ThemeWrapper,
+  });
+  fireEvent.press(screen.getByTestId('description-empty'));
   expect(onEdit).toHaveBeenCalled();
 });

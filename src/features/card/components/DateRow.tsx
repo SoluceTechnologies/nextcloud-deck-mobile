@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,8 @@ interface DateRowProps {
   value: number | null;
   emptyLabel: string;
   overdueLine?: string;
+  /** The row's leading glyph, so the caller decides the visual language. */
+  icon?: React.ReactNode;
   onChange: (next: number | null) => void;
 }
 
@@ -35,7 +37,7 @@ function combine(date: Date, time: Date): Date {
  * danger-coloured line under it (the overdue call-out), and a clear control
  * that only appears once a date is set. Owns the native picker's open/close
  * state so the screen that renders it stays declarative. */
-export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: DateRowProps) {
+export function DateRow({ label, value, emptyLabel, overdueLine, icon, onChange }: DateRowProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [stage, setStage] = useState<Stage>('closed');
@@ -91,6 +93,7 @@ export function DateRow({ label, value, emptyLabel, overdueLine, onChange }: Dat
     <>
       <Item
         title={label}
+        leading={icon}
         description={
           <>
             <Typography variant="caption" color="secondary">

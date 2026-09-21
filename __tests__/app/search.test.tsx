@@ -123,7 +123,9 @@ it('lists a remote-only hit under its own section and opens its board', () => {
   fireEvent.changeText(screen.getByTestId('search-input'), 'server');
   fireEvent.press(screen.getByText('Only on server'));
   const { router } = require('expo-router');
-  expect(router.push).toHaveBeenCalledWith('/boards/b1'); // b1's remoteId is 'B1' in the fixtures
+  // withAnchor for the same reason as Today's recent boards: this crosses into
+  // the boards tab's stack, which would otherwise hold no board list.
+  expect(router.push).toHaveBeenCalledWith('/boards/b1', { withAnchor: true });
 });
 
 it('notes that results are local only when offline', () => {

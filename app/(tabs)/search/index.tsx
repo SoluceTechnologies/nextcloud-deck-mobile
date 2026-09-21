@@ -94,7 +94,11 @@ export default function SearchScreen() {
               remote={remote}
               offline={!online}
               onOpenCard={(cardId) => router.push(`/card/${cardId}`)}
-              onOpenBoard={(boardLocalId) => router.push(`/boards/${boardLocalId}`)}
+              // Same cross-tab push as Today's recent boards: without the
+              // anchor the boards stack holds this board alone.
+              onOpenBoard={(boardLocalId) =>
+                router.push(`/boards/${boardLocalId}`, { withAnchor: true })
+              }
               boardLocalIdByRemote={boardLocalIdByRemote}
             />
           )}

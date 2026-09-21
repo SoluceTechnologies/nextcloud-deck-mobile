@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Ellipsis, Send, X } from 'lucide-react-native';
+import { Ellipsis, MessageSquare, Send, X } from 'lucide-react-native';
 
 import type Comment from '@/database/models/Comment';
 import { formatRelative } from '@/utils/relativeTime';
-import { Avatar, Button, IconButton, SectionHeader, Spinner, TextField, Typography } from '@/ui/components';
+import { Avatar, Button, EmptyState, IconButton, Spinner, TextField, Typography } from '@/ui/components';
+import { SectionCard } from './SectionCard';
 import { CommentMenu } from './CommentMenu';
 
 export interface CommentsSectionProps {
@@ -162,17 +163,19 @@ export function CommentsSection({
         : t('card.writeComment');
 
   return (
-    <View>
-      <SectionHeader title={t('card.comments')} />
+    <SectionCard icon={<MessageSquare />} title={t('card.comments')}>
       {comments.length === 0 ? (
         // Same reasoning as the files section: an empty thread reads as "none"
         // only once the fetch has actually answered.
         loading ? (
           <Spinner testID="comments-loading" />
         ) : (
-          <Typography color="secondary" align="center">
-            {t('card.noComments')}
-          </Typography>
+          <EmptyState
+            testID="comments-empty"
+            icon={<MessageSquare />}
+            title={t('card.noComments')}
+            description={t('card.noCommentsHint')}
+          />
         )
       ) : (
         roots.map((root) => (
@@ -234,7 +237,7 @@ export function CommentsSection({
           onDelete(menuFor);
         }}
       />
-    </View>
+    </SectionCard>
   );
 }
 

@@ -71,3 +71,24 @@ export function filterParticipants(all: Participant[], query: string): Participa
     (p) => p.displayName.toLowerCase().includes(trimmed) || p.participant.toLowerCase().includes(trimmed),
   );
 }
+
+/**
+ * A person's name for display, from an id. Deck reports a card's owner as a
+ * bare uid — on an SSO server that is an opaque UUID, which is unreadable — so
+ * it is resolved against the people the board already lists.
+ *
+ * Falls back to the signed-in account when the board does not list them (a
+ * card whose owner has since left the board still names its owner), and to the
+ * raw id last, which is at least a stable identifier rather than a blank.
+ */
+export function participantName(
+  participants: Participant[],
+  uid: string,
+  self?: { davUserId: string; displayName: string } | null,
+): string {
+  if (!uid) return '';
+  const match = participants.find((p) => p.participant === uid);
+  if (match?.displayName) return match.displayName;
+  if (self && self.davUserId === uid && self.displayName) return self.displayName;
+  return uid;
+}

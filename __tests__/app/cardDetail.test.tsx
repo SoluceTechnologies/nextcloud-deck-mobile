@@ -171,12 +171,19 @@ beforeEach(() => {
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
 });
 
-it('shows the card title in the header and in the identity block', () => {
+// The title is plain text at rest — a card screen should not open looking like
+// a form — and only becomes the input it always was once tapped. It appears
+// once: the header carries no title, since the identity card below it holds
+// the full text and is the one that can be tapped to rename.
+it('shows the card title exactly once, as text', () => {
   renderScreen();
-  // getAllByText does not match a TextInput's value, so the header title and
-  // the identity TextField's value are asserted separately instead of via a
-  // single getAllByText(...).toHaveLength(2).
-  expect(screen.getByText('Payer le loyer')).toBeTruthy();
+  expect(screen.getAllByText('Payer le loyer')).toHaveLength(1);
+  expect(screen.queryByTestId('card-title-input')).toBeNull();
+});
+
+it('turns the title into an input when tapped', () => {
+  renderScreen();
+  fireEvent.press(screen.getByTestId('card-title'));
   expect(screen.getByDisplayValue('Payer le loyer')).toBeTruthy();
 });
 
@@ -207,6 +214,7 @@ it('commits a title edit through the card actions, trimmed', () => {
   const { patch } = requireCardActionsMock();
   renderScreen();
 
+  fireEvent.press(screen.getByTestId('card-title'));
   fireEvent.changeText(screen.getByTestId('card-title-input'), '  Renamed  ');
   fireEvent(screen.getByTestId('card-title-input'), 'blur');
 
@@ -218,6 +226,7 @@ it('does not commit an empty title', () => {
   const { patch } = requireCardActionsMock();
   renderScreen();
 
+  fireEvent.press(screen.getByTestId('card-title'));
   fireEvent.changeText(screen.getByTestId('card-title-input'), '   ');
   fireEvent(screen.getByTestId('card-title-input'), 'blur');
 
@@ -227,6 +236,7 @@ it('does not commit an empty title', () => {
 it('does not commit when the title is unchanged', () => {
   const { patch } = requireCardActionsMock();
   renderScreen();
+  fireEvent.press(screen.getByTestId('card-title'));
   fireEvent(screen.getByTestId('card-title-input'), 'blur');
   expect(patch).not.toHaveBeenCalled();
 });
@@ -239,6 +249,7 @@ it('does not revert a remote rename on an untouched blur after a focused pull', 
   mockCard({ title: 'Old' });
   const { rerender } = renderScreen();
 
+  fireEvent.press(screen.getByTestId('card-title'));
   fireEvent(screen.getByTestId('card-title-input'), 'focus');
 
   mockCard({ title: 'New' });
@@ -507,4 +518,61 @@ it('declines to preview a file over the size cap', () => {
 
   expect(screen.getByTestId('preview-fallback')).toBeTruthy();
   expect(trustedFetch).not.toHaveBeenCalled();
+});
+
+describe('the details block', () => {
+  // Provenance comes from columns the card already carries — no new fetch.
+  it('shows who created the card and when it changed', () => {
+    mockCard({ owner: 'alice', createdAt: 1757000000000, lastModified: 1757600000000 });
+    renderScreen();
+
+    expect(screen.getByText('card.details.createdBy')).toBeTruthy();
+    expect(screen.getByText('card.details.created')).toBeTruthy();
+    expect(screen.getByText('card.details.modified')).toBeTruthy();
+  });
+
+  // Deck reports the owner as a bare uid, which on an SSO server is an opaque
+  // UUID. The board already carries a name for its people.
+  it('names the owner rather than printing their raw id', () => {
+    const { useBoards } = require('../../src/database/hooks/useBoards');
+    (useBoards as jest.Mock).mockReturnValue([
+      {
+        id: 'b1',
+        title: 'Finance & Juridique',
+        remoteId: 'B1',
+        usersJson: JSON.stringify([{ uid: 'keycloak-3ddbe54d', displayName: 'Charles Gauthereau' }]),
+        aclJson: '[]',
+      },
+    ]);
+    mockCard({ owner: 'keycloak-3ddbe54d', createdAt: 1757000000000 });
+    renderScreen();
+
+    expect(screen.getByText('Charles Gauthereau')).toBeTruthy();
+    expect(screen.queryByText('keycloak-3ddbe54d')).toBeNull();
+  });
+
+  // Same guard as the board list: lastModified is the server's clock and reads
+  // 0 until the card has actually synced, which would format as the epoch.
+  it('omits a timestamp the card has never received from the server', () => {
+    mockCard({ owner: '', createdAt: 0, lastModified: 0 });
+    renderScreen();
+
+    expect(screen.queryByText('card.details.createdBy')).toBeNull();
+    expect(screen.queryByText('card.details.created')).toBeNull();
+    expect(screen.queryByText('card.details.modified')).toBeNull();
+  });
+});
+
+describe('the empty states', () => {
+  it('explains an empty file list rather than only naming it', () => {
+    renderScreen();
+    expect(screen.getByTestId('files-empty')).toBeTruthy();
+    expect(screen.getByText('card.noFilesHint')).toBeTruthy();
+  });
+
+  it('explains an empty comment thread', () => {
+    renderScreen();
+    expect(screen.getByTestId('comments-empty')).toBeTruthy();
+    expect(screen.getByText('card.noCommentsHint')).toBeTruthy();
+  });
 });

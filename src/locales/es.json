@@ -242,6 +242,7 @@
     "typeTwo": "Escribe al menos dos caracteres",
     "dependencies": "Dependencias",
     "noDependencies": "Ninguna",
+    "noDependenciesHint": "Vincula esta tarjeta con otra.",
     "addDependency": "Añadir una dependencia",
     "dependencyNeedsSync": "Esta tarjeta debe sincronizarse antes de poder enlazarla.",
     "color": "Color de la tarjeta",
@@ -249,6 +250,7 @@
     "clearColor": "Quitar color",
     "files": "Archivos",
     "noFiles": "Sin archivos",
+    "noFilesHint": "Adjunta una foto, un documento o un archivo de Nextcloud.",
     "preview": {
       "unsupported": "Este archivo no se puede previsualizar en la aplicación.",
       "tooLarge": "Este archivo es demasiado grande para previsualizarlo aquí.",
@@ -257,10 +259,12 @@
     },
     "description": "Descripción",
     "noDescription": "Sin descripción",
+    "addDescription": "Añadir una descripción…",
     "rawEditorNotice": "Esta descripción usa un formato que el editor enriquecido no puede conservar. Editando como Markdown sin formato.",
     "save": "Guardar",
     "comments": "Comentarios",
     "noComments": "Sin comentarios",
+    "noCommentsHint": "Inicia la conversación sobre esta tarjeta.",
     "loadMore": "Cargar más",
     "writeComment": "Escribe un comentario…",
     "commentPending": "Enviando…",
@@ -296,6 +300,12 @@
       "chooseList": "Elegir una lista",
       "chooseCard": "Elegir una tarjeta",
       "empty": "Nada aquí"
+    },
+    "details": {
+      "title": "DETALLES",
+      "createdBy": "Creada por",
+      "created": "Creada",
+      "modified": "Modificada"
     }
   },
   "board": {

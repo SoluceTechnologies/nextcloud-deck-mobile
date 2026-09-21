@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from 'expo-router';
 import { AlertTriangle } from 'lucide-react-native';
 
-import { darkTheme } from '@/theme';
 import { Typography } from '@/ui/components';
 
 export interface OverdueBannerProps {
@@ -17,15 +16,16 @@ export function OverdueBanner({ count }: OverdueBannerProps) {
   if (count === 0) return null;
 
   return (
-    <View style={[styles.root, { backgroundColor: darkTheme.colors.surfaceRaised, borderRadius: radius.md }]}>
+    // A low-alpha wash of the danger colour, not a fixed slab: this used to
+    // paint itself with the dark theme's surface and white text whatever the
+    // app was set to, so in light mode it was a black box.
+    <View testID="overdue-banner" style={[styles.root, { backgroundColor: `${colors.danger}1f`, borderRadius: radius.md }]}>
       <View testID="overdue-edge" style={[styles.edge, { backgroundColor: colors.danger }]} />
       <View style={styles.content}>
         <AlertTriangle size={20} color={colors.danger} />
         <View style={styles.text}>
-          <Typography variant="body2" color="light">
-            {t('today.overdueBanner', { count })}
-          </Typography>
-          <Typography variant="caption" color="light">
+          <Typography variant="body2">{t('today.overdueBanner', { count })}</Typography>
+          <Typography variant="caption" color="secondary">
             {t('today.overdueHint')}
           </Typography>
         </View>

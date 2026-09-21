@@ -1,8 +1,12 @@
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import {
+  Archive, ArchiveRestore, Palette, Pencil, SquareArrowOutUpRight, Trash2,
+} from 'lucide-react-native';
+
 import type { BoardSummary } from '@/features/board/boardFilter';
-import { Item, Sheet } from '@/ui/components';
+import { ActionList, Sheet, type SheetAction } from '@/ui/components';
 
 export interface BoardActionsSheetProps {
   summary: BoardSummary;
@@ -53,27 +57,47 @@ export function BoardActionsSheet({
   };
 
   // Computed up front so a hidden action leaves no trace in the rendered tree.
-  const actions = [
-    { key: 'open', title: t('boards.actions.open'), onPress: run(onOpen) },
+  const actions: SheetAction[] = [
+    {
+      key: 'open',
+      title: t('boards.actions.open'),
+      icon: <SquareArrowOutUpRight />,
+      onPress: run(onOpen),
+    },
     ...(board.canManage
       ? [
-          { key: 'rename', title: t('boards.actions.rename'), onPress: run(onRename) },
-          { key: 'color', title: t('boards.actions.color'), onPress: run(onRecolor) },
+          {
+            key: 'rename',
+            title: t('boards.actions.rename'),
+            icon: <Pencil />,
+            onPress: run(onRename),
+          },
+          {
+            key: 'color',
+            title: t('boards.actions.color'),
+            icon: <Palette />,
+            onPress: run(onRecolor),
+          },
           {
             key: 'archive',
             title: board.archived ? t('boards.actions.unarchive') : t('boards.actions.archive'),
+            icon: board.archived ? <ArchiveRestore /> : <Archive />,
             onPress: run(onArchive),
           },
-          { key: 'delete', title: t('boards.actions.delete'), onPress: handleDelete },
+          {
+            key: 'delete',
+            title: t('boards.actions.delete'),
+            icon: <Trash2 />,
+            destructive: true,
+            onPress: handleDelete,
+          },
         ]
       : []),
   ];
 
   return (
     <Sheet visible={visible} onClose={onClose} title={board.title}>
-      {actions.map((action) => (
-        <Item key={action.key} title={action.title} onPress={action.onPress} />
-      ))}
+      <ActionList actions={actions} />
     </Sheet>
   );
 }

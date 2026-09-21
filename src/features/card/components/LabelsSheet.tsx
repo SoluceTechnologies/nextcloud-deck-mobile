@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react-native';
+import { Check, Plus } from 'lucide-react-native';
 
 import type Label from '@/database/models/Label';
 import { PaletteRow } from '@/features/board/components/PaletteRow';
 import { DECK_PALETTE } from '@/features/board/palette';
-import { AnimatedPressable, Button, Icon, Item, Sheet, TextField, Typography } from '@/ui/components';
+import { AnimatedPressable, Button, Icon, IconTile, Item, List, Sheet, TextField, Typography } from '@/ui/components';
 
 export interface LabelsSheetProps {
   visible: boolean;
@@ -93,7 +93,13 @@ export function LabelsSheet({ visible, boardLabels, selected, onClose, onToggle,
           <Button title={t('card.create')} disabled={!title.trim()} onPress={submit} />
         </View>
       ) : (
-        <Item title={t('card.newLabel')} onPress={() => setCreating(true)} />
+        <List>
+          <Item
+            title={t('card.newLabel')}
+            leading={<IconTile tint="primary"><Plus /></IconTile>}
+            onPress={() => setCreating(true)}
+          />
+        </List>
       )}
     </Sheet>
   );

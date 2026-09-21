@@ -124,7 +124,16 @@ it('opens a card and a recent board', () => {
   fireEvent.press(screen.getByTestId('today-row-c2'));
   expect(router.push).toHaveBeenCalledWith('/card/c2');
   fireEvent.press(screen.getByText('Finance & Juridique'));
-  expect(router.push).toHaveBeenCalledWith('/boards/b1');
+  expect(router.push).toHaveBeenCalledWith('/boards/b1', { withAnchor: true });
+});
+
+// This push crosses into the boards tab's own stack. Without the anchor that
+// stack holds the board and nothing else, so neither the header's back control
+// nor the tab bar can reach the board list again.
+it('loads the board list under a board opened from Today', () => {
+  renderScreen();
+  fireEvent.press(screen.getByText('Finance & Juridique'));
+  expect(router.push).toHaveBeenCalledWith(expect.any(String), { withAnchor: true });
 });
 
 it('says there is nothing due when every bucket is empty', () => {

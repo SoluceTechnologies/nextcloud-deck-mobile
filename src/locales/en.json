@@ -242,6 +242,7 @@
     "typeTwo": "Type at least two characters",
     "dependencies": "Dependencies",
     "noDependencies": "None",
+    "noDependenciesHint": "Link this card to another one.",
     "addDependency": "Add a dependency",
     "dependencyNeedsSync": "This card has to sync before it can be linked.",
     "color": "Card color",
@@ -249,6 +250,7 @@
     "clearColor": "Clear color",
     "files": "Files",
     "noFiles": "No files",
+    "noFilesHint": "Attach a photo, a document, or a Nextcloud file.",
     "preview": {
       "unsupported": "This file cannot be previewed in the app.",
       "tooLarge": "This file is too large to preview here.",
@@ -257,10 +259,12 @@
     },
     "description": "Description",
     "noDescription": "No description",
+    "addDescription": "Add description…",
     "rawEditorNotice": "This description uses formatting the rich editor cannot keep. Editing as plain Markdown.",
     "save": "Save",
     "comments": "Comments",
     "noComments": "No comments",
+    "noCommentsHint": "Start the conversation on this card.",
     "loadMore": "Load more",
     "writeComment": "Write a comment…",
     "commentPending": "Sending…",
@@ -296,6 +300,12 @@
       "chooseList": "Choose a list",
       "chooseCard": "Choose a card",
       "empty": "Nothing here"
+    },
+    "details": {
+      "title": "DETAILS",
+      "createdBy": "Created by",
+      "created": "Created",
+      "modified": "Modified"
     }
   },
   "board": {

@@ -1,7 +1,8 @@
-import { Alert } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../../helpers/theme';
+import { lightTheme } from '../../../src/theme';
 import { CardMenu } from '../../../src/features/card/components/CardMenu';
 
 // Sheet renders via useSafeAreaInsets(), which throws without a provider —
@@ -76,4 +77,14 @@ it('hides copy while offline even for a synced card', () => {
   (useIsOnline as jest.Mock).mockReturnValue(false);
   renderMenu({ visible: true, card: card(), ...handlers() });
   expect(screen.queryByText('card.menu.copy')).toBeNull();
+});
+
+it('marks only the delete as destructive', () => {
+  renderMenu({ visible: true, card: card(), ...handlers() });
+  expect(StyleSheet.flatten(screen.getByText('card.menu.delete').props.style).color).toBe(
+    lightTheme.colors.danger,
+  );
+  expect(StyleSheet.flatten(screen.getByText('card.menu.move').props.style).color).toBe(
+    lightTheme.colors.text,
+  );
 });

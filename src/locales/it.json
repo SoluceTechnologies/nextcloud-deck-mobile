@@ -242,6 +242,7 @@
     "typeTwo": "Digita almeno due caratteri",
     "dependencies": "Dipendenze",
     "noDependencies": "Nessuna",
+    "noDependenciesHint": "Collega questa scheda a un'altra.",
     "addDependency": "Aggiungi una dipendenza",
     "dependencyNeedsSync": "Questa scheda deve essere sincronizzata prima di poter essere collegata.",
     "color": "Colore della scheda",
@@ -249,6 +250,7 @@
     "clearColor": "Rimuovi colore",
     "files": "File",
     "noFiles": "Nessun file",
+    "noFilesHint": "Allega una foto, un documento o un file Nextcloud.",
     "preview": {
       "unsupported": "Questo file non può essere visualizzato nell'app.",
       "tooLarge": "Questo file è troppo grande per l'anteprima qui.",
@@ -257,10 +259,12 @@
     },
     "description": "Descrizione",
     "noDescription": "Nessuna descrizione",
+    "addDescription": "Aggiungi una descrizione…",
     "rawEditorNotice": "Questa descrizione usa una formattazione che l'editor avanzato non può mantenere. Modifica come Markdown semplice.",
     "save": "Salva",
     "comments": "Commenti",
     "noComments": "Nessun commento",
+    "noCommentsHint": "Avvia la conversazione su questa scheda.",
     "loadMore": "Carica altro",
     "writeComment": "Scrivi un commento…",
     "commentPending": "Invio…",
@@ -296,6 +300,12 @@
       "chooseList": "Scegli una lista",
       "chooseCard": "Scegli una scheda",
       "empty": "Niente qui"
+    },
+    "details": {
+      "title": "DETTAGLI",
+      "createdBy": "Creata da",
+      "created": "Creata",
+      "modified": "Modificata"
     }
   },
   "board": {
