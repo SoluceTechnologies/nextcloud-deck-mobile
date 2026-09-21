@@ -14,7 +14,6 @@ function dayIndex(ms: number): number {
   return Math.round(d.getTime() / 86_400_000);
 }
 
-/** The server's upcoming filter: unassigned, or assigned to the user as a person (type 0). */
 function concernsMe(assignees: CardAssignee[] | undefined, me: string): boolean {
   if (!assignees || assignees.length === 0) return true;
   return assignees.some((a) => a.assigneeType === 0 && a.participant === me);
