@@ -11,26 +11,14 @@ import { reconcile } from '@/sync/reconcile';
 import { buildLabelOps } from '@/sync/tasks/syncLabels';
 import type { Account } from '@/types';
 
-/**
- * Deck compares `If-Modified-Since` against `last_modified > since`, on the server
- * clock and at second resolution. Rewinding two seconds re-sends a handful of
- * already-known boards rather than missing one written in the same second.
- */
 const OVERLAP_MS = 2000;
 
 export type SyncBoardsParams = {
   db: Database;
   account: Account;
-  /** `true` runs a snapshot pass, which is authoritative and removes stale rows. */
   full: boolean;
 };
 
-/**
- * `true` if the pass actually reconciled (including a legitimate no-op, such
- * as a 304); `false` if it aborted without writing because a local write
- * raced the fetch. The caller must not credit a `false` pass as a snapshot —
- * see `scheduler.ts`.
- */
 export async function syncBoards({ db, account, full }: SyncBoardsParams): Promise<boolean> {
   const boards = db.get<Board>('boards');
   const rows = await boards.query(Q.where('account_id', account.id)).fetch();
@@ -40,32 +28,16 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
 
   const epoch = localWriteEpoch();
   const remote = await fetchBoards(account, sinceMs);
-  // 304: nothing changed since the cursor, so there is nothing to reconcile.
-  // `deleteMissing` is false on this path today, but treating "no news" as an
-  // empty snapshot is the same latent bug the stacks pass had.
   if (remote === null) return true;
 
   return safeWrite(
     db,
     async () => {
-      // A write landed while the fetch was in flight: the rows below would be
-      // reconciled against a remote snapshot paired with a local state that is
-      // already stale. Abort without writing, and report it — a bare success
-      // here would let the caller stamp a snapshot clock for a pass that did
-      // nothing, corrupting the one mechanism that ever notices a deletion.
       if (localWriteEpoch() !== epoch) return false;
 
       const fresh = await boards.query(Q.where('account_id', account.id)).fetch();
-      // Filter out boards awaiting their first push: they carry remoteId = '' until the create
-      // flushes to the server, but they cannot match any remote board and are already protected
-      // by the outbox. Passing them to reconcile would risk marking them deleted if another
-      // offline board collides on that empty key.
       const synced = fresh.filter((r) => r.remoteId);
 
-      // Same shape as the card shield in syncBoardContent: a queued update is
-      // protected through its row's remote id, while a queued delete has already
-      // destroyed its row, so its remote id comes off the intent — without that
-      // second half a full snapshot recreates the board before the DELETE drains.
       const queuedBoards = await loadQueuedIntents(db, account.id, 'board');
       const queuedBoardIds = new Set(queuedBoards.map(({ entry }) => entry.entityId));
       const protectedBoardIds = new Set(
@@ -100,9 +72,6 @@ export async function syncBoards({ db, account, full }: SyncBoardsParams): Promi
         localIdByRemote.set(b.remoteId, created.id);
       }
       for (const { row, remote: b } of plan.update) {
-        // `reconcile`'s protectedRowIds only guards create/remove/duplicate rows,
-        // not update — a queued rename still needs its own check here, or the
-        // stale value this pass just fetched would revert it before the drain runs.
         if (protectedBoardIds.has(row.remoteId)) continue;
         ops.push(row.prepareUpdate((r: Board) => writeBoardRow(r, b, account.id)));
       }

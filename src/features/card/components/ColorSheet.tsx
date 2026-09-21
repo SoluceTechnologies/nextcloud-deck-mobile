@@ -28,8 +28,6 @@ export function ColorSheet({ visible, value, onClose, onSelect }: ColorSheetProp
         }}
       />
       <List>
-        {/* What the card is set to now, so the sheet states the current value
-            rather than leaving the swatch row to imply it. */}
         <Item
           title={t('card.color')}
           description={value ?? t('card.noColor')}

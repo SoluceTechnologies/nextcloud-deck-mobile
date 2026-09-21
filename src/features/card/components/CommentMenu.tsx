@@ -9,7 +9,6 @@ import { ActionList, Sheet, type SheetAction } from '@/ui/components';
 export interface CommentMenuProps {
   visible: boolean;
   comment: Comment | null;
-  /** Deck only lets the author edit or delete, so the two actions are hidden otherwise. */
   mine: boolean;
   onClose: () => void;
   onEdit: () => void;
@@ -17,10 +16,6 @@ export interface CommentMenuProps {
   onDelete: () => void;
 }
 
-/**
- * The per-comment action sheet, same shape as CardMenu: non-destructive
- * actions run and dismiss, the delete asks first.
- */
 export function CommentMenu({ visible, comment, mine, onClose, onEdit, onReply, onDelete }: CommentMenuProps) {
   const { t } = useTranslation();
 
@@ -43,8 +38,6 @@ export function CommentMenu({ visible, comment, mine, onClose, onEdit, onReply, 
     ]);
   };
 
-  // A comment still on its way to the server has no remote id, and a reply has
-  // to name its parent by that id — so replying waits until it has one.
   const canReply = comment !== null && comment.remoteId !== '';
 
   const actions: SheetAction[] = [

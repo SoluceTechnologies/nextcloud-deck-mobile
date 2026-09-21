@@ -9,7 +9,6 @@ export interface PaletteRowProps {
   onSelect: (color: string) => void;
 }
 
-/** One pressable swatch per `DECK_PALETTE` entry, with a ring around the selected one. */
 export function PaletteRow({ value, onSelect }: PaletteRowProps) {
   const { colors } = useTheme();
 

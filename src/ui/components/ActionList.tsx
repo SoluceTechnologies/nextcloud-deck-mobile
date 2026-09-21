@@ -9,7 +9,6 @@ export type SheetAction = {
   key: string;
   title: string;
   icon?: React.ReactNode;
-  /** Paints the row red and tints its tile — for a delete, never for a rename. */
   destructive?: boolean;
   onPress: () => void;
   testID?: string;
@@ -19,16 +18,6 @@ interface ActionListProps {
   actions: SheetAction[];
 }
 
-/**
- * The rows of an action sheet, shared by every menu in the app so a delete
- * looks the same wherever it is offered. Callers build a plain array and
- * decide which actions exist; nothing here knows about boards, cards or
- * comments.
- *
- * `Item`'s `title` takes a node, so the destructive row is coloured by passing
- * its own Typography rather than by teaching `Item` about severity — the rest
- * of the app's rows have no use for that.
- */
 function ActionList({ actions }: ActionListProps) {
   return (
     <List>

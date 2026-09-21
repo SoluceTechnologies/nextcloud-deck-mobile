@@ -13,12 +13,6 @@ interface SectionCardProps {
   testID?: string;
 }
 
-/**
- * A card whose heading lives inside it: glyph, label, optional action, then
- * the body. Distinct from `SectionHeader`, which labels a group of cards from
- * outside — Description and Comments read as one object with a title, not as
- * a titled group.
- */
 export function SectionCard({ icon, title, action, children, testID }: SectionCardProps) {
   const { colors } = useTheme();
 

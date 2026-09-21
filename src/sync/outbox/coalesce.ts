@@ -3,13 +3,10 @@ import type { Intent } from './types';
 export type CoalesceEntry = { id: string; intent: Intent };
 
 export type CoalesceResult = {
-  /** Entries to send, in their original relative order. */
   send: CoalesceEntry[];
-  /** Ids of entries made redundant, to delete without sending. */
   drop: string[];
 };
 
-/** The create whose presence earlier in the same queue means this delete's row never reached the server. */
 function createKindOf(deleteKind: Intent['kind']): Intent['kind'] | null {
   switch (deleteKind) {
     case 'deleteCard':
@@ -25,10 +22,6 @@ function createKindOf(deleteKind: Intent['kind']): Intent['kind'] | null {
   }
 }
 
-/**
- * Collapses the queue of one entity. Called on entries that share an
- * `entity_id`, in FIFO order.
- */
 export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
   const deleteIndex = entries.findIndex((e) => createKindOf(e.intent.kind) !== null);
 
@@ -37,7 +30,6 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
     const before = entries.slice(0, deleteIndex);
     const wasCreatedHere = before.some((e) => e.intent.kind === createKind);
     if (wasCreatedHere) {
-      // The row never reached the server, so there is nothing to delete there.
       return { send: [], drop: entries.map((e) => e.id) };
     }
     return {
@@ -48,7 +40,6 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
 
   const drop = new Set<string>();
 
-  // The last write of a single-valued intent is the only one worth sending.
   const lastByKey = new Map<string, string>();
   const keyOf = (intent: Intent): string | null => {
     switch (intent.kind) {
@@ -80,11 +71,6 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
     lastByKey.set(key, entry.id);
   }
 
-  // An edit of a comment that has not been posted yet is not a second request:
-  // the create carries the message in its own payload, so the newest text folds
-  // into it and the edits drop. Without this the create would post the text as
-  // it stood at enqueue time and a failing edit would leave the server holding
-  // a message the local row no longer shows.
   const createComment = entries.find((e) => e.intent.kind === 'createComment');
   let foldedCreate: Intent | null = null;
   if (createComment) {
@@ -101,9 +87,6 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
     }
   }
 
-  // Patches merge into the newest one: newer values win, but the base must stay
-  // the oldest known server value, or the conflict check compares against our
-  // own optimistic write.
   const patches = entries.filter((e) => e.intent.kind === 'patchCard');
   let mergedPatch: Intent | null = null;
   if (patches.length > 1) {

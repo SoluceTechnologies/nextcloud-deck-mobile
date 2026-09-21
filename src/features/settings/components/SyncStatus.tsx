@@ -53,9 +53,6 @@ export function SyncStatus() {
   const discard = (entry: OutboxEntry) =>
     safeWrite(database, () => entry.destroyPermanently(), 10000, 'syncStatus:discard');
 
-  // This screen is the only place a permanently-failed edit surfaces, and
-  // discarding it is unrecoverable — it needs its own labelled control, not
-  // a tap anywhere on the row, and a confirmation before it runs.
   const confirmDiscard = (entry: OutboxEntry) =>
     Alert.alert(t('sync.discardTitle'), t('sync.discardMsg'), [
       { text: t('common.cancel'), style: 'cancel' },

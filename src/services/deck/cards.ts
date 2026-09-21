@@ -10,10 +10,6 @@ export type CardRef = {
   cardRemoteId: string;
 };
 
-/**
- * Every field `PUT /cards/{id}` accepts. The endpoint replaces the card, so a
- * missing key is an erasure — build this from the local row, in full, at send time.
- */
 export type CardWriteState = {
   title: string;
   description: string;
@@ -195,12 +191,6 @@ export async function removeDependentCard(
   });
 }
 
-/**
- * The `clone` route is unconfirmed to reply inside an OCS envelope (§4,
- * docs/v0/api-verification.md) — `unwrap` already returns a bare body as-is
- * when there is no `ocs` key, so this reads `data.id` without caring which
- * shape arrived.
- */
 export async function cloneCard(
   account: DeckAccount,
   cardRemoteId: string,

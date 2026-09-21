@@ -35,10 +35,6 @@ export function dueTasks({
 }: DueTasksInput): SyncTask[] {
   const tasks: SyncTask[] = [];
 
-  // The open board goes first: `runTask` awaits each task in turn, so anything
-  // queued ahead of it is a network round trip the user spends staring at an
-  // empty board. The board list and the upcoming cards feed screens that are
-  // not on top — they can wait a beat.
   if (activeBoardRemoteId !== null) {
     const snapshotAt = state.boardSnapshotAt[activeBoardRemoteId] ?? 0;
     tasks.push({
@@ -48,8 +44,6 @@ export function dueTasks({
     });
   }
 
-  // A snapshot supersedes the delta of the same scope — running both would
-  // fetch the same rows twice.
   tasks.push({ kind: 'boards', full: now - state.boardsSnapshotAt >= SNAPSHOT_INTERVAL_MS });
   tasks.push({ kind: 'upcoming' });
 

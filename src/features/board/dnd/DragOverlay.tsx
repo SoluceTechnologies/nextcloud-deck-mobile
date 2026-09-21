@@ -9,16 +9,11 @@ const LIFTED_SCALE = 1.04;
 
 function noop() {}
 
-/** The floating copy of the card being dragged, following the finger. Mounted only while a drag is active — see `activeData` on DragContext. */
 export function DragOverlay() {
   const { activeId, x, y, originX, originY, width, startX, startY } = useDrag();
   const activeData = useDragActiveData();
   const reduceMotion = useSettingsStore((s) => s.reduceMotion);
 
-  // Reads `activeId` too, even though this component only exists while a
-  // drag is active, so the style still resolves to a plain (non-worklet)
-  // opacity in the one animated frame after a drop, while `activeData`'s
-  // React-state update to null is still in flight.
   const style = useAnimatedStyle(() => ({
     position: 'absolute' as const,
     left: originX.value + (x.value - startX.value),

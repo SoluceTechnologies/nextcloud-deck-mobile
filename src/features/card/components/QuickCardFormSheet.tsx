@@ -12,13 +12,6 @@ export interface QuickCardFormSheetProps {
   onSubmit: (input: { title: string; duedate: number | null }) => void;
 }
 
-/**
- * The last step of the quick-add flow (spec §7.6): a bare card form — title
- * and an optional due date — scoped to whichever board/list
- * QuickAddCardFlow's picker step resolved. Unlike BoardFormSheet there is no
- * "edit" mode: every open is a new card, so re-seeding on `visible` always
- * clears back to blank rather than restoring a passed-in value.
- */
 export function QuickCardFormSheet({
   visible,
   boardTitle,

@@ -18,19 +18,9 @@ export interface AttachmentPreviewProps {
   account: Account | null;
   ref_: CardRemoteRef | null;
   onClose: () => void;
-  /** Hands the file to the OS, for everything this app cannot draw itself. */
   onOpenExternally: (attachment: Attachment) => void;
 }
 
-/**
- * Full-screen preview of a card's file. Images render here; anything else says
- * so plainly and offers the system handler instead — a PDF or an office
- * document needs a viewer this app does not ship.
- *
- * `visible` is derived from `attachment`, so the modal unmounts its body
- * between openings and the hook never holds one file's bytes while showing
- * another's.
- */
 export function AttachmentPreview({
   attachment,
   account,
@@ -41,8 +31,6 @@ export function AttachmentPreview({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const state = useAttachmentPreview(account, ref_, attachment);
-  // <Image> can still fail on a type the mime claimed but the decoder rejects
-  // (a HEIC on Android, a truncated upload) — the hook cannot know that.
   const [decodeFailed, setDecodeFailed] = useState(false);
 
   const fallbackMessage =
@@ -63,13 +51,8 @@ export function AttachmentPreview({
       visible={attachment !== null}
       animationType="slide"
       onRequestClose={onClose}
-      // Remounts the body per file, so the previous image never flashes up
-      // under the next file's name while its bytes are still loading.
       key={attachment?.id ?? 'none'}
     >
-      {/* A Modal renders on its own opaque white root, outside the screen it
-          was opened from — without this the preview stays light while the app
-          is dark. */}
       <ViewContainer>
         <SafeAreaView edges={['top']} style={styles.flex}>
           <ScreenHeader

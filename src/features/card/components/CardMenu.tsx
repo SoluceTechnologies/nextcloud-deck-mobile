@@ -21,7 +21,6 @@ export function CardMenu({ visible, card, onClose, onMove, onCopy, onArchive, on
   const { t } = useTranslation();
   const online = useIsOnline();
 
-  // Non-destructive actions run then dismiss the sheet immediately.
   const run = (action: () => void) => () => {
     action();
     onClose();
@@ -45,11 +44,8 @@ export function CardMenu({ visible, card, onClose, onMove, onCopy, onArchive, on
     );
   };
 
-  // The copy is server-only (spec §9): hidden, not disabled, until the card has
-  // synced at least once, and while there is no connection to reach the server.
   const canCopy = card.remoteId !== '' && online;
 
-  // Computed up front so a hidden action leaves no trace in the rendered tree.
   const actions: SheetAction[] = [
     { key: 'move', title: t('card.menu.move'), icon: <MoveRight />, onPress: run(onMove) },
     ...(canCopy

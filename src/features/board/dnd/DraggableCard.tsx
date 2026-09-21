@@ -24,24 +24,11 @@ export function DraggableCard({ data, stackId, onPress }: DraggableCardProps) {
     useDrag();
 
   function begin() {
-    // Haptic fires immediately on lift, independent of the measurement
-    // below. setActiveData (which mounts DragOverlay) waits for
-    // measureInWindow's callback so the overlay never mounts at a stale
-    // origin (0 on the first drag of the session, the previous card's
-    // origin afterwards) — see controller ruling R11: a few milliseconds'
-    // delay before the floating copy appears beats appearing wrong and
-    // snapping once the real measurement lands.
     haptic();
     viewRef.current?.measureInWindow?.((winX, winY, winWidth) => {
       originX.value = winX;
       originY.value = winY;
       width.value = winWidth;
-      // measureInWindow is its own async round trip on top of the runOnJS
-      // hop that got us here, so an ordinary short gesture (activate, then
-      // release right away) can let onFinalize's runOnJS(finish) reach JS
-      // and null activeId before this callback fires. Without this guard,
-      // an already-finalized gesture would unconditionally remount a ghost
-      // overlay that nothing afterwards clears.
       if (activeId.value === cardId) {
         setActiveData(data);
       }
@@ -77,10 +64,6 @@ export function DraggableCard({ data, stackId, onPress }: DraggableCardProps) {
     })
     .onFinalize(() => {
       'worklet';
-      // onFinalize always fires, even when onStart never did — e.g. a plain
-      // tap released before activateAfterLongPress elapses. Without this
-      // guard that would call finish() with whatever target.value was left
-      // over from a previous, unrelated drag anywhere on the board.
       if (activeId.value !== cardId) return;
       const t = target.value;
       activeId.value = null;

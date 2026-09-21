@@ -1,20 +1,6 @@
-// A fence line's *trimmed* start is 3+ backticks or tildes; content between
-// an opening and closing fence is never a list item.
 const FENCE_LINE = /^\s*(?:`{3,}|~{3,})/;
-
-// Anchored at line start: a list marker, required whitespace, then the
-// checkbox. This is why "a sentence with [ ] in it" and "[ ] not a task"
-// never match — there is no list marker before the bracket pair.
 const TASK_LINE = /^(\s*)([-*+]|\d+[.)])(\s+)\[( |x|X)\]/;
 
-/**
- * Flips the checkbox of the `index`-th GFM task item in `markdown`, counting
- * matches in document order across nesting levels (spec §8, §12). Fenced
- * code blocks are skipped. Only the checkbox character changes — the rest
- * of the line, including indentation and the list marker, is untouched.
- *
- * An out-of-range or negative `index` returns `markdown` unchanged.
- */
 export function toggleTaskAtIndex(markdown: string, index: number, checked: boolean): string {
   const newMarker = checked ? 'x' : ' ';
   let taskCount = 0;
@@ -42,7 +28,6 @@ export function toggleTaskAtIndex(markdown: string, index: number, checked: bool
   return lines.join('');
 }
 
-/** Splits on line endings while keeping each line's own `\n` or `\r\n`. */
 function splitKeepingLineEndings(text: string): string[] {
   const parts = text.split(/(\r\n|\n)/);
   const lines: string[] = [];

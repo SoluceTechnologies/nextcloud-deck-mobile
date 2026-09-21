@@ -32,7 +32,6 @@ export function BoardActionsSheet({
   const { t } = useTranslation();
   const { board } = summary;
 
-  // Non-destructive actions run then dismiss the sheet immediately.
   const run = (action: () => void) => () => {
     action();
     onClose();
@@ -56,7 +55,6 @@ export function BoardActionsSheet({
     );
   };
 
-  // Computed up front so a hidden action leaves no trace in the rendered tree.
   const actions: SheetAction[] = [
     {
       key: 'open',

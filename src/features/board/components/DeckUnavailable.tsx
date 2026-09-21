@@ -10,11 +10,6 @@ export function useDeckAvailability(): DeckAppStatus {
   const capabilitiesAccountId = useAccountStore((s) => s.capabilitiesAccountId);
   const deckApp = useAccountStore((s) => s.capabilities.deckApp);
 
-  // The stored verdict was measured against whichever account was active
-  // during the probe. If that isn't the account that's active now (switch,
-  // or a stale/failed probe that never got refreshed), the verdict says
-  // nothing about the current account — treat it as not-yet-known rather
-  // than block on someone else's result.
   if (!activeAccountId || capabilitiesAccountId !== activeAccountId) return 'unknown';
   return deckApp;
 }

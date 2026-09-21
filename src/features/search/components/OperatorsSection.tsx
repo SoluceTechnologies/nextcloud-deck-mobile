@@ -8,12 +8,6 @@ export interface OperatorsSectionProps {
   onTry: (example: string) => void;
 }
 
-/**
- * Shown in place of results while the query is empty. Every row here sets the
- * whole (currently empty) query, so a single onTry callback covers both an
- * operator row (`title:`) and a TRY row (a full example) — there is never
- * existing text to insert into.
- */
 export function OperatorsSection({ onTry }: OperatorsSectionProps) {
   const { t } = useTranslation();
   const rawExamples = t('search.examples', { returnObjects: true });

@@ -18,13 +18,6 @@ export type LocalSearchResult = {
   remoteIds: Set<string>;
 };
 
-/**
- * Everything the Search tab needs from the local cache, recomputed with plain
- * useMemos rather than its own subscriptions — the four hooks below already
- * observe the tables that matter. A card is dropped when it is archived or
- * when its board isn't in `useBoards` (an archived board). An empty query
- * yields no groups; the screen shows the operators help in that case instead.
- */
 export function useLocalSearch(accountId: string | null, input: string): LocalSearchResult {
   const query = useMemo(() => parseQuery(input), [input]);
   const isEmpty = isEmptyQuery(query);
@@ -79,8 +72,6 @@ export function useLocalSearch(accountId: string | null, input: string): LocalSe
     return result;
   }, [searchableCards, query, isEmpty]);
 
-  // useBoards is already sorted by title, and matchesBoardTitle rejects an
-  // empty query's blank text on its own — no separate isEmpty branch needed.
   const matchingBoards = useMemo(
     () => boards.filter((b) => matchesBoardTitle(b.title, query)),
     [boards, query],

@@ -10,13 +10,7 @@ export type ReconcileParams<TRemote, TRow> = {
   remoteKey: (remote: TRemote) => string;
   rowKey: (row: TRow) => string;
   unchanged: (row: TRow, remote: TRemote) => boolean;
-  /**
-   * `false` for a delta pass, `true` for a snapshot pass. A Deck delta omits
-   * archived and deleted cards without saying so, so absence only means
-   * "deleted" when the response was a full snapshot.
-   */
   deleteMissing: boolean;
-  /** Row keys that a queued mutation owns; neither removed nor recreated. */
   protectedRowIds?: ReadonlySet<string>;
 };
 
@@ -43,9 +37,6 @@ export function reconcile<TRemote, TRow>(
 
     const row = byKey.get(key);
     if (!row) {
-      // Mirrors the deleteMissing guard below: a protected key with no row
-      // yet is a removal that has not reached the server, not an absence to
-      // fill back in.
       if (!params.protectedRowIds?.has(key)) result.create.push(remote);
       continue;
     }

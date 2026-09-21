@@ -21,7 +21,6 @@ function anyContains(haystacks: string[], needle: string): boolean {
   return haystacks.some((h) => contains(h, needle));
 }
 
-/** Local midnight of `ms`, as a day index that survives DST (see dueState.ts). */
 function dayIndex(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);

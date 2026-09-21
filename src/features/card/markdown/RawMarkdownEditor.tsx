@@ -20,13 +20,6 @@ const SNIPPETS: ReadonlyArray<{ id: string; Icon: LucideIcon; insert: string }> 
   { id: 'link', Icon: Link, insert: '[text](url)' },
 ];
 
-/**
- * Fallback editor for a description the rich editor cannot safely round-trip
- * (see canUseRichEditor). Plain monospace text plus a syntax bar that inserts
- * literal snippets at the tracked cursor — no smart wrapping of a selection,
- * no cursor-between-markers placement: this is a safety net for content the
- * rich editor already refuses, so it stays deliberately minimal.
- */
 export function RawMarkdownEditor({ value, onChangeText }: RawMarkdownEditorProps) {
   const { colors } = useTheme();
   const [selection, setSelection] = useState({ start: value.length, end: value.length });

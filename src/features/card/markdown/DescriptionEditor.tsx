@@ -50,14 +50,6 @@ const TOOLBAR: ReadonlyArray<{
   { id: 'link', Icon: Link, run: (r) => r.insertLink('link', 'https://') },
 ];
 
-/**
- * Full-screen description editor. It picks its editor once, from
- * `canUseRichEditor(initial)`, when the modal opens (spec §8 measure 2) and
- * never switches mid-edit — that would discard whatever the user has typed.
- * The decision (and the raw editor's draft) is re-seeded only on the
- * `visible` flip, matching StackFormSheet's "seed on open" idiom, never on a
- * later `initial` change while the sheet is still open.
- */
 export function DescriptionEditor({ visible, initial, onClose, onSave }: DescriptionEditorProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -65,10 +57,6 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
   const editorRef = useRef<EnrichedMarkdownTextInputInstance>(null);
   const [useRich, setUseRich] = useState(() => canUseRichEditor(initial));
   const [rawValue, setRawValue] = useState(initial);
-  // The baseline "did anything change" is compared against, seeded once per
-  // open alongside useRich/rawValue above — never the live `initial` prop,
-  // which can move mid-edit (e.g. a sync patch arriving while the sheet is
-  // open) and must not silently override whatever the user is editing.
   const [seed, setSeed] = useState(initial);
 
   useEffect(() => {
@@ -90,7 +78,6 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
       editorRef.current
         ?.getMarkdown()
         .then(finish)
-        // A failed read should leave the draft on screen, not discard it.
         .catch(() => undefined);
     } else {
       finish(rawValue);
@@ -104,9 +91,6 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
       presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
       onRequestClose={onClose}
     >
-      {/* A Modal renders on its own opaque white root, outside the screen it
-          was opened from — without this the whole editor stays light while
-          the app is dark, and the themed text turns near-invisible. */}
       <ViewContainer>
         <SafeAreaView style={styles.flex}>
           <ScreenHeader
@@ -133,11 +117,6 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
                   ))}
                 </View>
                 <EnrichedMarkdownTextInput
-                  // `defaultValue` only applies at mount: the Modal keeps this
-                  // input mounted even while hidden, so without a key tied to
-                  // the open/close flip, canceling a draft and reopening would
-                  // resurface the abandoned text instead of `initial` — and an
-                  // immediate Save would then persist that stale draft.
                   key={visible ? 'open' : 'closed'}
                   ref={editorRef}
                   defaultValue={initial}

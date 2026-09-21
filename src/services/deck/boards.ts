@@ -2,14 +2,8 @@ import { deckRequest, type DeckAccount } from './client';
 import { denormalizeColor, normalizeBoard, normalizeStack } from './normalize';
 import type { DeckBoard, DeckStack } from './types';
 
-/** Deck rejects an empty colour on create; this is the Nextcloud default blue. */
 const DEFAULT_BOARD_COLOR = '0082c9';
 
-/**
- * `null` means the server answered 304: nothing changed since `sinceMs`. It is a
- * different answer from `[]`, which means the collection really is empty, and the
- * two must never collapse — an authoritative reconcile fed `[]` deletes every row.
- */
 export async function fetchBoards(
   account: DeckAccount,
   sinceMs?: number,
@@ -19,13 +13,10 @@ export async function fetchBoards(
     sinceMs,
     context: 'fetchBoards',
   });
-  // A body-less 200 is no more an answer than a 304 is: `deckRequest` reports
-  // both as `null` data, and neither means "the server has zero boards".
   if (result.notModified || result.data === null) return null;
   return result.data.map(normalizeBoard);
 }
 
-/** `null` on 304, for the reason given on `fetchBoards`. */
 export async function fetchStacks(
   account: DeckAccount,
   boardRemoteId: string,

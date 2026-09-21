@@ -29,8 +29,6 @@ export default function SearchScreen() {
   const remote = useRemoteSearch(accountId, query, local.remoteIds);
   const online = useIsOnline();
 
-  // Not derived from local.boards: that list is title-matching boards only, and
-  // a remote hit's board may not match the query text at all.
   const boards = useBoards(accountId);
   const boardLocalIdByRemote = useMemo(
     () => new Map(boards.map((b) => [b.remoteId, b.id])),
@@ -94,8 +92,6 @@ export default function SearchScreen() {
               remote={remote}
               offline={!online}
               onOpenCard={(cardId) => router.push(`/card/${cardId}`)}
-              // Same cross-tab push as Today's recent boards: without the
-              // anchor the boards stack holds this board alone.
               onOpenBoard={(boardLocalId) =>
                 router.push(`/boards/${boardLocalId}`, { withAnchor: true })
               }

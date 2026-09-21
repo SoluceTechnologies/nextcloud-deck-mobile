@@ -37,10 +37,6 @@ export function BoardRow({ summary, onPress, onLongPress }: BoardRowProps) {
           <Typography variant="caption" color="secondary" nowrap>
             {`${doneCount}/${totalCount}`}
           </Typography>
-          {/* `lastModified` is the server's clock, and it is 0 until the board
-              has actually been synced — POST /boards does not echo one back,
-              so a board created here carries 0 until the next board-list pass.
-              Formatting that yields "57 years ago", the unix epoch. */}
           {board.lastModified > 0 ? (
             <Typography testID="board-updated" variant="caption" color="secondary" nowrap>
               {t('boards.updated', { when: formatRelative(board.lastModified) })}

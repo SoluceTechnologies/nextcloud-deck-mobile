@@ -32,13 +32,6 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
   const { colors, radius } = useTheme();
   const dragCtx = useOptionalDrag();
 
-  // CardTile is memoized by value and only bails when `onPress` is also
-  // referentially stable (see its `areEqual` comparator) — a fresh
-  // `() => onCardPress(id)` closure per renderItem call would defeat that
-  // memo on every StackColumn re-render. Cache one closure per card id
-  // instead, pruned to the ids currently in the list, and read `onCardPress`
-  // through a ref so a cached closure always calls the latest callback even
-  // though its own identity never changes.
   const onCardPressRef = useRef(onCardPress);
   onCardPressRef.current = onCardPress;
   const pressHandlers = useRef(new Map<string, () => void>());
@@ -52,11 +45,6 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
     }
   }
 
-  // renderItem below is frozen (deps []) for the reason explained above, so
-  // anything it reads that can change over time — whether this column is
-  // draggable, its own stack id, the drag context — has to come through a
-  // ref synced every render rather than through closure, the same way
-  // onCardPress does.
   const draggableRef = useRef(draggable);
   draggableRef.current = draggable;
   const stackIdRef = useRef(stack.id);
@@ -64,12 +52,6 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
   const dragCtxRef = useRef(dragCtx);
   dragCtxRef.current = dragCtx;
 
-  // Draggable-only bookkeeping: each rendered tile reports its own layout
-  // (from the FlatList cell wrapper, so it's already in list-content
-  // coordinates) into this map; scroll position is tracked alongside it.
-  // Both feed the shared DragFrame on every layout or scroll change so a
-  // drag's target computation (dragController.targetAt, run on the UI
-  // thread) never needs a JS round trip mid-gesture.
   const tileLayouts = useRef(new Map<string, TileLayout>());
   for (const id of tileLayouts.current.keys()) {
     if (!liveIds.has(id)) tileLayouts.current.delete(id);

@@ -11,9 +11,6 @@ import {
 
 import { Button, Typography, ViewContainer } from '@/ui/components';
 
-// §8 measure 1 — every markdown construct at risk in a round trip through the
-// native editor. Kept verbatim from the task brief; do not edit without
-// re-running the spike (see docs/v0/markdown-spike.md).
 export const SPIKE_FIXTURE = [
   '# Heading',
   '',
@@ -40,8 +37,7 @@ export const SPIKE_FIXTURE = [
   '[a link](https://example.com)',
 ].join('\n');
 
-// One cheap substring probe per at-risk construct, so whoever runs the spike
-// pastes the verdict into the doc instead of eyeballing a diff by hand.
+
 const CONSTRUCTS: ReadonlyArray<{ label: string; needle: string }> = [
   { label: 'unchecked task marker', needle: '- [ ]' },
   { label: 'checked task marker', needle: '- [x]' },
@@ -57,9 +53,6 @@ export function SpikeScreen() {
   const { colors } = useTheme();
   const ref = useRef<EnrichedMarkdownTextInputInstance>(null);
   const [output, setOutput] = useState<string | null>(null);
-  // Every task-checkbox tap, in order: settles whether `index` counts in
-  // document order across nesting (what `toggleTaskAtIndex` assumes) or
-  // restarts per list. See step 5 in docs/v0/markdown-spike.md.
   const [taps, setTaps] = useState<TaskListItemPressEvent[]>([]);
 
   function handleRoundTrip() {

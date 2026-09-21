@@ -57,10 +57,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  // The gutter belongs to the content, not the sheet: ScreenHeader pads itself
-  // by 16 already, so a gutter on the sheet pushed the close button and the
-  // title to 32 while the fields below them sat at 16. This is the same layout
-  // the settings screens use — a self-padded header over padded content.
   sheet: {
     width: '100%',
     paddingTop: 8,

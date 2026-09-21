@@ -9,15 +9,6 @@ import type Label from '@/database/models/Label';
 
 export type BoardCardRelations = ReturnType<typeof groupRelations>;
 
-/**
- * One observation per table for the whole board — never one per card, which
- * would open two subscriptions per tile (a 200-card board would open 400).
- * `card_labels`/`card_assignees` carry no board_id, so they're observed on
- * account_id alone and grouped in memory here; a join whose label isn't in
- * the board-scoped `labels` query (i.e. belongs to another board) is simply
- * dropped, which is what keeps labelsByCard scoped to this board despite the
- * account-wide card_labels query. See spec §10.
- */
 export function useBoardCardRelations(
   accountId: string | null,
   boardLocalId: string | null,

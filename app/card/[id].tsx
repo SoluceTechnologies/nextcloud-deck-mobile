@@ -34,7 +34,6 @@ import { DescriptionView } from '@/features/card/markdown/DescriptionView';
 import {
   parseArray, participantName, participantsOf, type Participant,
 } from '@/features/card/participants';
-// Pure URL builder, not a request — trustedFetch/deckRequest never run from a screen.
 import { attachmentDownloadUrl } from '@/services/deck/attachments';
 import {
   Checkbox, IconButton, IconTile, Item, List, ScreenHeader, SectionHeader, Typography,
@@ -42,7 +41,6 @@ import {
 } from '@/ui/components';
 import { formatRelative } from '@/utils/relativeTime';
 
-/** A read-only fact: its label above the value, unlike Item's value-under-title. */
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
@@ -72,9 +70,6 @@ export default function CardDetailScreen() {
   const cardActions = useCardActions(accountId);
   const comments = useCardComments(accountId, card?.id ?? null);
   const attachments = useCardAttachments(accountId, card?.id ?? null);
-  // Keyed off the route param, not card?.id: syncCardDetail resolves the
-  // card itself from the database, so this can start fetching before
-  // useCard's own subscription (above) has resolved a row to render.
   const { hasMore, loadMore, loading: detailLoading } = useCardDetailSync(accountId, id);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
@@ -84,10 +79,6 @@ export default function CardDetailScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [previewing, setPreviewing] = useState<Attachment | null>(null);
-
-  // Resolved against every card of the account so the row can show a title
-  // instead of a bare remote id; a dependency not yet pulled by sync falls
-  // back to "#<id>" rather than disappearing from the list.
   const dependencies = useMemo(() => {
     const ids = parseArray<string>(card?.dependentCardsJson ?? '[]');
     return ids.map((remoteId) => {
@@ -96,9 +87,6 @@ export default function CardDetailScreen() {
     });
   }, [card?.dependentCardsJson, accountCards]);
 
-  // Found before the early return below so the hooks that depend on it
-  // (useMemo here) stay unconditional — card can flip to null later if sync
-  // reconciles a server-side delete while this screen is open.
   const board = boards.find((b) => b.id === card?.boardId);
   const participants = useMemo(
     () => (board ? participantsOf(board) : []),
@@ -131,8 +119,6 @@ export default function CardDetailScreen() {
     </IconButton>
   );
 
-  // The sync can reconcile a server-side delete while this card is open —
-  // rendering the last-known card would let the user edit a ghost.
   if (!card) {
     return (
       <ViewContainer>
@@ -148,7 +134,6 @@ export default function CardDetailScreen() {
 
   const stack = stacks.find((s) => s.id === card.stackId);
 
-  // Every part has to have synced before a file can be addressed on the server.
   const attachmentRef =
     board?.remoteId && stack?.remoteId && card.remoteId
       ? { boardRemoteId: board.remoteId, stackRemoteId: stack.remoteId, cardRemoteId: card.remoteId }
@@ -170,8 +155,6 @@ export default function CardDetailScreen() {
   return (
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
-        {/* No title here: the identity card directly below carries it in full,
-            and is the one that can be tapped to rename. */}
         <ScreenHeader left={closeButton} right={menuButton} />
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <CardIdentity
@@ -187,8 +170,6 @@ export default function CardDetailScreen() {
                 title={t(card.doneAt ? 'card.markNotDone' : 'card.markDone')}
                 accessibilityRole="checkbox"
                 leading={
-                  // The same control Today's rows use, so "done" reads
-                  // identically wherever a card shows up.
                   <Checkbox
                     testID="card-done"
                     checked={Boolean(card.doneAt)}
@@ -215,7 +196,6 @@ export default function CardDetailScreen() {
               />
             </List>
 
-            {/* Everything that classifies the card, each opening its own sheet. */}
             <List>
               <Item
                 title={t('card.labels')}
@@ -252,8 +232,6 @@ export default function CardDetailScreen() {
                 title={t('card.color')}
                 description={card.color ?? t('card.noColor')}
                 leading={
-                  // The card's own colour reads better as the glyph's tint than
-                  // as a separate dot next to a generic one.
                   card.color ? (
                     <View style={[styles.colorTile, { backgroundColor: card.color }]}>
                       <Palette size={20} color="#ffffff" />
@@ -274,8 +252,6 @@ export default function CardDetailScreen() {
             <AttachmentsSection
               attachments={attachments}
               loading={detailLoading}
-              // The card already knows how many files it has, so an empty
-              // list on a card with none needs no spinner at all.
               expectedCount={card.attachmentCount}
               onOpen={setPreviewing}
             />
@@ -284,9 +260,6 @@ export default function CardDetailScreen() {
               hasMore={hasMore}
               loading={detailLoading}
               expectedCount={card.commentsCount}
-              // CardAssignee.participant and Comment.actorId are both the
-              // Nextcloud uid (normalize.ts's uidOf), which davUserId — not
-              // the free-typed username — is kept in step with.
               me={activeAccount?.davUserId ?? ''}
               onLoadMore={loadMore}
               onSubmit={(message, parentRemoteId) =>
@@ -297,17 +270,12 @@ export default function CardDetailScreen() {
               }
               onDelete={(comment) => void cardActions.removeComment(comment).catch(() => undefined)}
             />
-
-            {/* Provenance, last because it is reference rather than action.
-                Every value here is a column the card already carries. */}
             <View>
               <SectionHeader title={t('card.details.title')} />
               <List>
                 {card.owner ? (
                   <DetailRow
                     label={t('card.details.createdBy')}
-                    // The raw owner is a bare uid — an opaque UUID on an SSO
-                    // server — so it is resolved against the board's people.
                     value={participantName(participants, card.owner, activeAccount)}
                   />
                 ) : null}
@@ -317,8 +285,6 @@ export default function CardDetailScreen() {
                     value={formatRelative(card.createdAt)}
                   />
                 ) : null}
-                {/* Same guard as the board list: lastModified is the server's
-                    clock and reads 0 until the card has actually synced. */}
                 {card.lastModified > 0 ? (
                   <DetailRow
                     label={t('card.details.modified')}
@@ -390,8 +356,6 @@ export default function CardDetailScreen() {
         onCopy={() => void cardActions.clone(card).catch(() => undefined)}
         onArchive={() => {
           void cardActions.setArchived(card, !card.archived).catch(() => undefined);
-          // An archived card leaves the board — leaving the detail screen open
-          // would strand the user on a card they can no longer see in its list.
           router.back();
         }}
         onDelete={() => {
@@ -422,7 +386,6 @@ const MAX_CONTENT_WIDTH = 700;
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   deleted: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  // Same gutter as the settings screens, so a card doesn't run edge to edge.
   scroll: {
     width: '100%',
     maxWidth: MAX_CONTENT_WIDTH,

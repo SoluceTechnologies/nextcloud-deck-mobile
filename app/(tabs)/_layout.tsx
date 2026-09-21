@@ -108,11 +108,6 @@ export default function TabsLayout() {
   const status = useDeckAvailability();
   const activeAccountId = useAccountStore((s) => s.activeAccountId);
   const account = useActiveAccount(activeAccountId);
-
-  // 'unknown' covers both "the capability call has not answered yet" and "the
-  // last answer was for a different account" (see useDeckAvailability) — the
-  // cached data is still worth showing either way, so only a definite
-  // 'unavailable' for the CURRENT account blocks the app.
   if (status === 'unavailable' && account) {
     return <DeckUnavailable baseUrl={account.baseUrl} />;
   }

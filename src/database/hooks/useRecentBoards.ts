@@ -6,11 +6,6 @@ import { useBoards } from '@/database/hooks/useBoards';
 import type Board from '@/database/models/Board';
 import type RecentBoard from '@/database/models/RecentBoard';
 
-/**
- * Most-recently-opened boards, most recent first. Composes useBoards
- * (already non-archived) instead of querying boards itself, and drops any
- * recent entry whose board no longer resolves there (deleted or archived).
- */
 export function useRecentBoards(accountId: string | null): Board[] {
   const database = useDatabase();
   const boards = useBoards(accountId);

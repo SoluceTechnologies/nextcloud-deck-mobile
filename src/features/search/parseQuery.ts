@@ -8,7 +8,6 @@ export type SearchQuery = {
   tag: string[];
   assigned: string[];
   date: DateTerm[];
-  /** Tokens without a recognised operator, matched against title and description. */
   text: string[];
 };
 
@@ -17,12 +16,6 @@ type Operator = (typeof OPERATORS)[number];
 
 const QUOTES = new Set(['"', "'"]);
 
-/**
- * Splits on whitespace outside quotes. A quote opened right after `name:` keeps
- * the operator prefix attached ("title:" + "traiter le contrat"), so the token
- * carries its quoted value with the quotes stripped. An unterminated quote runs
- * to the end of the input, the way Deck's parser tolerates it.
- */
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
   let current = '';

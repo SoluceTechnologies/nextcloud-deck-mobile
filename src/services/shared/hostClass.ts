@@ -35,10 +35,10 @@ export function classifyHost(hostname: string): 'local' | 'public' {
 
   const octets = ipv4Octets(host);
   if (octets) return isPrivateIpv4(octets) ? 'local' : 'public';
-  if (/^\d+(\.\d+)*$/.test(host)) return 'public';     // malformed dotted-quad
+  if (/^\d+(\.\d+)*$/.test(host)) return 'public';
 
   if (host.includes(':')) return isPrivateIpv6(host) ? 'local' : 'public';
-  if (!host.includes('.')) return 'local';             // single-label LAN name
+  if (!host.includes('.')) return 'local';
   if (LOCAL_SUFFIXES.some((suffix) => host.endsWith(suffix))) return 'local';
   return 'public';
 }

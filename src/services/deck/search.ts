@@ -19,12 +19,6 @@ function toHit(raw: Raw): DeckSearchHit | null {
   };
 }
 
-/**
- * The paging model of `search` is unverified (docs/v0/api-verification.md item 3):
- * both a bare array and a `{ cards, cursor }` envelope are read. Unlike the
- * board and card fetches, a search page is never reconciled against the cache,
- * so an empty or body-less answer is simply an empty page — no rows depend on it.
- */
 export async function searchCards(
   account: DeckAccount,
   term: string,

@@ -15,7 +15,6 @@ type Raw = Record<string, any>;
 const HEX_LONG = /^#?([0-9a-f]{6})$/i;
 const HEX_SHORT = /^#?([0-9a-f]{3})$/i;
 
-/** Deck stores colours as bare hex; the app stores them as `#rrggbb` lowercase. */
 export function normalizeColor(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const value = raw.trim();

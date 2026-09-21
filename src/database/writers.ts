@@ -1,6 +1,5 @@
 import type { DeckAttachment, DeckBoard, DeckCard, DeckComment, DeckStack } from '@/services/deck/types';
 
-/** The card fields a user mutation can own, and therefore protect from a sync overwrite. */
 export type CardFieldName =
   | 'title'
   | 'description'
@@ -105,8 +104,6 @@ export function writeCardRow(row: Row, remote: DeckCard, ctx: CardWriteContext):
   row.commentsCount = remote.commentsCount;
   row.dependentCardsJson = JSON.stringify(remote.dependentCardIds);
   row.pending = false;
-
-  // `last_modified` is always written: it is the sync cursor, never a user field.
   row.lastModified = remote.lastModified;
 
   if (!isProtected(ctx, 'stackId')) row.stackId = ctx.stackLocalId;
@@ -199,11 +196,6 @@ export function attachmentUnchanged(row: Row, remote: DeckAttachment): boolean {
   );
 }
 
-/**
- * The server's own value for each named field, in the local column vocabulary.
- * `stackId` is reported as the *remote* stack id: a local id would be meaningless
- * to a comparison against what the server sent.
- */
 export function serverValuesOf(
   remote: DeckCard,
   fields: readonly CardFieldName[],

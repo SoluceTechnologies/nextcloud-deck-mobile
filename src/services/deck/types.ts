@@ -10,7 +10,6 @@ export type DeckLabel = {
 export type DeckAssignee = {
   participant: string;
   displayName: string;
-  /** 0 user, 1 group, 7 circle/team. */
   assigneeType: number;
 };
 
@@ -63,7 +62,6 @@ export type DeckStack = {
   cards: DeckCard[];
 };
 
-/** The six groups `GET /overview/upcoming` returns. */
 export type DeckUpcoming = Record<
   'overdue' | 'today' | 'tomorrow' | 'nextSevenDays' | 'later' | 'nodue',
   DeckCard[]

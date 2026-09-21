@@ -29,11 +29,6 @@ import { reconcile } from '@/sync/reconcile';
 import { buildCardRelationOps } from '@/sync/tasks/cardRelations';
 import type { Account } from '@/types';
 
-/**
- * Deck compares `If-Modified-Since` against `last_modified > since`, on the server
- * clock and at second resolution. Rewinding two seconds re-sends a handful of
- * already-known rows rather than missing one written in the same second.
- */
 const OVERLAP_MS = 2000;
 
 async function loadCardRelationContext(
@@ -70,12 +65,6 @@ export type SyncBoardContentParams = {
   full: boolean;
 };
 
-/**
- * `true` if the pass actually reconciled (including a legitimate no-op, such
- * as a 304); `false` if it aborted without writing because a local write
- * raced the fetch. The caller must not credit a `false` pass as a snapshot —
- * see `scheduler.ts`.
- */
 export async function syncBoardContent({
   db,
   account,
@@ -89,7 +78,6 @@ export async function syncBoardContent({
       .fetch()
   )[0];
 
-  // The board list pass owns board creation; without a row there is nowhere to attach.
   if (!boardRow) return true;
   const boardLocalId = boardRow.id;
 
@@ -105,18 +93,12 @@ export async function syncBoardContent({
 
   const epoch = localWriteEpoch();
   const remoteStacks = await fetchStacks(account, boardRemoteId, sinceMs);
-  // 304: nothing changed since the cursor. Reconciling against it would treat
-  // "no news" as an empty snapshot and delete every stack on the board.
+
   if (remoteStacks === null) return true;
 
   return safeWrite(
     db,
     async () => {
-      // A write landed while the fetch was in flight: the rows below would be
-      // reconciled against a remote snapshot paired with a local state that is
-      // already stale. Abort without writing, and report it — a bare success
-      // here would let the caller stamp a snapshot clock for a pass that did
-      // nothing, corrupting the one mechanism that ever notices a deletion.
       if (localWriteEpoch() !== epoch) return false;
 
       const stackRows = await stacks
@@ -127,12 +109,6 @@ export async function syncBoardContent({
         .fetch();
       const pending = await loadPendingCards(db, account.id);
 
-      // A queued move can have re-homed a card's row to another board before
-      // the intent flushed (`useCardActions.move` adopts the target board
-      // locally right away). Scoping this lookup to `boardLocalId` would miss
-      // it — this board's own snapshot still lists the card, the guard below
-      // would not fire, and reconcile would recreate it here while it also
-      // still exists on the board it moved to. Fetch pending cards account-wide.
       const pendingIds = pendingEntityIds(pending);
       const pendingCardRows =
         pendingIds.size === 0
@@ -143,9 +119,7 @@ export async function syncBoardContent({
       const protectedRowIds = new Set(
         pendingCardRows.map((r) => r.remoteId).filter((id) => id !== ''),
       );
-      // A queued delete has already destroyed its row, so no row carries the
-      // key; it must still be protected or a full snapshot would recreate the
-      // card before the DELETE drains.
+
       for (const bucket of pending.values()) {
         for (const { intent } of bucket.entries) {
           if (intent.kind === 'deleteCard') protectedRowIds.add(intent.ref.cardRemoteId);
@@ -161,14 +135,8 @@ export async function syncBoardContent({
       const ops: Model[] = [];
       const stackCtx = { accountId: account.id, boardLocalId };
 
-      // Filter out stacks awaiting their first push: they carry remoteId = '' until the create
-      // flushes to the server, but they cannot match any remote stack and are already protected
-      // by the outbox. Passing them to reconcile would risk marking them deleted if another
-      // offline stack collides on that empty key.
       const syncedStackRows = stackRows.filter((r) => r.remoteId);
 
-      // Mirrors the board shield in syncBoards and the card shield below: queued
-      // updates protected through the row, queued deletes through the intent.
       const queuedStacks = await loadQueuedIntents(db, account.id, 'stack');
       const queuedStackIds = new Set(queuedStacks.map(({ entry }) => entry.entityId));
       const protectedStackIds = new Set(
@@ -178,8 +146,6 @@ export async function syncBoardContent({
         if (intent.kind === 'deleteStack') protectedStackIds.add(intent.stackRemoteId);
       }
 
-      // Stacks always come back whole, even on a delta call, so this pass is
-      // always authoritative for the stack set.
       const stackPlan = reconcile({
         remote: remoteStacks,
         rows: syncedStackRows,
@@ -197,9 +163,6 @@ export async function syncBoardContent({
         stackLocalIdByRemote.set(s.remoteId, created.id);
       }
       for (const { row, remote: s } of stackPlan.update) {
-        // `reconcile`'s protectedRowIds only guards create/remove/duplicate rows,
-        // not update — a queued rename still needs its own check here, or the
-        // stale value this pass just fetched would revert it before the drain runs.
         if (protectedStackIds.has(row.remoteId)) continue;
         ops.push(row.prepareUpdate((r: Stack) => writeStackRow(r, s, stackCtx)));
       }
@@ -210,10 +173,6 @@ export async function syncBoardContent({
 
       const remoteCards: DeckCard[] = remoteStacks.flatMap((s) => s.cards);
 
-      // Filter out cards awaiting their first push: they carry remoteId = '' until the create
-      // flushes to the server, but they cannot match any remote card and are already protected
-      // by the outbox. Passing them to reconcile would risk marking them deleted if another
-      // offline card collides on that empty key.
       const syncedCardRows = cardRows.filter((r) => r.remoteId);
 
       const cardPlan = reconcile({
@@ -228,8 +187,7 @@ export async function syncBoardContent({
             stackLocalId: stackLocalIdByRemote.get(remote.stackRemoteId) ?? row.stackId,
             protectedFields: pending.get(row.id)?.fields,
           }),
-        // A delta omits archived and deleted cards silently, so absence only
-        // means "gone" when the response was a snapshot.
+
         deleteMissing: full,
         protectedRowIds,
       });
@@ -262,8 +220,6 @@ export async function syncBoardContent({
           ),
         );
 
-        // The server's take on the fields we are shielding, kept for the
-        // per-field conflict check the drain runs before sending.
         if (bucket && bucket.fields.size > 0) {
           const values = serverValuesOf(c, [...bucket.fields] as CardFieldName[]);
           for (const { entry } of bucket.entries) {

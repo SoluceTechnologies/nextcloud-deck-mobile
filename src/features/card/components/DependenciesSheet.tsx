@@ -20,15 +20,6 @@ export interface DependenciesSheetProps {
   onRemove: (remoteId: string) => void;
 }
 
-/**
- * The card's dependent-card list, plus an "add" row that drills into
- * CardPickerSheet (mode="card") to point at another card of the account.
- * The addDependency/removeDependency intents carry a *remote* id (R38): the
- * picker itself knows nothing about sync state, so a pick is screened here
- * after the fact — a self-reference is silently dropped, and a card that has
- * never synced (remoteId === '') gets an explanation instead of an intent
- * that could never resolve on the server.
- */
 export function DependenciesSheet({
   visible,
   accountId,

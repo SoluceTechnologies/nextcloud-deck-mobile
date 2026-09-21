@@ -16,16 +16,6 @@ export type SyncUpcomingParams = {
   account: Account;
 };
 
-/**
- * `overview/upcoming` returns only the cards assigned to the user or unassigned,
- * across every board, in one request. It is a filtered subset, never a snapshot:
- * this pass creates and updates, and removes nothing.
- *
- * Returns `true` if the pass actually ran (including a legitimate no-op);
- * `false` if it aborted without writing because a local write raced the
- * fetch. The caller must not credit a `false` pass as having synced — see
- * `scheduler.ts`.
- */
 export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise<boolean> {
   const epoch = localWriteEpoch();
   const remote = flattenUpcoming(await fetchUpcoming(account));
@@ -33,10 +23,6 @@ export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise
   return safeWrite(
     db,
     async () => {
-      // A write landed while the fetch was in flight: the rows below would be
-      // reconciled against a remote snapshot paired with a local state that is
-      // already stale. Abort without writing, and report it, for the same
-      // reason the board passes do.
       if (localWriteEpoch() !== epoch) return false;
 
       const boardRows = await db
@@ -51,8 +37,6 @@ export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise
       const boardLocalIdByRemote = new Map(boardRows.map((r) => [r.remoteId, r.id]));
       const stackLocalIdByRemote = new Map(stackRows.map((r) => [r.remoteId, r.id]));
 
-      // A card can only be stored once its board and stack rows exist; the board
-      // passes create those, and the next tick picks the card up.
       const placeable = remote.filter(
         (c) =>
           boardLocalIdByRemote.has(c.boardRemoteId) && stackLocalIdByRemote.has(c.stackRemoteId),
@@ -70,10 +54,6 @@ export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise
         protectedFields: rowId ? pending.get(rowId)?.fields : undefined,
       });
 
-      // Filter out cards awaiting their first push: they carry remoteId = '' until the create
-      // flushes to the server, but they cannot match any remote card and are already protected
-      // by the outbox. Passing them to reconcile would risk marking them deleted if another
-      // offline card collides on that empty key.
       const syncedCardRows = cardRows.filter((r) => r.remoteId);
 
       const plan = reconcile({

@@ -9,7 +9,6 @@ import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import { STACK_OBSERVED_COLUMNS } from '@/database/observedColumns';
 
-/** Every stack of the account, across all boards — Search needs them all at once. */
 export function useAccountStacks(accountId: string | null): Stack[] {
   const database = useDatabase();
   const [stacks, setStacks] = useState<Stack[]>([]);
@@ -30,7 +29,6 @@ export function useAccountStacks(accountId: string | null): Stack[] {
   return stacks;
 }
 
-/** Every label of the account, across all boards — Search needs them all at once. */
 export function useAccountLabels(accountId: string | null): Label[] {
   const database = useDatabase();
   const [labels, setLabels] = useState<Label[]>([]);
@@ -51,12 +49,6 @@ export function useAccountLabels(accountId: string | null): Label[] {
   return labels;
 }
 
-/**
- * The account-wide twin of useBoardCardRelations: same three subscriptions
- * (card_labels, labels, card_assignees), all account-scoped rather than
- * board-scoped, grouped with the same groupRelations. Search needs every
- * card's labels and assignees across the whole account, not one board.
- */
 export function useAccountCardRelations(
   accountId: string | null,
 ): ReturnType<typeof groupRelations> {

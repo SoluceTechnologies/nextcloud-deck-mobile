@@ -28,8 +28,6 @@ export function useBoards(accountId: string | null): Board[] {
   return boards;
 }
 
-/** Every card of the account, across all boards — the Boards tab needs this to
- * summarize each board's done/total counts without an N+1 subscription per board. */
 export function useAccountCards(accountId: string | null): Card[] {
   const database = useDatabase();
   const [cards, setCards] = useState<Card[]>([]);

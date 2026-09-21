@@ -30,7 +30,6 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-/** IMF-fixdate in GMT, the only format Deck documents for If-Modified-Since. */
 export function toImfFixdate(ms: number): string {
   const d = new Date(ms);
   return (
@@ -56,7 +55,6 @@ function basicAuth(account: DeckAccount): string {
   return 'Basic ' + btoa(`${account.username}:${account.appPassword}`);
 }
 
-/** OCS wraps every payload in `{ ocs: { meta, data } }`; the REST API does not. */
 function unwrap<T>(parsed: unknown, api: 'rest' | 'ocs'): T {
   if (api === 'ocs' && parsed && typeof parsed === 'object' && 'ocs' in parsed) {
     return (parsed as { ocs: { data: T } }).ocs.data;

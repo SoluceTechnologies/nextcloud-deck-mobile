@@ -12,12 +12,6 @@ interface CheckboxProps {
   testID?: string;
 }
 
-/**
- * The app's one "mark this done" control — Today's rows and the card detail
- * screen render the same 24pt ring so a card reads the same in both places.
- * The tap target is widened with hitSlop rather than a bigger box, so the
- * ring still lines up with the text beside it.
- */
 function Checkbox({ checked = false, onPress, accessibilityLabel, testID }: CheckboxProps) {
   const { colors } = useTheme();
 

@@ -34,8 +34,6 @@ import { useIsOnline } from '@/services/shared/network';
 import { requestBoardSnapshot } from '@/sync/scheduler';
 import { Button, ScreenHeader, Spinner, ViewContainer } from '@/ui/components';
 
-// Screen width minus this margin leaves the next column's edge visible, so a
-// swipe reads as "there's more" rather than landing on a dead end.
 const PEEK = 40;
 const GAP = 12;
 
@@ -57,30 +55,19 @@ export default function BoardScreen() {
   const stackActions = useStackActions(accountId, boardLocalId);
   const cardActions = useCardActions(accountId);
 
-  // Which sheet is open, if any: this one sheet is reused for both "add a
-  // list" and "add a card to stack X" (see StackFormSheet's heading/placeholder).
   const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
 
   const db = useDatabase();
   const boardRemoteId = board?.remoteId ?? '';
   useEffect(() => {
-    // Recent boards are sourced from in-app consultations (design spec
-    // §7.6), not from a successful sync — record the open even when the
-    // board has no remote id yet. recordRecentBoard is a local-only
-    // preference write (never an outbox intent), so it is called directly
-    // here rather than through a use*Actions mutate() hook.
     if (accountId && board?.id) {
       void recordRecentBoard(db, accountId, board.id).catch(() => undefined);
     }
-    // A board created offline has no remote id yet — nothing to fetch.
     if (!accountId || !boardRemoteId) return;
     requestBoardSnapshot(accountId, boardRemoteId);
     return () => useUiStore.getState().setActiveBoardRemoteId(null);
   }, [accountId, boardRemoteId, board?.id]);
 
-  // Grouped once per data change, not per render of each column: a fresh
-  // CardTileData snapshot per card (see toCardTileCard) so a column never
-  // holds a live, in-place-mutable model reference.
   const cardTilesByStack = useMemo(() => {
     const map = new Map<string, CardTileData[]>();
     for (const card of cards) {
@@ -103,18 +90,11 @@ export default function BoardScreen() {
     return map;
   }, [cards, labelsByCard, assigneesByCard]);
 
-  // Stable references across renders so StackColumn's memoization actually
-  // bails instead of re-rendering every column on every screen render.
   const handleCardPress = useCallback((cardId: string) => router.push(`/card/${cardId}`), [router]);
   const handleAddCard = useCallback((stackId: string) => setAddTarget({ kind: 'card', stackId }), []);
 
   const columnWidth = windowWidth - PEEK;
 
-  // A board with no lists is either genuinely empty or still on its way, and
-  // the stack list alone cannot tell them apart. Three things settle it:
-  // a board with no remote id was created here and has nothing to fetch; the
-  // scheduler stamps every attempt it makes (see runTask); and offline there
-  // will be no attempt at all, so waiting on one would spin forever.
   const online = useIsOnline();
   const fetchedAt = useUiStore((s) =>
     accountId ? s.boardContentFetchedAt[boardContentKey(accountId, boardRemoteId)] : undefined,
@@ -135,15 +115,6 @@ export default function BoardScreen() {
     [cardTilesByStack, columnWidth, handleCardPress, handleAddCard, board?.canEdit],
   );
 
-  // A drop's target list is `cards` in `toStackId` order, minus the card being moved —
-  // exactly the siblings it would land among. `cards` is already sorted by `order`
-  // (useBoardCards), so `others` stays sorted too, matching what orderFor expects.
-  // Exactly one mutate: cardActions.move is the only write this ever issues.
-  // useCallback so this stays referentially stable across a re-render that
-  // doesn't change cards/cardActions (e.g. the add-card sheet opening) —
-  // DragProvider's onDrop prop feeds straight into its memoized context
-  // value (see DragContext.tsx), so an unstable closure here would
-  // re-render every mounted DraggableCard on every such screen re-render.
   const handleDrop = useCallback(
     ({ cardId, fromStackId, toStackId, index }: DropResult) => {
       const card = cards.find((c) => c.id === cardId);
@@ -163,9 +134,6 @@ export default function BoardScreen() {
     [cards, cardActions],
   );
 
-  // useBoards starts at [] and fills in once its subscription emits, so a
-  // cold open lands here for a frame or two — rendering null makes that read
-  // as a broken screen rather than a loading one.
   if (!board) {
     return (
       <ViewContainer>
@@ -224,9 +192,6 @@ type BoardColumnsProps = {
   onAddList: () => void;
 };
 
-// Lives inside <DragProvider> (BoardScreen's return, above) so it can call useDrag():
-// BoardScreen renders DragProvider itself, so it can never be a descendant of its own
-// output and cannot reach the shared drag state in its own body.
 function BoardColumns({
   board,
   stacks,
@@ -241,17 +206,9 @@ function BoardColumns({
   const { frame, x, y, target, scrollColumnBy } = useDrag();
   const activeData = useDragActiveData();
   const listRef = useRef<FlatList<Stack>>(null);
-  // The vertical scrollable area's own height (its own onLayout below) — distinct
-  // from the window height, since the header above it isn't part of it.
   const listHeightRef = useRef(0);
 
-  // Keeps the UI-thread-visible column geometry in step with what's actually on
-  // screen, so targetAt (dragController.ts) never needs a JS round trip mid-gesture.
   useEffect(() => {
-    // Mapped out here, not inside the modifier: the modifier is a worklet and
-    // runs on the UI thread, so everything it closes over crosses the runtime
-    // boundary — and `stacks` holds WatermelonDB models, which cannot. Plain
-    // ids and numbers can.
     const stackIds = stacks.map((s) => s.id);
     const geometry = { gap: GAP, columnWidth, columnCount: stacks.length };
     frame.modify((f) => {
@@ -262,11 +219,6 @@ function BoardColumns({
     });
   }, [frame, stacks, columnWidth]);
 
-  // JS-side autoscroll, only while a card is actually lifted (activeData is set by
-  // DraggableCard's begin()/cleared by its finish() — see DragContext). Tearing down
-  // on drop and on unmount both go through the same effect cleanup: a drop clears
-  // activeData, which re-runs this effect (cleanup first, then the now-null-guarded
-  // body that starts nothing), and unmounting runs the same cleanup once more.
   useEffect(() => {
     if (activeData === null) return undefined;
 
@@ -295,9 +247,6 @@ function BoardColumns({
   }, [activeData, x, y, target, frame, windowWidth, columnWidth, scrollColumnBy]);
 
   const onScroll = useAnimatedScrollHandler((e) => {
-    // Already on the UI thread here, so this modifier needs no boundary
-    // crossing — the directive is for uniformity with the JS-side writers, so
-    // "every modify() modifier is a worklet" holds everywhere and greps clean.
     frame.modify((f) => {
       'worklet';
       f.scrollX = e.contentOffset.x;

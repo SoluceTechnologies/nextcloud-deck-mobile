@@ -15,10 +15,6 @@ function emptyUpcoming(): DeckUpcoming {
   return { overdue: [], today: [], tomorrow: [], nextSevenDays: [], later: [], nodue: [] };
 }
 
-/**
- * `CardDetails` stamps `boardId` on every card of this response. A card without
- * one cannot be attached to a board locally, so it is dropped rather than guessed.
- */
 export async function fetchUpcoming(account: DeckAccount): Promise<DeckUpcoming> {
   const result = await deckRequest<Record<string, any[]>>(account, {
     path: '/overview/upcoming',

@@ -6,7 +6,6 @@ import type CardAssignee from '@/database/models/CardAssignee';
 import type CardLabel from '@/database/models/CardLabel';
 import type Label from '@/database/models/Label';
 
-/** Every label of one board, for the Labels sheet's full list. */
 export function useBoardLabels(accountId: string | null, boardLocalId: string | null): Label[] {
   const database = useDatabase();
   const [labels, setLabels] = useState<Label[]>([]);
@@ -27,13 +26,6 @@ export function useBoardLabels(accountId: string | null, boardLocalId: string | 
   return labels;
 }
 
-/**
- * A card's labels, joined in memory: `card_labels` carries no title/colour, so this
- * observes it alongside the account's `labels` and joins by id — the same idiom as
- * useBoardCardRelations, scoped to a single card instead of a whole board. A join
- * whose label row hasn't synced yet (or was since removed) is dropped rather than
- * rendered as a blank chip.
- */
 export function useCardLabels(accountId: string | null, cardLocalId: string | null): Label[] {
   const database = useDatabase();
   const [cardLabels, setCardLabels] = useState<CardLabel[]>([]);
@@ -75,7 +67,6 @@ export function useCardLabels(accountId: string | null, cardLocalId: string | nu
   }, [cardLabels, labels]);
 }
 
-/** Every assignee of one card. */
 export function useCardAssignees(accountId: string | null, cardLocalId: string | null): CardAssignee[] {
   const database = useDatabase();
   const [assignees, setAssignees] = useState<CardAssignee[]>([]);

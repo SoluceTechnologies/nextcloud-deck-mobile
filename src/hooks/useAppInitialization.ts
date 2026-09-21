@@ -19,14 +19,6 @@ import { pushPinsToNative } from '@/services/shared/certPins';
 
 SplashScreen.preventAutoHideAsync();
 
-// Reading the accounts can fail when the OS relaunched us in the background:
-// the iOS keychain is unreachable while the device is locked (SecureStore
-// stores accounts as `whenUnlocked` by default), and Android's keystore and
-// credential-encrypted preferences have their own transient failures. Such a
-// boot must not report "ready" with an empty account list — the router reads
-// that as "no account configured" and shows the setup screen, and because the
-// boot only runs once per JS runtime the user keeps seeing it until the
-// process is killed, even though the credentials are still on disk.
 const MAX_BOOT_ATTEMPTS = 3;
 
 export function useAppInitialization() {
@@ -50,8 +42,6 @@ export function useAppInitialization() {
       running = true;
       try {
         await migrateFromAsyncStorage();
-        // Load trusted self-signed cert pins into the native layer before any
-        // network call so pinned hosts connect without a prompt.
         pushPinsToNative();
         await Promise.all([
           useAccountStore.persist.rehydrate(),
@@ -69,11 +59,6 @@ export function useAppInitialization() {
           setStoreAccountId(id);
 
           const activeAccount = accounts.find((a) => a.id === id) ?? accounts[0];
-          // Profile refresh only ever enriches display names and timezones. It
-          // re-reads secure storage, so an empty result means that read failed,
-          // never that the user signed out — dropping the accounts here would
-          // put the router back on the setup screen. Removal goes through
-          // useDeleteAccount, which calls refreshAccounts itself.
           void refreshAccountProfiles()
             .then((refreshed) => {
               if (refreshed.length > 0) setAccounts(refreshed);
@@ -83,14 +68,6 @@ export function useAppInitialization() {
             });
           void fetchCapabilities(activeAccount)
             .then((caps) => {
-              // The probe is fired without being awaited, so the app is already
-              // interactive and the user can already have switched accounts by
-              // the time it resolves. A verdict for an account that is no
-              // longer active says nothing about the one that is now — writing
-              // it anyway would clobber that account's own (possibly already
-              // correct) verdict and revert its Deck-availability gate to
-              // 'unknown'. Unlike useCapabilitiesSync's effect, boot has no
-              // per-account cleanup to cancel this, so the write checks itself.
               if (
                 mounted &&
                 caps &&
@@ -107,9 +84,6 @@ export function useAppInitialization() {
       } catch (e) {
         attempts += 1;
         console.warn(`[useAppInitialization] boot attempt ${attempts} failed:`, String(e));
-        // Hold the splash and retry on the next foreground, when secure storage
-        // is readable again. Give up after a few tries so a permanent failure
-        // still lets the user reach the setup screen instead of a dead splash.
         if (mounted && attempts >= MAX_BOOT_ATTEMPTS) setIsAppReady(true);
       } finally {
         running = false;

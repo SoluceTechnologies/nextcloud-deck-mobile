@@ -5,7 +5,6 @@ import { applyRun, dueTasks, INITIAL_SCHEDULER_STATE, type SchedulerState, type 
 const DEFAULT_INTERVAL_MS = 30_000;
 
 export type SchedulerDeps = {
-  /** Resolves `true` if the task ran (a snapshot may be stamped); `false` if it aborted. */
   runTask: (task: SyncTask) => Promise<boolean>;
   getActiveBoardRemoteId: () => string | null;
   getRecentBoardRemoteIds: () => string[];
@@ -19,14 +18,6 @@ export type SyncScheduler = {
   stop: () => void;
   runNow: () => Promise<void>;
   isRunning: () => boolean;
-  /** Zeroes this board's snapshot clock so the next pass sees it as due for
-   * a full fetch — reusing the active-board priority in `dueTasks` rather
-   * than bypassing the scheduler with a direct fetch. If no pass is
-   * currently running, that pass starts immediately; if one is already in
-   * flight, this queues exactly one more pass to run right after it
-   * finishes, so the request is never silently dropped. A request that
-   * arrives while offline still zeroes the clock and is picked up on the
-   * next online tick, since `runNow` itself declines to run while offline. */
   requestBoardSnapshot: (boardRemoteId: string) => void;
 };
 
@@ -40,10 +31,6 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
   let rerun = false;
 
   async function runNow(): Promise<void> {
-    // A tick that arrives while the previous one is still working is dropped,
-    // not queued: the next tick is thirty seconds away and will see fresh
-    // state. `requestBoardSnapshot` below is the one caller that can't wait
-    // thirty seconds, so it sets `rerun` instead of relying on this guard.
     if (running || !deps.isOnline()) return;
     running = true;
 
@@ -59,13 +46,8 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
       const succeeded: SyncTask[] = [];
       for (const task of tasks) {
         try {
-          // `false` means the task lost the epoch race and aborted without
-          // writing: it must not advance its cadence clock any more than a
-          // thrown error would.
           if (await deps.runTask(task)) succeeded.push(task);
         } catch (error) {
-          // One failing scope must not cancel the others, and a failed task
-          // must not advance its cadence clock.
           console.warn('[sync] task failed', task.kind, String(error));
         }
       }
@@ -104,11 +86,6 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
   };
 }
 
-// A registry of one scheduler per currently-mounted account (useDeckSync
-// registers/unregisters around its own effect lifecycle), so code outside the
-// sync loop — the board screen — can reach the right instance without a
-// prop-drilled reference or a second source of truth for "which account is
-// active".
 let active: { accountId: string; scheduler: SyncScheduler } | null = null;
 
 export function registerScheduler(accountId: string, scheduler: SyncScheduler): void {
@@ -119,13 +96,6 @@ export function unregisterScheduler(scheduler: SyncScheduler): void {
   if (active?.scheduler === scheduler) active = null;
 }
 
-/**
- * Called when the user opens a board: marks it active (and recent) in the ui
- * store regardless of sync state, then — if a scheduler is actually running
- * for this account — asks it to fetch a full snapshot on the next tick. A
- * no-op scheduler-side is fine: opening a board before the sync loop has
- * started must not throw.
- */
 export function requestBoardSnapshot(accountId: string, boardRemoteId: string): void {
   useUiStore.getState().setActiveBoardRemoteId(boardRemoteId);
   useUiStore.getState().pushRecentBoard(boardRemoteId);

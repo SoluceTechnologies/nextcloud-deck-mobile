@@ -27,10 +27,6 @@ export function createTaskRunner(
             full: task.full,
           });
         } finally {
-          // The board screen cannot tell "no lists yet" from "not fetched
-          // yet" on its own. Stamped in `finally`, so a board whose fetch
-          // keeps failing stops spinning and reads as empty rather than
-          // waiting forever.
           useUiStore.getState().markBoardContentFetched(account.id, task.boardRemoteId);
         }
     }

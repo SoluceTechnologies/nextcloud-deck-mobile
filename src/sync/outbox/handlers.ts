@@ -38,7 +38,6 @@ import type { Intent } from './types';
 
 export type HandlerContext = { db: Database; account: Account };
 
-/** A prerequisite create has not flushed yet; retry after it does. */
 export class DeferredIntentError extends Error {
   constructor(what: string) {
     super(`Deferred: ${what} has no remote id yet`);
@@ -69,19 +68,6 @@ export async function cardRefOf(
   };
 }
 
-/**
- * The card as the server must see it: complete, and read now, not at enqueue time.
- *
- * `PUT /cards/{id}` replaces the card, so every column travels — a missing key is
- * an erasure, which is why this cannot simply be narrowed to the intent's fields.
- * The row already holds the server's own value for every column no queued intent
- * owns, and the user's edit for the ones this intent still owns. The exception is
- * a field the conflict check dropped: the row holds the shielded optimistic value
- * there, and sending it would overwrite the edit we just reported as protected, so
- * `serverOverrides` puts the server's value back. Matched on key presence, never on
- * truthiness — a cleared due date (`null`) and an unarchived card (`false`) are
- * values, not absences.
- */
 function writeStateOf(card: Card, serverOverrides: Record<string, unknown>): CardWriteState {
   const state: Record<string, unknown> = {
     title: card.title,
@@ -106,7 +92,6 @@ function writeStateOf(card: Card, serverOverrides: Record<string, unknown>): Car
 export async function executeIntent(
   ctx: HandlerContext,
   intent: Intent,
-  /** The server's own value for each field the conflict check took off `intent.fields`. */
   serverOverrides: Record<string, unknown> = {},
 ): Promise<void> {
   const { db, account } = ctx;
@@ -169,7 +154,6 @@ export async function executeIntent(
     }
 
     case 'deleteCard':
-      // The local row is already destroyed, so the payload carries the coordinates.
       await deleteCard(account, intent.ref);
       return;
 
@@ -286,7 +270,6 @@ export async function executeIntent(
     }
 
     case 'deleteBoard':
-      // The local row is already destroyed, so the payload carries the remote id.
       await deleteBoard(account, intent.boardRemoteId);
       return;
 
@@ -298,8 +281,6 @@ export async function executeIntent(
         intent.message,
         intent.parentRemoteId || null,
       );
-      // R45: an id-less response must count as a failed attempt, not a
-      // silent write-back of the string "undefined" (see normalizeComment).
       if (!created.remoteId || created.remoteId === 'undefined') {
         throw new Error('createComment: no id in the response');
       }
@@ -310,16 +291,8 @@ export async function executeIntent(
         () =>
           comment.update((r: Comment) => {
             r.remoteId = created.remoteId;
-            // The author too, not just the id: the row was written locally
-            // with an empty actor, which CommentsSection reads as "mine,
-            // still pending". Clearing `remoteId` alone ends the pending
-            // state while leaving the comment authorless — it would render
-            // as an unnamed "?" until the next syncCardDetail pass happened
-            // to refetch the thread.
             r.actorId = created.actorId;
             r.actorDisplayName = created.actorDisplayName;
-            // The server's own timestamp, so this comment doesn't jump
-            // position once a later fetch reconciles it against the thread.
             if (created.createdAt > 0) r.createdAt = created.createdAt;
           }),
         10000,
@@ -331,9 +304,6 @@ export async function executeIntent(
     case 'updateComment': {
       const { ref } = await cardRefOf(ctx, intent.cardId);
       const comment = await db.get<Comment>('comments').find(intent.commentId);
-      // An edit of a comment created offline never reaches here: `coalesceIntents`
-      // folds it into the still-queued create. This only fires when the create
-      // failed, so deferring is right — retry once it lands.
       const commentRemoteId = await requireRemoteId(comment, 'comment');
       await updateComment(account, ref.cardRemoteId, commentRemoteId, intent.message);
       return;
@@ -341,7 +311,6 @@ export async function executeIntent(
 
     case 'deleteComment': {
       const { ref } = await cardRefOf(ctx, intent.cardId);
-      // The local row is already destroyed, so the payload carries the remote id.
       await deleteComment(account, ref.cardRemoteId, intent.commentRemoteId);
       return;
     }

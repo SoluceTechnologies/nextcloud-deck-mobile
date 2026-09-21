@@ -32,13 +32,9 @@ export default function BoardsScreen() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<BoardSort>('title');
 
-  // The board being created/renamed: null means "create". Kept separate from
-  // `formVisible` so the sheet still shows the right title while it slides out.
   const [formBoard, setFormBoard] = useState<Board | null>(null);
   const [formVisible, setFormVisible] = useState(false);
 
-  // Same split for the actions sheet — `actionsTarget` also gates whether the
-  // sheet has ever been needed, so it isn't mounted before the first long press.
   const [actionsTarget, setActionsTarget] = useState<BoardSummary | null>(null);
   const [actionsVisible, setActionsVisible] = useState(false);
 
@@ -171,8 +167,6 @@ export default function BoardsScreen() {
             return;
           }
 
-          // One update carrying both fields — never two independent updateBoard
-          // intents, which can race and silently drop one of the two edits.
           const changes: { title?: string; color?: string | null } = {};
           if (input.title !== formBoard.title) changes.title = input.title;
           if (input.color !== (formBoard.color ?? null)) changes.color = input.color;

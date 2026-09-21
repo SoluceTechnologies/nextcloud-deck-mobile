@@ -25,7 +25,6 @@ export type CardTileData = {
   assignees: { participant: string; displayName: string }[];
 };
 
-/** A per-render snapshot: the model instance is mutated in place by every optimistic write, so a value comparator must compare copies, never the instance. */
 export function toCardTileCard(card: Card): CardTileCard {
   return {
     id: card.id,
@@ -52,9 +51,6 @@ function CardTileImpl({ data, onPress }: CardTileProps) {
   const shownAssignees = assignees.slice(0, MAX_AVATARS);
   const overflow = assignees.length - shownAssignees.length;
 
-  // Date.now() is read once per render, so an overdue count can go stale
-  // across midnight until something else causes this tile to re-render —
-  // acceptable for v0.
   const dueState = dueStateOf(card.duedate, card.doneAt, Date.now());
   const dueLabel =
     dueState.kind === 'overdue' ? t('card.overdue', { count: dueState.days })
@@ -196,17 +192,6 @@ function sameAssignees(a: CardTileData['assignees'], b: CardTileData['assignees'
   );
 }
 
-// A column re-renders on every observed change and rebuilds `data` fresh each
-// time, so a default shallow compare on { data, onPress } never bails — it's a
-// no-op. Comparing primitives is the fix, but only because `card` is a
-// snapshot (see `toCardTileCard`), not the WatermelonDB model instance:
-// WatermelonDB keeps one JS instance per row (its identity map), so an
-// optimistic local write mutates that instance in place. Reading fields off
-// the live instance would make prev.data.card and next.data.card the same
-// mutated object — both sides already showing the new value — so the
-// comparator would bail and the tile would stay stale. A snapshot taken fresh
-// on every render captures the field values at that moment, so a real change
-// shows up as two different values, never as one object compared to itself.
 function areEqual(prev: CardTileProps, next: CardTileProps) {
   if (prev.onPress !== next.onPress) return false;
 

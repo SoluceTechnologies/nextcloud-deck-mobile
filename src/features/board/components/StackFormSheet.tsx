@@ -6,8 +6,6 @@ import { Button, Sheet, TextField } from '@/ui/components';
 export interface StackFormSheetProps {
   visible: boolean;
   initial?: { title: string };
-  /** Overrides the sheet title — the board screen reuses this sheet for "add
-   * a card" as well as "add/rename a list", and each needs its own copy. */
   heading?: string;
   placeholder?: string;
   onClose: () => void;
@@ -25,8 +23,6 @@ export function StackFormSheet({
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
 
-  // Seed only when the sheet opens, not on every parent render — a live stack
-  // reference passed as `initial` would otherwise reset the user's typing.
   useEffect(() => {
     if (visible) {
       setTitle(initial?.title ?? '');

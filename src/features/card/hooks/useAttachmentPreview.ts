@@ -6,11 +6,6 @@ import { trustedFetch } from '@/services/shared/trustedFetch';
 import type { CardRemoteRef } from '@/sync/outbox/types';
 import type { Account } from '@/types';
 
-/**
- * The whole body is held in memory as a base64 data URI (see `useAvatar`, the
- * same trade), so a big file is declined rather than risking the render
- * process. Anything over this opens outside the app instead.
- */
 export const MAX_PREVIEW_BYTES = 15 * 1024 * 1024;
 
 export type PreviewState =
@@ -22,11 +17,6 @@ export type PreviewState =
   | { status: 'tooLarge' }
   | { status: 'failed' };
 
-/**
- * React Native's own <Image> decodes these; SVG needs a renderer this app does
- * not ship, so it is treated as un-previewable rather than shown blank.
- * ponytail: images only — add a PDF/text viewer when one is actually wanted.
- */
 export function isPreviewable(mime: string): boolean {
   return mime.startsWith('image/') && mime !== 'image/svg+xml';
 }
@@ -35,16 +25,6 @@ function basicAuth(account: Pick<Account, 'username' | 'appPassword'>): string {
   return 'Basic ' + btoa(`${account.username}:${account.appPassword}`);
 }
 
-/**
- * Loads one attachment for the in-app preview. The download endpoint is
- * authenticated, so the bytes are fetched here with the account's credentials
- * (and through `trustedFetch`, so a server on a user-trusted certificate still
- * resolves) and handed to <Image> as a data URI — a bare URL would reach the
- * image loader without any of that and come back 401.
- *
- * Nothing is cached: unlike an avatar, an attachment is arbitrarily large and
- * has no business in the key-value store.
- */
 export function useAttachmentPreview(
   account: Account | null,
   ref: CardRemoteRef | null,
@@ -93,7 +73,6 @@ export function useAttachmentPreview(
     return () => {
       active = false;
     };
-    // The row is a live model instance; its identity is the id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account?.id, ref?.cardRemoteId, attachment?.id]);
 

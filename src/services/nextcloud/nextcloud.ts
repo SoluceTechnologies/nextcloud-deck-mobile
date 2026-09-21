@@ -45,10 +45,6 @@ function extractSlug(url: string): string {
   }
 }
 
-// Validates credentials against the server's DAV principal endpoint, which
-// every Nextcloud instance exposes regardless of which apps are enabled.
-// This only needs a stable per-user id (davUserId), not calendar access, so
-// it stops at principal discovery rather than resolving a calendar home too.
 export async function validateCredentials(params: {
   baseUrl: string;
   username: string;

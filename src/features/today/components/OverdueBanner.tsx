@@ -16,9 +16,6 @@ export function OverdueBanner({ count }: OverdueBannerProps) {
   if (count === 0) return null;
 
   return (
-    // A low-alpha wash of the danger colour, not a fixed slab: this used to
-    // paint itself with the dark theme's surface and white text whatever the
-    // app was set to, so in light mode it was a black box.
     <View testID="overdue-banner" style={[styles.root, { backgroundColor: `${colors.danger}1f`, borderRadius: radius.md }]}>
       <View testID="overdue-edge" style={[styles.edge, { backgroundColor: colors.danger }]} />
       <View style={styles.content}>

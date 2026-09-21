@@ -18,12 +18,6 @@ export interface LabelsSheetProps {
   onCreate: (input: { title: string; color: string | null }) => void;
 }
 
-/**
- * The board's full label list with a checkbox per row (toggling never closes the
- * sheet — assigning several labels in a row is the common case) plus an inline
- * "new label" form. The colour picker reuses PaletteRow/DECK_PALETTE (ColorSheet's
- * palette): a label colour outside that set would not round-trip to the server.
- */
 export function LabelsSheet({ visible, boardLabels, selected, onClose, onToggle, onCreate }: LabelsSheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();

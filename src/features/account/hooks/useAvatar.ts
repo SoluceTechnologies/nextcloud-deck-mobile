@@ -4,7 +4,6 @@ import { storage } from '@/storage';
 import type { Account } from '@/types';
 import { trustedFetch } from '@/services/shared/trustedFetch';
 
-/** Without a userId this is the account owner's own avatar — unchanged cache key. */
 function cacheKey(accountId: string, userId?: string): string {
   return userId ? `avatar:${accountId}:${userId}` : `avatar:${accountId}`;
 }
@@ -13,11 +12,6 @@ function basicAuth(account: Pick<Account, 'username' | 'appPassword'>): string {
   return 'Basic ' + btoa(`${account.username}:${account.appPassword}`);
 }
 
-/**
- * The account owner's avatar by default; pass `userId` (e.g. a card
- * participant) to fetch and cache someone else's avatar under its own key
- * instead, using the same account's credentials.
- */
 export function useAvatar(
   account: Account | null,
   userId?: string,
@@ -36,9 +30,6 @@ export function useAvatar(
     const cached = storage.getString(key);
     if (cached) setData(cached);
 
-    // A per-user avatar (a card participant) rarely changes and every result
-    // row mounts one of these — a cache hit returns as-is with no re-fetch.
-    // The account's own avatar keeps refreshing on every mount, as before.
     if (!(userId && cached)) {
       (async () => {
         try {

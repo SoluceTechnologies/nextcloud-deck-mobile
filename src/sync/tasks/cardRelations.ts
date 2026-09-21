@@ -6,19 +6,10 @@ import type { DeckAssignee, DeckCard } from '@/services/deck/types';
 import type { PendingCards } from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
 
-/** A user and a group can share a name; the type is part of the identity. */
 export function assigneeKey(participant: string, assigneeType: number): string {
   return `${participant}|${assigneeType}`;
 }
 
-/**
- * The label and assignee keys a queued mutation currently owns for this card.
- * A row matching one of these must survive `deleteMissing`, the same way a
- * pending `patchCard`/`moveCard`/`setCardArchived` shields its card columns
- * (`loadPendingCards`) — a join row an `assignLabel`/`assignUser` intent just
- * created locally has not reached the server yet, so its absence from the
- * remote snapshot means "not synced", not "removed".
- */
 export function pendingRelationIds(
   pending: PendingCards,
   cardLocalId: string,
@@ -43,11 +34,9 @@ export type BuildCardRelationOpsParams = {
   accountId: string;
   cardLocalId: string;
   remote: DeckCard;
-  /** Board label remote id → local row id, built once per board pass. */
   labelLocalIdByRemote: Map<string, string>;
   labelRows: CardLabel[];
   assigneeRows: CardAssignee[];
-  /** Queued intents by card, so a join row a mutation owns is never deleted. */
   pending: PendingCards;
 };
 
@@ -70,8 +59,6 @@ export function buildCardRelationOps({
     cardLocalId,
   );
 
-  // A label the board pass has not cached yet cannot be linked; the next pass
-  // will pick it up once the label row exists.
   const wantedLabelIds = remote.labels
     .map((l) => labelLocalIdByRemote.get(l.remoteId))
     .filter((id): id is string => id !== undefined);

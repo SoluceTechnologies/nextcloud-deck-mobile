@@ -15,7 +15,6 @@ export function summarizeBoards(boards: Board[], cards: Card[]): BoardSummary[] 
   const total = new Map<string, number>();
 
   for (const card of cards) {
-    // An archived card has left the board as far as the user is concerned.
     if (card.archived) continue;
     total.set(card.boardId, (total.get(card.boardId) ?? 0) + 1);
     if (card.doneAt) done.set(card.boardId, (done.get(card.boardId) ?? 0) + 1);
@@ -36,7 +35,6 @@ export function filterBoards(rows: BoardSummary[], query: string): BoardSummary[
 }
 
 export function sortBoards(rows: BoardSummary[], by: BoardSort): BoardSummary[] {
-  // Copy first: the caller's array comes from an observable and must not be mutated.
   return [...rows].sort((a, b) =>
     by === 'title'
       ? a.board.title.localeCompare(b.board.title)

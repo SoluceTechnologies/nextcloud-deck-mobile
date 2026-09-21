@@ -16,8 +16,6 @@ export function BoardFormSheet({ visible, initial, onClose, onSubmit }: BoardFor
   const [title, setTitle] = useState('');
   const [color, setColor] = useState<string | null>(null);
 
-  // Seed only when the sheet opens, not on every parent render — a live board
-  // reference passed as `initial` would otherwise reset the user's typing.
   useEffect(() => {
     if (visible) {
       setTitle(initial?.title ?? '');

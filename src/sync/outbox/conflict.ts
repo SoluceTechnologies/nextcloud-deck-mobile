@@ -3,16 +3,10 @@ import type { CardFieldName } from '@/database/writers';
 import type { Intent } from './types';
 
 export type ConflictResolution = {
-  /** The intent to send, or `null` when nothing survives. */
   intent: Intent | null;
   conflictedFields: CardFieldName[];
 };
 
-/**
- * `patchCard` is the only intent that replaces the whole card server-side, so it
- * is the only one that can silently overwrite someone else's edit. Every other
- * intent hits an endpoint scoped to its own field and is always safe to send.
- */
 export function resolveConflict(
   intent: Intent,
   serverValues: Record<string, unknown>,

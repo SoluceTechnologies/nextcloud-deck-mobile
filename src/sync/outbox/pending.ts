@@ -19,11 +19,6 @@ function parseIntent(entry: OutboxEntry): Intent | null {
   }
 }
 
-/**
- * Every card that a queued mutation currently owns, with the columns it owns.
- * The sync consults this before writing, so an optimistic value is never
- * clobbered and the server's competing value is preserved for conflict detection.
- */
 export async function loadPendingCards(db: Database, accountId: string): Promise<PendingCards> {
   const rows = await db
     .get<OutboxEntry>('outbox')
@@ -68,12 +63,6 @@ export function pendingEntityIds(pending: PendingCards): Set<string> {
   return new Set(pending.keys());
 }
 
-/**
- * The queued intents filed against boards, stacks or comments. `loadPendingCards`
- * answers a card-shaped question — which columns a queued mutation owns — because
- * cards are reconciled field by field. These are reconciled whole, so their shield
- * only needs to know which entities have something in flight and what it is.
- */
 export async function loadQueuedIntents(
   db: Database,
   accountId: string,

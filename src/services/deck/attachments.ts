@@ -9,11 +9,6 @@ function attachmentsPath(ref: CardRemoteRef): string {
   return `/boards/${ref.boardRemoteId}/stacks/${ref.stackRemoteId}/cards/${ref.cardRemoteId}/attachments`;
 }
 
-/**
- * `null` on 304 or a body-less 200, for the reason given on `fetchBoards` in
- * `boards.ts`: collapsing "nothing changed" into `[]` deletes every
- * attachment from an authoritative reconcile.
- */
 export async function fetchAttachments(
   account: DeckAccount,
   ref: CardRemoteRef,
@@ -26,15 +21,9 @@ export async function fetchAttachments(
   return result.data.map(normalizeAttachment);
 }
 
-/**
- * The `{type}` segment before the attachment id is item 2 of
- * `docs/v0/api-verification.md` — unverified against a live server.
- */
 export function attachmentDownloadUrl(
   account: DeckAccount,
   ref: CardRemoteRef,
-  // Only the two fields that build the path: the preview hook addresses a
-  // local Attachment row, which is not a DeckAttachment.
   a: Pick<DeckAttachment, 'attachmentType' | 'remoteId'>,
 ): string {
   return deckRestUrl(account.baseUrl, `${attachmentsPath(ref)}/${a.attachmentType}/${a.remoteId}`);

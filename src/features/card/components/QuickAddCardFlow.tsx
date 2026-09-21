@@ -14,29 +14,6 @@ export interface QuickAddCardFlowProps {
 
 type Target = { boardLocalId: string; stackLocalId: string };
 
-/**
- * Spec §7.6's quick-add: board → list → form → Save. Reused as-is by both the
- * Today tab and Search (Task 11 wires the two call sites); this component owns
- * only the two-step state machine between CardPickerSheet (mode="stack", so it
- * resolves at the list, one level short of a card) and QuickCardFormSheet.
- * `useCardActions.create` is the only write path — a component never calls
- * `mutate` itself. Closing either step drops the picked target and calls the
- * caller's `onClose`, so a reopen always starts over at the picker rather than
- * resuming a stale target.
- *
- * `step` is derived from `target` rather than tracked separately — the two
- * are never set independently, so a second `useState` would only invite a
- * future edit that updates one and forgets the other.
- *
- * CardPickerSheet fully self-closes on every successful pick — its own
- * `pick()` calls `onPick` then `onClose`, not just on a cancel (pinned by
- * CardPickerSheet.test.tsx's "calls onPick and then onClose synchronously on
- * a successful pick") — so this flow can't tell "picked" from "cancelled"
- * from the close call alone. `justPicked` is a ref rather than state because
- * it must be readable synchronously inside that same `onClose` call, before
- * React has applied the pick's state updates — reading `target` there would
- * hit the same stale pre-render value a `step` state would.
- */
 export function QuickAddCardFlow({ visible, accountId, onClose }: QuickAddCardFlowProps) {
   const [target, setTarget] = useState<Target | null>(null);
   const step = target ? 'form' : 'pick';
@@ -56,9 +33,6 @@ export function QuickAddCardFlow({ visible, accountId, onClose }: QuickAddCardFl
     setTarget({ boardLocalId, stackLocalId });
   };
 
-  // Fires both for a cancelled picker and for a completed pick — only the
-  // former should close the whole flow; the latter must leave the form step
-  // `handlePick` just set alone.
   const handlePickerClose = () => {
     if (justPicked.current) {
       justPicked.current = false;

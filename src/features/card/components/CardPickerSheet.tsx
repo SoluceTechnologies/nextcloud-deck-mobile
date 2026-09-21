@@ -18,13 +18,6 @@ export interface CardPickerSheetProps {
   onPick: (result: CardPickerResult) => void;
 }
 
-/**
- * A board → stack → (card) drill-down, reused wherever the app needs the user to
- * point at a destination: Task 16's move picks a stack, Task 22's dependency
- * picker (mode="card") goes one level further. `onClose` always fully dismisses
- * (backdrop, the sheet's own × ); the in-sheet back control only steps up one
- * level, so drilling back out never loses the sheet.
- */
 export function CardPickerSheet({ visible, accountId, mode, onClose, onPick }: CardPickerSheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -54,8 +47,6 @@ export function CardPickerSheet({ visible, accountId, mode, onClose, onPick }: C
 
   const pick = (result: CardPickerResult) => {
     onPick(result);
-    // A reopen (e.g. moving a different card next) must start fresh, not resume
-    // wherever this pick left the drill-down.
     reset();
     onClose();
   };
