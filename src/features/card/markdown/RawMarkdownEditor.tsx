@@ -46,7 +46,10 @@ export function RawMarkdownEditor({ value, onChangeText }: RawMarkdownEditorProp
     <View style={styles.container}>
       <TextInput
         testID="raw-editor"
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+        style={[
+          styles.input,
+          { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface },
+        ]}
         value={value}
         onChangeText={onChangeText}
         onSelectionChange={handleSelectionChange}
@@ -67,7 +70,7 @@ export function RawMarkdownEditor({ value, onChangeText }: RawMarkdownEditorProp
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, paddingHorizontal: 16, paddingBottom: 8 },
   input: {
     flex: 1,
     padding: 12,

@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import Reanimated, { useAnimatedScrollHandler } from 'react-native-reanimated';
 
 import { useAccountStore } from '@/stores/accountStore';
-import { useUiStore } from '@/stores/uiStore';
+import { boardContentKey, useUiStore } from '@/stores/uiStore';
 import { useDatabase } from '@/database/DatabaseProvider';
 import { useBoardCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
@@ -30,8 +30,9 @@ import { DragOverlay } from '@/features/board/dnd/DragOverlay';
 import type { DropResult } from '@/features/board/dnd/dragController';
 import { edgeDirection, orderFor } from '@/features/board/dnd/dropTarget';
 import { recordRecentBoard } from '@/features/today/recentBoards';
+import { useIsOnline } from '@/services/shared/network';
 import { requestBoardSnapshot } from '@/sync/scheduler';
-import { Button, ScreenHeader, ViewContainer } from '@/ui/components';
+import { Button, ScreenHeader, Spinner, ViewContainer } from '@/ui/components';
 
 // Screen width minus this margin leaves the next column's edge visible, so a
 // swipe reads as "there's more" rather than landing on a dead end.
@@ -109,6 +110,17 @@ export default function BoardScreen() {
 
   const columnWidth = windowWidth - PEEK;
 
+  // A board with no lists is either genuinely empty or still on its way, and
+  // the stack list alone cannot tell them apart. Three things settle it:
+  // a board with no remote id was created here and has nothing to fetch; the
+  // scheduler stamps every attempt it makes (see runTask); and offline there
+  // will be no attempt at all, so waiting on one would spin forever.
+  const online = useIsOnline();
+  const fetchedAt = useUiStore((s) =>
+    accountId ? s.boardContentFetchedAt[boardContentKey(accountId, boardRemoteId)] : undefined,
+  );
+  const loadingContent = boardRemoteId !== '' && online && fetchedAt === undefined;
+
   const renderStack = useCallback(
     ({ item }: ListRenderItemInfo<Stack>) => (
       <StackColumn
@@ -151,7 +163,21 @@ export default function BoardScreen() {
     [cards, cardActions],
   );
 
-  if (!board) return null;
+  // useBoards starts at [] and fills in once its subscription emits, so a
+  // cold open lands here for a frame or two — rendering null makes that read
+  // as a broken screen rather than a loading one.
+  if (!board) {
+    return (
+      <ViewContainer>
+        <SafeAreaView edges={['top']} style={styles.flex}>
+          <ScreenHeader onBack={() => router.back()} />
+          <View style={styles.loading}>
+            <Spinner />
+          </View>
+        </SafeAreaView>
+      </ViewContainer>
+    );
+  }
 
   return (
     <ViewContainer>
@@ -162,6 +188,7 @@ export default function BoardScreen() {
           columnWidth={columnWidth}
           windowWidth={windowWidth}
           renderStack={renderStack}
+          loading={loadingContent}
           onAddList={() => setAddTarget({ kind: 'list' })}
         />
         <DragOverlay />
@@ -192,13 +219,23 @@ type BoardColumnsProps = {
   columnWidth: number;
   windowWidth: number;
   renderStack: (info: ListRenderItemInfo<Stack>) => ReactElement;
+  /** The board's first content fetch is still in flight. */
+  loading: boolean;
   onAddList: () => void;
 };
 
 // Lives inside <DragProvider> (BoardScreen's return, above) so it can call useDrag():
 // BoardScreen renders DragProvider itself, so it can never be a descendant of its own
 // output and cannot reach the shared drag state in its own body.
-function BoardColumns({ board, stacks, columnWidth, windowWidth, renderStack, onAddList }: BoardColumnsProps) {
+function BoardColumns({
+  board,
+  stacks,
+  columnWidth,
+  windowWidth,
+  renderStack,
+  loading,
+  onAddList,
+}: BoardColumnsProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { frame, x, y, target, scrollColumnBy } = useDrag();
@@ -290,6 +327,13 @@ function BoardColumns({ board, stacks, columnWidth, windowWidth, renderStack, on
         disableIntervalMomentum
         showsHorizontalScrollIndicator={false}
         initialNumToRender={3}
+        ListEmptyComponent={
+          loading ? (
+            <View testID="board-loading" style={[styles.loading, { width: columnWidth }]}>
+              <Spinner />
+            </View>
+          ) : null
+        }
         ListFooterComponent={
           <View style={{ width: columnWidth }}>
             <Button variant="secondary" title={t('board.addList')} onPress={onAddList} />
@@ -303,4 +347,5 @@ function BoardColumns({ board, stacks, columnWidth, windowWidth, renderStack, on
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   listContent: { paddingHorizontal: GAP, paddingBottom: 12, gap: GAP },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 48 },
 });

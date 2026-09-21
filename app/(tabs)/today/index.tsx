@@ -115,35 +115,36 @@ export default function TodayScreen() {
             </Typography>
           }
           ListFooterComponent={
-            <>
-              {recentBoards.length > 0 ? (
-                <View style={styles.recentSection}>
-                  <SectionHeader title={t('today.recent')} />
-                  <FlatList
-                    horizontal
-                    data={recentBoards}
-                    keyExtractor={(board) => board.id}
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.recentList}
-                    renderItem={({ item }) => (
-                      <RecentBoardCard
-                        board={{ id: item.id, title: item.title, color: item.color ?? null, shared: item.shared }}
-                        onPress={(id) => router.push(`/boards/${id}`)}
-                      />
-                    )}
-                  />
-                </View>
-              ) : null}
-
-              <Button
-                testID="today-add-card"
-                variant="secondary"
-                icon={<Plus size={18} color={colors.primary} />}
-                title={t('today.addCard')}
-                onPress={() => setAddVisible(true)}
-              />
-            </>
+            recentBoards.length > 0 ? (
+              <View style={styles.recentSection}>
+                <SectionHeader title={t('today.recent')} />
+                <FlatList
+                  horizontal
+                  data={recentBoards}
+                  keyExtractor={(board) => board.id}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recentList}
+                  renderItem={({ item }) => (
+                    <RecentBoardCard
+                      board={{ id: item.id, title: item.title, color: item.color ?? null, shared: item.shared }}
+                      onPress={(id) => router.push(`/boards/${id}`)}
+                    />
+                  )}
+                />
+              </View>
+            ) : null
           }
+        />
+
+        {/* Pinned below the list rather than scrolled to the end of it, so it
+            stays reachable on a long Today — same placement as the Search tab. */}
+        <Button
+          testID="today-add-card"
+          variant="secondary"
+          icon={<Plus size={18} color={colors.primary} />}
+          title={t('today.addCard')}
+          style={styles.addCard}
+          onPress={() => setAddVisible(true)}
         />
       </SafeAreaView>
 
@@ -158,4 +159,5 @@ const styles = StyleSheet.create({
   empty: { marginTop: 32 },
   recentSection: { marginTop: 8 },
   recentList: { gap: 12, paddingVertical: 4 },
+  addCard: { marginHorizontal: 16, marginBottom: 12 },
 });

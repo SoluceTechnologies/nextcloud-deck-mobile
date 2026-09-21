@@ -14,6 +14,7 @@ import { fetchAttachments } from '@/services/deck/attachments';
 import type { CardRef } from '@/services/deck/cards';
 import { fetchComments } from '@/services/deck/comments';
 import { cardRefOf, DeferredIntentError } from '@/sync/outbox/handlers';
+import { loadQueuedIntents } from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
 import type { Account } from '@/types';
 
@@ -68,6 +69,19 @@ export async function syncCardDetail({
             .fetch()
         ).filter((r) => r.remoteId !== '');
 
+        // Mirrors the board and stack shields in syncBoardContent: a queued
+        // edit is protected through the row it still owns, a queued delete
+        // through its intent, since that row is already destroyed and no
+        // longer carries the key.
+        const queued = await loadQueuedIntents(db, account.id, 'comment');
+        const queuedIds = new Set(queued.map(({ entry }) => entry.entityId));
+        const protectedRowIds = new Set(
+          rows.filter((r) => queuedIds.has(r.id)).map((r) => r.remoteId),
+        );
+        for (const { intent } of queued) {
+          if (intent.kind === 'deleteComment') protectedRowIds.add(intent.commentRemoteId);
+        }
+
         const plan = reconcile({
           remote: comments,
           rows,
@@ -78,6 +92,7 @@ export async function syncCardDetail({
           // first page and it came back short (R46) — anywhere else, a
           // comment merely absent from *this* page may still exist on another.
           deleteMissing: offset === 0 && comments.length < PAGE_SIZE,
+          protectedRowIds,
         });
 
         const collection = db.get<Comment>('comments');
@@ -85,6 +100,10 @@ export async function syncCardDetail({
           ops.push(collection.prepareCreate((r: Comment) => writeCommentRow(r, c, ctx)));
         }
         for (const { row, remote } of plan.update) {
+          // `protectedRowIds` guards create/remove, not update — a queued edit
+          // still needs its own check here, or the message this pass just
+          // fetched would revert it before the drain runs.
+          if (protectedRowIds.has(row.remoteId)) continue;
           ops.push(row.prepareUpdate((r: Comment) => writeCommentRow(r, remote, ctx)));
         }
         for (const row of plan.remove) {

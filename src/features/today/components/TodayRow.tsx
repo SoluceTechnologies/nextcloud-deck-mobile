@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react-native';
 
 import { dueStateOf } from '@/features/card/dueState';
 import { formatRelative } from '@/utils/relativeTime';
-import { AnimatedPressable, Avatar, Typography } from '@/ui/components';
+import { AnimatedPressable, Avatar, Checkbox, Typography } from '@/ui/components';
 
 export interface TodayRowProps {
   item: {
@@ -27,13 +27,10 @@ export function TodayRow({ item, onToggleDone, onOpen }: TodayRowProps) {
 
   return (
     <View style={styles.row}>
-      <AnimatedPressable
+      <Checkbox
         testID={`today-done-${item.id}`}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: false }}
         accessibilityLabel={t('today.markDone')}
         onPress={() => onToggleDone(item.id)}
-        style={[styles.checkbox, { borderColor: colors.textTertiary }]}
       />
       <AnimatedPressable
         testID={`today-row-${item.id}`}
@@ -69,7 +66,6 @@ export function TodayRow({ item, onToggleDone, onOpen }: TodayRowProps) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16, gap: 12 },
-  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2 },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   content: { flex: 1, gap: 2 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap' },

@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import { Button, IconButton, ScreenHeader, Typography } from '@/ui/components';
+import { Button, IconButton, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 import { canUseRichEditor } from './unsupportedBlocks';
 import { RawMarkdownEditor } from './RawMarkdownEditor';
 import { useMarkdownStyle } from './markdownStyle';
@@ -104,54 +104,62 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
       presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : undefined}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.flex}>
-        <ScreenHeader
-          title={t('card.description')}
-          left={
-            <IconButton testID="editor-close" accessibilityLabel={t('common.close')} onPress={onClose}>
-              <X size={22} color={colors.text} />
-            </IconButton>
-          }
-          right={<Button inline size="small" title={t('card.save')} onPress={handleSave} />}
-        />
-        <KeyboardAvoidingView style={styles.flex} behavior="padding">
-          {useRich ? (
-            <>
-              <View style={styles.toolbar}>
-                {TOOLBAR.map(({ id, Icon, run }) => (
-                  <IconButton
-                    key={id}
-                    testID={`md-${id}`}
-                    onPress={() => editorRef.current && run(editorRef.current)}
-                  >
-                    <Icon size={18} color={colors.text} />
-                  </IconButton>
-                ))}
-              </View>
-              <EnrichedMarkdownTextInput
-                // `defaultValue` only applies at mount: the Modal keeps this
-                // input mounted even while hidden, so without a key tied to
-                // the open/close flip, canceling a draft and reopening would
-                // resurface the abandoned text instead of `initial` — and an
-                // immediate Save would then persist that stale draft.
-                key={visible ? 'open' : 'closed'}
-                ref={editorRef}
-                defaultValue={initial}
-                testID="rich-editor"
-                markdownStyle={markdownStyle}
-                style={{ ...styles.flex, color: colors.text }}
-              />
-            </>
-          ) : (
-            <>
-              <Typography testID="raw-editor-notice" color="secondary" style={styles.notice}>
-                {t('card.rawEditorNotice')}
-              </Typography>
-              <RawMarkdownEditor value={rawValue} onChangeText={setRawValue} />
-            </>
-          )}
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+      {/* A Modal renders on its own opaque white root, outside the screen it
+          was opened from — without this the whole editor stays light while
+          the app is dark, and the themed text turns near-invisible. */}
+      <ViewContainer>
+        <SafeAreaView style={styles.flex}>
+          <ScreenHeader
+            title={t('card.description')}
+            left={
+              <IconButton testID="editor-close" accessibilityLabel={t('common.close')} onPress={onClose}>
+                <X size={22} color={colors.text} />
+              </IconButton>
+            }
+            right={<Button inline size="small" title={t('card.save')} onPress={handleSave} />}
+          />
+          <KeyboardAvoidingView style={styles.flex} behavior="padding">
+            {useRich ? (
+              <>
+                <View style={styles.toolbar}>
+                  {TOOLBAR.map(({ id, Icon, run }) => (
+                    <IconButton
+                      key={id}
+                      testID={`md-${id}`}
+                      onPress={() => editorRef.current && run(editorRef.current)}
+                    >
+                      <Icon size={18} color={colors.text} />
+                    </IconButton>
+                  ))}
+                </View>
+                <EnrichedMarkdownTextInput
+                  // `defaultValue` only applies at mount: the Modal keeps this
+                  // input mounted even while hidden, so without a key tied to
+                  // the open/close flip, canceling a draft and reopening would
+                  // resurface the abandoned text instead of `initial` — and an
+                  // immediate Save would then persist that stale draft.
+                  key={visible ? 'open' : 'closed'}
+                  ref={editorRef}
+                  defaultValue={initial}
+                  testID="rich-editor"
+                  markdownStyle={markdownStyle}
+                  cursorColor={colors.primary}
+                  selectionColor={`${colors.primary}55`}
+                  placeholderTextColor={colors.textTertiary}
+                  style={{ ...styles.flex, ...styles.editor, color: colors.text }}
+                />
+              </>
+            ) : (
+              <>
+                <Typography testID="raw-editor-notice" color="secondary" style={styles.notice}>
+                  {t('card.rawEditorNotice')}
+                </Typography>
+                <RawMarkdownEditor value={rawValue} onChangeText={setRawValue} />
+              </>
+            )}
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </ViewContainer>
     </Modal>
   );
 }
@@ -159,5 +167,6 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingHorizontal: 12, paddingBottom: 8 },
+  editor: { paddingHorizontal: 16 },
   notice: { paddingHorizontal: 16, paddingBottom: 8 },
 });

@@ -33,7 +33,9 @@ export async function fetchAttachments(
 export function attachmentDownloadUrl(
   account: DeckAccount,
   ref: CardRemoteRef,
-  a: DeckAttachment,
+  // Only the two fields that build the path: the preview hook addresses a
+  // local Attachment row, which is not a DeckAttachment.
+  a: Pick<DeckAttachment, 'attachmentType' | 'remoteId'>,
 ): string {
   return deckRestUrl(account.baseUrl, `${attachmentsPath(ref)}/${a.attachmentType}/${a.remoteId}`);
 }

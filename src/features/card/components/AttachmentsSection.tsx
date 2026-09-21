@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { File, FileText, Image as ImageIcon } from 'lucide-react-native';
 
 import type Attachment from '@/database/models/Attachment';
-import { Icon, Item, List, SectionHeader, Typography } from '@/ui/components';
+import { Icon, Item, List, SectionHeader, Spinner, Typography } from '@/ui/components';
 
 export interface AttachmentsSectionProps {
   attachments: Attachment[];
+  /** The card's detail fetch is in flight — see useCardDetailSync. */
+  loading?: boolean;
   onOpen: (attachment: Attachment) => void;
 }
 
@@ -30,16 +32,22 @@ function iconFor(mime: string): ComponentType<{ color?: string; size?: number }>
  * is the caller's job (onOpen): this component knows nothing about accounts
  * or download URLs.
  */
-export function AttachmentsSection({ attachments, onOpen }: AttachmentsSectionProps) {
+export function AttachmentsSection({ attachments, loading, onOpen }: AttachmentsSectionProps) {
   const { t } = useTranslation();
 
   return (
     <View>
       <SectionHeader title={t('card.files')} />
       {attachments.length === 0 ? (
-        <Typography color="secondary" align="center">
-          {t('card.noFiles')}
-        </Typography>
+        // "No files" is only true once the fetch has answered: an empty list
+        // means "not in yet" just as often as it means "there are none".
+        loading ? (
+          <Spinner testID="files-loading" />
+        ) : (
+          <Typography color="secondary" align="center">
+            {t('card.noFiles')}
+          </Typography>
+        )
       ) : (
         <List>
           {attachments.map((attachment) => {

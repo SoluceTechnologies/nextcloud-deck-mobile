@@ -371,9 +371,115 @@ describe('executeIntent', () => {
       { kind: 'createComment', commentId: 'cm-local', cardId: 'c-local', message: 'hi' },
     );
 
-    expect(commentsApi.postComment).toHaveBeenCalledWith(account, '42', 'hi');
+    expect(commentsApi.postComment).toHaveBeenCalledWith(account, '42', 'hi', null);
     expect(comment.update).toHaveBeenCalled();
     expect(comment.remoteId).toBe('55');
+  });
+
+  // A locally written comment carries no actor, which the card screen reads
+  // as "mine, still pending". Ending that pending state without filling the
+  // author in would leave it rendering as an anonymous "?" until some later
+  // syncCardDetail pass happened to refetch the thread.
+  it('writes the author and the server timestamp back alongside the id', async () => {
+    const comment = row({
+      id: 'cm-local',
+      remoteId: '',
+      actorId: '',
+      actorDisplayName: '',
+      createdAt: 1000,
+    });
+    const db = makeDb({
+      'cm-local': comment,
+      'c-local': cardRow(),
+      's-local': stackRow,
+      'b-local': boardRow,
+    });
+    (commentsApi.postComment as jest.Mock).mockResolvedValue({
+      remoteId: '55',
+      message: 'hi',
+      actorId: 'charles',
+      actorDisplayName: 'Charles Gauthereau',
+      createdAt: 9000,
+    });
+
+    await executeIntent(
+      { db, account },
+      { kind: 'createComment', commentId: 'cm-local', cardId: 'c-local', message: 'hi' },
+    );
+
+    expect(comment.actorId).toBe('charles');
+    expect(comment.actorDisplayName).toBe('Charles Gauthereau');
+    expect(comment.createdAt).toBe(9000);
+  });
+
+  it('posts a reply with its parent id', async () => {
+    const db = makeDb({
+      'cm-local': row({ id: 'cm-local', remoteId: '' }),
+      'c-local': cardRow(),
+      's-local': stackRow,
+      'b-local': boardRow,
+    });
+    (commentsApi.postComment as jest.Mock).mockResolvedValue({ remoteId: '56', message: 'hi' });
+
+    await executeIntent(
+      { db, account },
+      {
+        kind: 'createComment',
+        commentId: 'cm-local',
+        cardId: 'c-local',
+        message: 'hi',
+        parentRemoteId: '55',
+      },
+    );
+
+    expect(commentsApi.postComment).toHaveBeenCalledWith(account, '42', 'hi', '55');
+  });
+
+  it('sends an edit against the comment\'s own remote id', async () => {
+    const db = makeDb({
+      'cm-local': row({ id: 'cm-local', remoteId: '55' }),
+      'c-local': cardRow(),
+      's-local': stackRow,
+      'b-local': boardRow,
+    });
+
+    await executeIntent(
+      { db, account },
+      { kind: 'updateComment', commentId: 'cm-local', cardId: 'c-local', message: 'amended' },
+    );
+
+    expect(commentsApi.updateComment).toHaveBeenCalledWith(account, '42', '55', 'amended');
+  });
+
+  // Only reachable when the create failed — coalesceIntents folds an edit of a
+  // still-queued comment into that create.
+  it('defers an edit of a comment that has no remote id yet', async () => {
+    const db = makeDb({
+      'cm-local': row({ id: 'cm-local', remoteId: '' }),
+      'c-local': cardRow(),
+      's-local': stackRow,
+      'b-local': boardRow,
+    });
+
+    await expect(
+      executeIntent(
+        { db, account },
+        { kind: 'updateComment', commentId: 'cm-local', cardId: 'c-local', message: 'amended' },
+      ),
+    ).rejects.toThrow(DeferredIntentError);
+    expect(commentsApi.updateComment).not.toHaveBeenCalled();
+  });
+
+  // The row is destroyed on enqueue, so the remote id has to come off the payload.
+  it('deletes a comment by the remote id carried in the intent', async () => {
+    const db = makeDb({ 'c-local': cardRow(), 's-local': stackRow, 'b-local': boardRow });
+
+    await executeIntent(
+      { db, account },
+      { kind: 'deleteComment', commentId: 'cm-local', cardId: 'c-local', commentRemoteId: '55' },
+    );
+
+    expect(commentsApi.deleteComment).toHaveBeenCalledWith(account, '42', '55');
   });
 
   // R45: a response with no usable id must count as a failed attempt, not a

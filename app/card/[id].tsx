@@ -3,7 +3,7 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Circle, CircleCheck, Ellipsis, X } from 'lucide-react-native';
+import { Ellipsis, X } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useActiveAccount } from '@/hooks/useAccounts';
@@ -11,9 +11,11 @@ import { useCard } from '@/database/hooks/useCard';
 import { useAccountCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
 import { useCardAttachments, useCardComments } from '@/database/hooks/useCardDetail';
+import type Attachment from '@/database/models/Attachment';
 import { useBoardLabels, useCardAssignees, useCardLabels } from '@/database/hooks/useCardRelations';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { AssigneesSheet } from '@/features/card/components/AssigneesSheet';
+import { AttachmentPreview } from '@/features/card/components/AttachmentPreview';
 import { AttachmentsSection } from '@/features/card/components/AttachmentsSection';
 import { CardIdentity } from '@/features/card/components/CardIdentity';
 import { CardMenu } from '@/features/card/components/CardMenu';
@@ -30,7 +32,9 @@ import { DescriptionView } from '@/features/card/markdown/DescriptionView';
 import { parseArray, participantsOf, type Participant } from '@/features/card/participants';
 // Pure URL builder, not a request — trustedFetch/deckRequest never run from a screen.
 import { attachmentDownloadUrl } from '@/services/deck/attachments';
-import { Icon, IconButton, Item, List, ScreenHeader, SectionHeader, Typography, ViewContainer } from '@/ui/components';
+import {
+  Checkbox, IconButton, Item, List, ScreenHeader, SectionHeader, Typography, ViewContainer,
+} from '@/ui/components';
 
 export default function CardDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,7 +57,7 @@ export default function CardDetailScreen() {
   // Keyed off the route param, not card?.id: syncCardDetail resolves the
   // card itself from the database, so this can start fetching before
   // useCard's own subscription (above) has resolved a row to render.
-  const { hasMore, loadMore } = useCardDetailSync(accountId, id);
+  const { hasMore, loadMore, loading: detailLoading } = useCardDetailSync(accountId, id);
   const [colorSheetVisible, setColorSheetVisible] = useState(false);
   const [labelsSheetVisible, setLabelsSheetVisible] = useState(false);
   const [assigneesSheetVisible, setAssigneesSheetVisible] = useState(false);
@@ -61,6 +65,7 @@ export default function CardDetailScreen() {
   const [descriptionEditorVisible, setDescriptionEditorVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [previewing, setPreviewing] = useState<Attachment | null>(null);
 
   // Resolved against every card of the account so the row can show a title
   // instead of a bare remote id; a dependency not yet pulled by sync falls
@@ -125,6 +130,19 @@ export default function CardDetailScreen() {
 
   const stack = stacks.find((s) => s.id === card.stackId);
 
+  // Every part has to have synced before a file can be addressed on the server.
+  const attachmentRef =
+    board?.remoteId && stack?.remoteId && card.remoteId
+      ? { boardRemoteId: board.remoteId, stackRemoteId: stack.remoteId, cardRemoteId: card.remoteId }
+      : null;
+
+  const openExternally = (a: Attachment) => {
+    if (!activeAccount || !attachmentRef) return;
+    void Linking.openURL(attachmentDownloadUrl(activeAccount, attachmentRef, a)).catch(
+      () => undefined,
+    );
+  };
+
   const dueState = dueStateOf(card.duedate ?? null, card.doneAt ?? null, Date.now());
   const overdueLine =
     dueState.kind === 'overdue'
@@ -135,19 +153,27 @@ export default function CardDetailScreen() {
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
         <ScreenHeader title={card.title} left={closeButton} right={menuButton} />
-        <ScrollView keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <CardIdentity
             title={card.title}
             boardTitle={board?.title ?? ''}
             stackTitle={stack?.title ?? ''}
             onChangeTitle={(title) => void cardActions.patch(card, { title }).catch(() => undefined)}
           />
-          <View testID="card-sections">
+          <View testID="card-sections" style={styles.sections}>
             <List>
               <Item
                 title={t(card.doneAt ? 'card.markNotDone' : 'card.markDone')}
+                accessibilityRole="checkbox"
                 leading={
-                  <Icon color={colors.primary}>{card.doneAt ? <CircleCheck /> : <Circle />}</Icon>
+                  // The same control Today's rows use, so "done" reads
+                  // identically wherever a card shows up.
+                  <Checkbox
+                    testID="card-done"
+                    checked={Boolean(card.doneAt)}
+                    accessibilityLabel={t(card.doneAt ? 'card.markNotDone' : 'card.markDone')}
+                    onPress={() => void cardActions.setDone(card, !card.doneAt).catch(() => undefined)}
+                  />
                 }
                 onPress={() => void cardActions.setDone(card, !card.doneAt).catch(() => undefined)}
               />
@@ -207,28 +233,35 @@ export default function CardDetailScreen() {
             </List>
             <AttachmentsSection
               attachments={attachments}
-              onOpen={(a) => {
-                if (!activeAccount || !board?.remoteId || !stack?.remoteId || !card.remoteId) return;
-                void Linking.openURL(
-                  attachmentDownloadUrl(
-                    activeAccount,
-                    { boardRemoteId: board.remoteId, stackRemoteId: stack.remoteId, cardRemoteId: card.remoteId },
-                    a,
-                  ),
-                ).catch(() => undefined);
-              }}
+              loading={detailLoading}
+              onOpen={setPreviewing}
             />
-            <SectionHeader title={t('card.description')} />
-            <DescriptionView
-              markdown={card.description}
-              onToggleTask={(next) => void cardActions.patch(card, { description: next }).catch(() => undefined)}
-              onEdit={() => setDescriptionEditorVisible(true)}
-            />
+            <View>
+              <SectionHeader title={t('card.description')} />
+              <List ignoreBorder>
+                <DescriptionView
+                  markdown={card.description}
+                  onToggleTask={(next) => void cardActions.patch(card, { description: next }).catch(() => undefined)}
+                  onEdit={() => setDescriptionEditorVisible(true)}
+                />
+              </List>
+            </View>
             <CommentsSection
               comments={comments}
               hasMore={hasMore}
+              loading={detailLoading}
+              // CardAssignee.participant and Comment.actorId are both the
+              // Nextcloud uid (normalize.ts's uidOf), which davUserId — not
+              // the free-typed username — is kept in step with.
+              me={activeAccount?.davUserId ?? ''}
               onLoadMore={loadMore}
-              onSubmit={(message) => void cardActions.addComment(card, message).catch(() => undefined)}
+              onSubmit={(message, parentRemoteId) =>
+                void cardActions.addComment(card, message, parentRemoteId).catch(() => undefined)
+              }
+              onEdit={(comment, message) =>
+                void cardActions.editComment(comment, message).catch(() => undefined)
+              }
+              onDelete={(comment) => void cardActions.removeComment(comment).catch(() => undefined)}
             />
           </View>
         </ScrollView>
@@ -302,6 +335,13 @@ export default function CardDetailScreen() {
           router.back();
         }}
       />
+      <AttachmentPreview
+        attachment={previewing}
+        account={activeAccount}
+        ref_={attachmentRef}
+        onClose={() => setPreviewing(null)}
+        onOpenExternally={openExternally}
+      />
       <CardPickerSheet
         visible={pickerVisible}
         accountId={accountId}
@@ -313,8 +353,19 @@ export default function CardDetailScreen() {
   );
 }
 
+const MAX_CONTENT_WIDTH = 700;
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   deleted: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  // Same gutter as the settings screens, so a card doesn't run edge to edge.
+  scroll: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  sections: { marginTop: 24, gap: 24 },
   colorDot: { width: 20, height: 20, borderRadius: 10 },
 });

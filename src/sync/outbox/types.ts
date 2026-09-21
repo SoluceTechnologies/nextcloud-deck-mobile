@@ -31,7 +31,22 @@ export type Intent =
   | { kind: 'updateStack'; stackId: string; title: string; order: number }
   | { kind: 'deleteStack'; stackId: string; boardRemoteId: string; stackRemoteId: string }
   | { kind: 'createBoard'; boardId: string }
-  | { kind: 'createComment'; commentId: string; cardId: string; message: string }
+  | {
+      kind: 'createComment';
+      commentId: string;
+      cardId: string;
+      message: string;
+      /** Set when this comment answers another; '' for a top-level comment. */
+      parentRemoteId?: string;
+    }
+  | { kind: 'updateComment'; commentId: string; cardId: string; message: string }
+  | {
+      kind: 'deleteComment';
+      commentId: string;
+      cardId: string;
+      /** The local row is destroyed on enqueue, so the remote id travels here. */
+      commentRemoteId: string;
+    }
   | {
       kind: 'updateBoard';
       boardId: string;

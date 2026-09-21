@@ -87,8 +87,8 @@
     "version": "v{{version}}",
     "about": {
       "title": "Sobre",
-      "name": "Nextcloud Calendário",
-      "description": "Uma aplicação de calendário móvel de código aberto para o Nextcloud.",
+      "name": "Nextcloud Deck",
+      "description": "Uma aplicação Deck móvel de código aberto para o Nextcloud.",
       "github": "Ver no GitHub",
       "reportBug": "Reportar um erro"
     },

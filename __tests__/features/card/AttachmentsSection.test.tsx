@@ -74,3 +74,26 @@ it('formats a size just under the MB boundary in whole KB', () => {
 it('formats a size at the MB boundary in MB with one decimal', () => {
   expect(formatSize(1048576)).toBe('1.0 MB');
 });
+
+// An empty list means "the fetch has not answered yet" just as often as it
+// means "this card has none" — saying "no files" during the first is the bug
+// this covers.
+it('shows a loader instead of the empty state while the fetch is in flight', () => {
+  renderSection({ attachments: [], loading: true, onOpen: jest.fn() });
+  expect(screen.getByTestId('files-loading')).toBeTruthy();
+  expect(screen.queryByText('card.noFiles')).toBeNull();
+});
+
+it('says there are none once the fetch has answered with nothing', () => {
+  renderSection({ attachments: [], loading: false, onOpen: jest.fn() });
+  expect(screen.getByText('card.noFiles')).toBeTruthy();
+  expect(screen.queryByTestId('files-loading')).toBeNull();
+});
+
+// loadMore reuses the same flag, so a loader must never replace rows already
+// on screen.
+it('keeps showing the files it has while a further page loads', () => {
+  renderSection({ attachments: [pdf], loading: true, onOpen: jest.fn() });
+  expect(screen.getByText('contract.pdf')).toBeTruthy();
+  expect(screen.queryByTestId('files-loading')).toBeNull();
+});

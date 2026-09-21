@@ -60,5 +60,5 @@ export function CardIdentity({ title, boardTitle, stackTitle, onChangeTitle }: C
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 16, paddingTop: 8, gap: 6 },
+  container: { paddingTop: 8, gap: 8 },
 });

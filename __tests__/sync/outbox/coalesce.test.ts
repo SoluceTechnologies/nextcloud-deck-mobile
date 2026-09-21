@@ -144,3 +144,71 @@ describe('coalesceIntents', () => {
     expect(coalesceIntents(entries).send.map((s) => s.id)).toEqual(['1', '2']);
   });
 });
+
+describe('comments', () => {
+  // The create carries the message in its own payload, so posting the text as
+  // it stood at enqueue time and then editing it would be two requests for one
+  // comment — and a failing edit would leave the server holding a message the
+  // local row no longer shows.
+  it('folds an edit of a still-queued comment into its create', () => {
+    const { send, drop } = coalesceIntents([
+      { id: '1', intent: { kind: 'createComment', commentId: 'cm1', cardId: 'c1', message: 'draft' } },
+      { id: '2', intent: { kind: 'updateComment', commentId: 'cm1', cardId: 'c1', message: 'final' } },
+    ]);
+
+    expect(drop).toEqual(['2']);
+    expect(send).toEqual([
+      { id: '1', intent: { kind: 'createComment', commentId: 'cm1', cardId: 'c1', message: 'final' } },
+    ]);
+  });
+
+  it('keeps the parent id when it folds an edit into a reply', () => {
+    const { send } = coalesceIntents([
+      {
+        id: '1',
+        intent: { kind: 'createComment', commentId: 'cm1', cardId: 'c1', message: 'draft', parentRemoteId: '9' },
+      },
+      { id: '2', intent: { kind: 'updateComment', commentId: 'cm1', cardId: 'c1', message: 'final' } },
+    ]);
+
+    expect(send[0].intent).toEqual({
+      kind: 'createComment',
+      commentId: 'cm1',
+      cardId: 'c1',
+      message: 'final',
+      parentRemoteId: '9',
+    });
+  });
+
+  it('sends only the last of several edits of a synced comment', () => {
+    const { send, drop } = coalesceIntents([
+      { id: '1', intent: { kind: 'updateComment', commentId: 'cm1', cardId: 'c1', message: 'one' } },
+      { id: '2', intent: { kind: 'updateComment', commentId: 'cm1', cardId: 'c1', message: 'two' } },
+    ]);
+
+    expect(drop).toEqual(['1']);
+    expect(send.map((e) => e.id)).toEqual(['2']);
+  });
+
+  // Written and deleted offline: the comment never reached the server, so
+  // there is nothing to post and nothing to delete.
+  it('drops a comment created and deleted before either reached the server', () => {
+    const { send, drop } = coalesceIntents([
+      { id: '1', intent: { kind: 'createComment', commentId: 'cm1', cardId: 'c1', message: 'oops' } },
+      { id: '2', intent: { kind: 'deleteComment', commentId: 'cm1', cardId: 'c1', commentRemoteId: '' } },
+    ]);
+
+    expect(send).toEqual([]);
+    expect(drop.sort()).toEqual(['1', '2']);
+  });
+
+  it('sends only the delete when the comment was already on the server', () => {
+    const { send, drop } = coalesceIntents([
+      { id: '1', intent: { kind: 'updateComment', commentId: 'cm1', cardId: 'c1', message: 'never mind' } },
+      { id: '2', intent: { kind: 'deleteComment', commentId: 'cm1', cardId: 'c1', commentRemoteId: '55' } },
+    ]);
+
+    expect(send.map((e) => e.id)).toEqual(['2']);
+    expect(drop).toEqual(['1']);
+  });
+});

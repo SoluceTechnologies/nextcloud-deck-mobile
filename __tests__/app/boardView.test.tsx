@@ -3,6 +3,7 @@ import { getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 
 import { ThemeWrapper } from '../helpers/theme';
 import { useAccountStore } from '../../src/stores/accountStore';
+import { boardContentKey, useUiStore } from '../../src/stores/uiStore';
 import BoardScreen from '../../app/(tabs)/boards/[id]';
 
 jest.mock('../../src/database/hooks/useBoards', () => ({
@@ -105,6 +106,10 @@ jest.mock('../../src/features/board/dnd/DragContext', () => ({
 
 jest.mock('../../src/sync/scheduler', () => ({ requestBoardSnapshot: jest.fn() }));
 
+// The empty-board spinner is gated on connectivity: offline there will never
+// be a fetch to wait for.
+jest.mock('../../src/services/shared/network', () => ({ useIsOnline: jest.fn(() => true) }));
+
 jest.mock('../../src/features/today/recentBoards', () => ({ recordRecentBoard: jest.fn(async () => {}) }));
 
 jest.mock('../../src/utils/haptics', () => ({ haptic: jest.fn(), ImpactFeedbackStyle: { Light: 'light' } }));
@@ -152,6 +157,9 @@ beforeEach(() => {
     { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: true, canManage: true, lastModified: 0 },
   ]);
   act(() => useAccountStore.getState().setActiveAccountId('a1'));
+  const { useIsOnline } = require('../../src/services/shared/network');
+  (useIsOnline as jest.Mock).mockReturnValue(true);
+  act(() => useUiStore.setState({ boardContentFetchedAt: {} }));
 });
 
 it('shows one column per stack, in order', () => {
@@ -273,4 +281,51 @@ it('ignores a drop that leaves the card where it was', () => {
   renderScreen();
   act(() => capturedDragProps?.onDrop({ cardId: 'c1', fromStackId: 's1', toStackId: 's1', index: 0 }));
   expect(mockCardMove).not.toHaveBeenCalled();
+});
+
+describe('the empty board', () => {
+  const emptyBoard = () => {
+    const { useBoardStacks } = require('../../src/database/hooks/useBoardContent');
+    (useBoardStacks as jest.Mock).mockReturnValue([]);
+  };
+
+  // An empty stack list means "not fetched yet" just as often as "this board
+  // has no lists"; only the scheduler's own record settles it.
+  it('waits on the first content fetch rather than claiming the board is empty', () => {
+    emptyBoard();
+    renderScreen();
+    expect(screen.getByTestId('board-loading')).toBeTruthy();
+  });
+
+  // The complaint this fixes: a board created moments ago really is empty, and
+  // used to sit under a spinner on a fixed timer regardless.
+  it('stops waiting as soon as the fetch has been attempted', () => {
+    emptyBoard();
+    act(() =>
+      useUiStore.setState({ boardContentFetchedAt: { [boardContentKey('a1', 'B1')]: 1 } }),
+    );
+    renderScreen();
+    expect(screen.queryByTestId('board-loading')).toBeNull();
+  });
+
+  // Nothing is going to fetch it, so waiting would spin forever.
+  it('does not wait while offline', () => {
+    emptyBoard();
+    const { useIsOnline } = require('../../src/services/shared/network');
+    (useIsOnline as jest.Mock).mockReturnValue(false);
+    renderScreen();
+    expect(screen.queryByTestId('board-loading')).toBeNull();
+  });
+
+  // A board created here has no remote id, so there is nothing on the server
+  // to wait for.
+  it('does not wait on a board that has never been pushed', () => {
+    emptyBoard();
+    const { useBoards } = require('../../src/database/hooks/useBoards');
+    (useBoards as jest.Mock).mockReturnValue([
+      { id: 'b1', remoteId: '', title: 'Team', color: null, archived: false, shared: false, canEdit: true, canManage: true, lastModified: 0 },
+    ]);
+    renderScreen();
+    expect(screen.queryByTestId('board-loading')).toBeNull();
+  });
 });

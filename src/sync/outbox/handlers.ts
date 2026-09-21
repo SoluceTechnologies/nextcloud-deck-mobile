@@ -14,7 +14,7 @@ import {
   updateBoard,
   updateStack,
 } from '@/services/deck/boards';
-import { postComment } from '@/services/deck/comments';
+import { deleteComment, postComment, updateComment } from '@/services/deck/comments';
 import {
   addDependentCard,
   assignLabelToCard,
@@ -292,7 +292,12 @@ export async function executeIntent(
 
     case 'createComment': {
       const { ref } = await cardRefOf(ctx, intent.cardId);
-      const created = await postComment(account, ref.cardRemoteId, intent.message);
+      const created = await postComment(
+        account,
+        ref.cardRemoteId,
+        intent.message,
+        intent.parentRemoteId || null,
+      );
       // R45: an id-less response must count as a failed attempt, not a
       // silent write-back of the string "undefined" (see normalizeComment).
       if (!created.remoteId || created.remoteId === 'undefined') {
@@ -302,10 +307,42 @@ export async function executeIntent(
       const comment = await db.get<Comment>('comments').find(intent.commentId);
       await safeWrite(
         db,
-        () => comment.update((r: Comment) => (r.remoteId = created.remoteId)),
+        () =>
+          comment.update((r: Comment) => {
+            r.remoteId = created.remoteId;
+            // The author too, not just the id: the row was written locally
+            // with an empty actor, which CommentsSection reads as "mine,
+            // still pending". Clearing `remoteId` alone ends the pending
+            // state while leaving the comment authorless — it would render
+            // as an unnamed "?" until the next syncCardDetail pass happened
+            // to refetch the thread.
+            r.actorId = created.actorId;
+            r.actorDisplayName = created.actorDisplayName;
+            // The server's own timestamp, so this comment doesn't jump
+            // position once a later fetch reconciles it against the thread.
+            if (created.createdAt > 0) r.createdAt = created.createdAt;
+          }),
         10000,
         'createComment:writeback',
       );
+      return;
+    }
+
+    case 'updateComment': {
+      const { ref } = await cardRefOf(ctx, intent.cardId);
+      const comment = await db.get<Comment>('comments').find(intent.commentId);
+      // An edit of a comment created offline never reaches here: `coalesceIntents`
+      // folds it into the still-queued create. This only fires when the create
+      // failed, so deferring is right — retry once it lands.
+      const commentRemoteId = await requireRemoteId(comment, 'comment');
+      await updateComment(account, ref.cardRemoteId, commentRemoteId, intent.message);
+      return;
+    }
+
+    case 'deleteComment': {
+      const { ref } = await cardRefOf(ctx, intent.cardId);
+      // The local row is already destroyed, so the payload carries the remote id.
+      await deleteComment(account, ref.cardRemoteId, intent.commentRemoteId);
       return;
     }
   }

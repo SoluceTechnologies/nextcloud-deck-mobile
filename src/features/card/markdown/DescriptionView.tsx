@@ -53,6 +53,6 @@ export function DescriptionView({ markdown, onToggleTask, onEdit }: DescriptionV
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 6 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14 },
   content: { flex: 1 },
 });

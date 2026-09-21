@@ -510,7 +510,14 @@ it('creates a comment row with an empty remote id and enqueues createComment', a
   expect(row.remoteId).toBe('');
   expect(row.message).toBe('hello');
   const call = (mutate as jest.Mock).mock.calls[0][0];
-  expect(call.intent).toEqual({ kind: 'createComment', commentId: row.id, cardId: 'c1', message: 'hello' });
+  expect(call.intent).toEqual({
+    kind: 'createComment',
+    commentId: row.id,
+    cardId: 'c1',
+    message: 'hello',
+    parentRemoteId: undefined,
+  });
+  expect(row.parentId).toBeUndefined();
   expect(await call.applyLocal()).toBe(row);
 });
 
@@ -538,4 +545,82 @@ it('treats malformed dependentCardsJson as an empty list', async () => {
   const call = (mutate as jest.Mock).mock.calls[0][0];
   const row = await call.applyLocal();
   expect(row.dependentCardsJson).toBe(JSON.stringify(['99']));
+});
+
+it('records the parent on a reply, locally and in the intent', async () => {
+  const card: any = { id: 'c1' };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.addComment(card, 'answering', '55'));
+
+  const row = prepareCreate.mock.results[0].value;
+  expect(row.parentId).toBe('55');
+  expect((mutate as jest.Mock).mock.calls[0][0].intent).toEqual({
+    kind: 'createComment',
+    commentId: row.id,
+    cardId: 'c1',
+    message: 'answering',
+    parentRemoteId: '55',
+  });
+});
+
+// The edit lands on the row first so it shows straight away, offline included.
+it('applies an edit locally and enqueues updateComment', async () => {
+  const prepareUpdate = jest.fn((fn: (r: any) => void) => {
+    const r: any = { op: 'update' };
+    fn(r);
+    return r;
+  });
+  const comment: any = { id: 'cm1', cardId: 'c1', remoteId: '55', message: 'old', prepareUpdate };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.editComment(comment, '  amended  '));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({
+    kind: 'updateComment',
+    commentId: 'cm1',
+    cardId: 'c1',
+    message: 'amended',
+  });
+  expect((await call.applyLocal()).message).toBe('amended');
+});
+
+it('does not enqueue an edit that changes nothing', async () => {
+  const comment: any = { id: 'cm1', cardId: 'c1', remoteId: '55', message: 'same' };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.editComment(comment, '  same  '));
+  await act(() => result.current.editComment(comment, '   '));
+
+  expect(mutate).not.toHaveBeenCalled();
+});
+
+// The row is destroyed now so the thread updates immediately, which is why the
+// remote id has to travel in the payload.
+it('destroys the comment row and carries its remote id in the delete intent', async () => {
+  const prepareMarkAsDeleted = jest.fn(() => ({ op: 'delete' }));
+  const comment: any = { id: 'cm1', cardId: 'c1', remoteId: '55', prepareMarkAsDeleted };
+  const { result } = renderHook(() => useCardActions('a1'));
+
+  await act(() => result.current.removeComment(comment));
+
+  const call = (mutate as jest.Mock).mock.calls[0][0];
+  expect(call.intent).toEqual({
+    kind: 'deleteComment',
+    commentId: 'cm1',
+    cardId: 'c1',
+    commentRemoteId: '55',
+  });
+  expect(await call.applyLocal()).toEqual({ op: 'delete' });
+});
+
+it('does not enqueue a comment edit or delete without an account', async () => {
+  const comment: any = { id: 'cm1', cardId: 'c1', remoteId: '55', message: 'old' };
+  const { result } = renderHook(() => useCardActions(null));
+
+  await act(() => result.current.editComment(comment, 'amended'));
+  await act(() => result.current.removeComment(comment));
+
+  expect(mutate).not.toHaveBeenCalled();
 });

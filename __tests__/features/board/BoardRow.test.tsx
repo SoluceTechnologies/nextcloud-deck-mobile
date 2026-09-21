@@ -74,3 +74,21 @@ it('falls back to a neutral edge when the board has no colour', () => {
   );
   expect(screen.getByTestId('board-edge')).toBeTruthy();
 });
+
+// POST /boards does not echo a lastModified back, so a board created here
+// carries 0 until the next board-list pass fetches it. Formatting that gave
+// "Updated 57 years ago" — the unix epoch — on a board nobody had touched.
+it('omits the update time on a board that has never synced', () => {
+  render(
+    <BoardRow summary={summary({ lastModified: 0 }) as never} onPress={jest.fn()} onLongPress={jest.fn()} />,
+    { wrapper: ThemeWrapper },
+  );
+  expect(screen.queryByTestId('board-updated')).toBeNull();
+});
+
+it('shows the update time once the board has a server timestamp', () => {
+  render(<BoardRow summary={summary() as never} onPress={jest.fn()} onLongPress={jest.fn()} />, {
+    wrapper: ThemeWrapper,
+  });
+  expect(screen.getByTestId('board-updated')).toBeTruthy();
+});

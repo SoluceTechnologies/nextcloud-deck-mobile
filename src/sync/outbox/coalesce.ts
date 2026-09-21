@@ -18,6 +18,8 @@ function createKindOf(deleteKind: Intent['kind']): Intent['kind'] | null {
       return 'createStack';
     case 'deleteBoard':
       return 'createBoard';
+    case 'deleteComment':
+      return 'createComment';
     default:
       return null;
   }
@@ -63,6 +65,8 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
       case 'addDependency':
       case 'removeDependency':
         return `dep:${intent.dependentCardRemoteId}`;
+      case 'updateComment':
+        return 'comment';
       default:
         return null;
     }
@@ -74,6 +78,27 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
     const previous = lastByKey.get(key);
     if (previous !== undefined) drop.add(previous);
     lastByKey.set(key, entry.id);
+  }
+
+  // An edit of a comment that has not been posted yet is not a second request:
+  // the create carries the message in its own payload, so the newest text folds
+  // into it and the edits drop. Without this the create would post the text as
+  // it stood at enqueue time and a failing edit would leave the server holding
+  // a message the local row no longer shows.
+  const createComment = entries.find((e) => e.intent.kind === 'createComment');
+  let foldedCreate: Intent | null = null;
+  if (createComment) {
+    const edits = entries.filter(
+      (e) => e.intent.kind === 'updateComment' && !drop.has(e.id),
+    );
+    const newest = edits[edits.length - 1];
+    if (newest) {
+      for (const edit of edits) drop.add(edit.id);
+      foldedCreate = {
+        ...(createComment.intent as Extract<Intent, { kind: 'createComment' }>),
+        message: (newest.intent as Extract<Intent, { kind: 'updateComment' }>).message,
+      };
+    }
   }
 
   // Patches merge into the newest one: newer values win, but the base must stay
@@ -105,7 +130,12 @@ export function coalesceIntents(entries: CoalesceEntry[]): CoalesceResult {
 
   const send = entries
     .filter((e) => !drop.has(e.id))
-    .map((e) => (e.id === lastPatchId && mergedPatch ? { id: e.id, intent: mergedPatch } : e));
+    .map((e) => (e.id === lastPatchId && mergedPatch ? { id: e.id, intent: mergedPatch } : e))
+    .map((e) =>
+      foldedCreate && createComment && e.id === createComment.id
+        ? { id: e.id, intent: foldedCreate }
+        : e,
+    );
 
   return { send, drop: entries.filter((e) => drop.has(e.id)).map((e) => e.id) };
 }

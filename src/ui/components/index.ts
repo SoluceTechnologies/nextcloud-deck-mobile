@@ -16,6 +16,7 @@ export type { SelectOption } from './Select';
 export { default as Divider } from './Divider';
 export { default as Spinner } from './Spinner';
 export { default as Avatar } from './Avatar';
+export { default as Checkbox } from './Checkbox';
 export { default as Dialog } from './Dialog';
 export { default as Sheet } from './Sheet';
 export { default as Accordion } from './Accordion';

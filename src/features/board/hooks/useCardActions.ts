@@ -42,7 +42,9 @@ export type CardActions = {
   unassignUser(card: Card, participant: Participant): Promise<void>;
   addDependency(card: Card, dependentCardRemoteId: string): Promise<void>;
   removeDependency(card: Card, dependentCardRemoteId: string): Promise<void>;
-  addComment(card: Card, message: string): Promise<void>;
+  addComment(card: Card, message: string, parentRemoteId?: string | null): Promise<void>;
+  editComment(comment: Comment, message: string): Promise<void>;
+  removeComment(comment: Comment): Promise<void>;
 };
 
 /**
@@ -397,12 +399,13 @@ export function useCardActions(accountId: string | null): CardActions {
     // (remoteId '', no actor yet — CommentsSection renders that as pending/"You")
     // before mutate, same as create()/createLabel(), and the drain fills in the
     // real remote id and author once it reaches the server.
-    const addComment: CardActions['addComment'] = async (card, message) => {
+    const addComment: CardActions['addComment'] = async (card, message, parentRemoteId) => {
       if (!accountId) return;
 
       const trimmed = message.trim();
       if (!trimmed) return;
 
+      const parent = parentRemoteId || undefined;
       const row = db.get<Comment>('comments').prepareCreate((r: Comment) => {
         r.accountId = accountId;
         r.cardId = card.id;
@@ -411,14 +414,57 @@ export function useCardActions(accountId: string | null): CardActions {
         r.actorId = '';
         r.actorDisplayName = '';
         r.createdAt = Date.now();
-        r.parentId = undefined;
+        r.parentId = parent;
       });
 
       await mutate({
         db,
         accountId,
-        intent: { kind: 'createComment', commentId: row.id, cardId: card.id, message: trimmed },
+        intent: {
+          kind: 'createComment',
+          commentId: row.id,
+          cardId: card.id,
+          message: trimmed,
+          parentRemoteId: parent,
+        },
         applyLocal: () => row,
+      });
+    };
+
+    // Deck only lets a comment's own author edit or delete it; the caller
+    // decides whether to offer either (see `isMine` in CommentsSection). Both
+    // apply locally first, so an edit made offline shows straight away and the
+    // outbox pushes it when the connection returns.
+    const editComment: CardActions['editComment'] = async (comment, message) => {
+      if (!accountId) return;
+
+      const trimmed = message.trim();
+      if (!trimmed || trimmed === comment.message) return;
+
+      await mutate({
+        db,
+        accountId,
+        intent: {
+          kind: 'updateComment',
+          commentId: comment.id,
+          cardId: comment.cardId,
+          message: trimmed,
+        },
+        applyLocal: () => comment.prepareUpdate((r: Comment) => (r.message = trimmed)),
+      });
+    };
+
+    const removeComment: CardActions['removeComment'] = async (comment) => {
+      if (!accountId) return;
+
+      // The row goes now so the thread updates immediately, which is why the
+      // remote id travels in the payload — same shape as deleteCard.
+      const { id, cardId, remoteId } = comment;
+      await mutate({
+        db,
+        accountId,
+        intent: { kind: 'deleteComment', commentId: id, cardId, commentRemoteId: remoteId },
+        applyLocal: () => comment.prepareMarkAsDeleted(),
       });
     };
 
@@ -438,6 +484,8 @@ export function useCardActions(accountId: string | null): CardActions {
       addDependency,
       removeDependency,
       addComment,
+      editComment,
+      removeComment,
     };
   }, [db, accountId]);
 }

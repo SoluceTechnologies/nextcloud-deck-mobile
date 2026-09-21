@@ -5,6 +5,10 @@ import { ThemeWrapper } from '../helpers/theme';
 import { useAccountStore } from '../../src/stores/accountStore';
 import { DECK_PALETTE } from '../../src/features/board/palette';
 import CardDetailScreen from '../../app/card/[id]';
+import { trustedFetch } from '../../src/services/shared/trustedFetch';
+import { MAX_PREVIEW_BYTES } from '../../src/features/card/hooks/useAttachmentPreview';
+
+jest.mock('../../src/services/shared/trustedFetch', () => ({ trustedFetch: jest.fn() }));
 
 // The library's jest mock drops onTaskListItemPress (see DescriptionView.test.tsx
 // for why); wrapped here the same way so a checkbox tap in the rendered
@@ -258,6 +262,24 @@ it('offers to un-mark a card that is already done', () => {
   expect(screen.getByText('card.markNotDone')).toBeTruthy();
 });
 
+// The same Checkbox Today's rows use, so a done card has to read as checked
+// here too — the row's own label already flipped, the control must follow.
+it('renders the done checkbox in the state the card is actually in', () => {
+  renderScreen();
+  expect(screen.getByTestId('card-done')).toHaveAccessibilityState({ checked: false });
+
+  mockCard({ doneAt: 1757000000000 });
+  renderScreen();
+  expect(screen.getByTestId('card-done')).toHaveAccessibilityState({ checked: true });
+});
+
+it('toggles done from the checkbox as well as the row', () => {
+  const { setDone } = requireCardActionsMock();
+  renderScreen();
+  fireEvent.press(screen.getByTestId('card-done'));
+  expect(setDone).toHaveBeenCalledWith(expect.anything(), true);
+});
+
 it('shows the overdue line for a late card', () => {
   mockCard({ duedate: daysAgo(7), doneAt: null });
   renderScreen();
@@ -381,7 +403,7 @@ it('submits a new comment through the card actions', () => {
   fireEvent.changeText(screen.getByTestId('comment-input'), 'hello');
   fireEvent.press(screen.getByTestId('comment-send'));
 
-  expect(addComment).toHaveBeenCalledWith(expect.anything(), 'hello');
+  expect(addComment).toHaveBeenCalledWith(expect.anything(), 'hello', null);
 });
 
 it('renders the attachments section with the observed attachments', () => {
@@ -404,7 +426,7 @@ it('renders the attachments section with the observed attachments', () => {
 
 // R50: opening a file goes through attachmentDownloadUrl (a pure URL builder,
 // not a request) and Linking.openURL — never fetch/deckRequest from a screen.
-it('opens an attachment through its authenticated download URL', () => {
+function mockAttachment(over: Record<string, unknown> = {}) {
   const { useCardAttachments } = require('../../src/database/hooks/useCardDetail');
   (useCardAttachments as jest.Mock).mockReturnValue([
     {
@@ -416,20 +438,73 @@ it('opens an attachment through its authenticated download URL', () => {
       size: 20480,
       createdAt: 1000,
       createdBy: 'alice',
+      ...over,
     },
   ]);
   const { useActiveAccount } = require('../../src/hooks/useAccounts');
   (useActiveAccount as jest.Mock).mockReturnValue({
+    id: 'a1',
     baseUrl: 'https://cloud.example.com',
     username: 'alice',
     appPassword: 'secret',
+    davUserId: 'alice',
   });
+}
+
+// Tapping a file used to hand its URL straight to the OS, which has no
+// Nextcloud session for an authenticated endpoint. It opens in the app now.
+it('previews an image attachment in the app rather than handing it to the OS', async () => {
+  mockAttachment({ fileName: 'shot.png', mime: 'image/png', size: 2048 });
+  const openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+  (trustedFetch as jest.Mock).mockResolvedValue({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'image/png' },
+    base64: async () => 'QUJD',
+  });
+
+  renderScreen();
+  fireEvent.press(screen.getByText('shot.png'));
+
+  expect(openURLSpy).not.toHaveBeenCalled();
+  const image = await screen.findByTestId('preview-image');
+  expect(image).toHaveProp('source', { uri: 'data:image/png;base64,QUJD' });
+  // The bytes are fetched with the account's credentials; a bare URL in an
+  // <Image> would reach the loader without them and come back 401.
+  expect(trustedFetch).toHaveBeenCalledWith(
+    expect.stringContaining('/attachments/deck_file/3'),
+    expect.objectContaining({ headers: { Authorization: expect.stringContaining('Basic ') } }),
+  );
+
+  openURLSpy.mockRestore();
+});
+
+// A PDF needs a viewer this app does not ship, so the preview says so and
+// keeps the OS handler as the way out.
+it('offers the system handler for a file it cannot draw', () => {
+  mockAttachment();
   const openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
 
   renderScreen();
   fireEvent.press(screen.getByText('contract.pdf'));
 
+  expect(screen.getByTestId('preview-fallback')).toBeTruthy();
+  expect(trustedFetch).not.toHaveBeenCalled();
+
+  fireEvent.press(screen.getByTestId('preview-open-externally'));
   expect(openURLSpy).toHaveBeenCalledWith(expect.stringContaining('/attachments/deck_file/3'));
 
   openURLSpy.mockRestore();
+});
+
+// The whole body is held in memory as a data URI, so a big file is declined
+// rather than risking the render process.
+it('declines to preview a file over the size cap', () => {
+  mockAttachment({ fileName: 'huge.png', mime: 'image/png', size: MAX_PREVIEW_BYTES + 1 });
+
+  renderScreen();
+  fireEvent.press(screen.getByText('huge.png'));
+
+  expect(screen.getByTestId('preview-fallback')).toBeTruthy();
+  expect(trustedFetch).not.toHaveBeenCalled();
 });

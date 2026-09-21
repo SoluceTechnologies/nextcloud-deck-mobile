@@ -87,8 +87,8 @@
     "version": "v{{version}}",
     "about": {
       "title": "A prepaus",
-      "name": "Nextcloud Calendar",
-      "description": "Una aplicacion mobila de calendari de còdi font liure per Nextcloud.",
+      "name": "Nextcloud Deck",
+      "description": "Una aplicacion mobila Deck de còdi font liure per Nextcloud.",
       "github": "Veire sus GitHub",
       "reportBug": "Senhalar un bug"
     },

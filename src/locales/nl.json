@@ -87,8 +87,8 @@
     "version": "v{{version}}",
     "about": {
       "title": "Over",
-      "name": "Nextcloud Agenda",
-      "description": "Een open-source mobiele agenda-app voor Nextcloud.",
+      "name": "Nextcloud Deck",
+      "description": "Een open-source mobiele Deck-app voor Nextcloud.",
       "github": "Bekijken op GitHub",
       "reportBug": "Een bug melden"
     },

@@ -68,9 +68,9 @@ describe('dueTasks', () => {
     expect(tasks.filter((t) => t.kind === 'boardContent' && t.boardRemoteId === '1')).toHaveLength(1);
   });
 
-  it('orders the work by priority: board list, upcoming, then boards', () => {
+  it('orders the work by priority: the open board, then the board list, then upcoming', () => {
     const tasks = dueTasks({ ...base, activeBoardRemoteId: '7' });
-    expect(tasks.map((t) => t.kind)).toEqual(['boards', 'upcoming', 'boardContent']);
+    expect(tasks.map((t) => t.kind)).toEqual(['boardContent', 'boards', 'upcoming']);
   });
 });
 

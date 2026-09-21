@@ -7,8 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { SettingsPage } from '@/features/settings/components/SettingsPage';
 import { Button, Icon, Stack, Typography } from '@/ui/components';
 
-const GITHUB_URL = 'https://github.com/SoluceTechnologies/nextcloud-calendar-mobile';
-const ISSUES_URL = 'https://github.com/SoluceTechnologies/nextcloud-calendar-mobile/issues/new';
+const GITHUB_URL = 'https://github.com/SoluceTechnologies/nextcloud-deck-mobile';
+const ISSUES_URL = 'https://github.com/SoluceTechnologies/nextcloud-deck-mobile/issues/new';
 
 const cardOuter = { marginHorizontal: 16, marginBottom: 12 };
 

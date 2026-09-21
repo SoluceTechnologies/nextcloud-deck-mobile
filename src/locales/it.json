@@ -90,8 +90,8 @@
     "version": "v{{version}}",
     "about": {
       "title": "Informazioni",
-      "name": "Nextcloud Calendar",
-      "description": "Un'app di calendario mobile open source per Nextcloud.",
+      "name": "Nextcloud Deck",
+      "description": "Un'app Deck mobile open source per Nextcloud.",
       "github": "Vedi su GitHub",
       "reportBug": "Segnala un bug"
     },
@@ -249,6 +249,12 @@
     "clearColor": "Rimuovi colore",
     "files": "File",
     "noFiles": "Nessun file",
+    "preview": {
+      "unsupported": "Questo file non può essere visualizzato nell'app.",
+      "tooLarge": "Questo file è troppo grande per l'anteprima qui.",
+      "failed": "Impossibile caricare questo file.",
+      "openExternally": "Apri fuori dall'app"
+    },
     "description": "Descrizione",
     "noDescription": "Nessuna descrizione",
     "rawEditorNotice": "Questa descrizione usa una formattazione che l'editor avanzato non può mantenere. Modifica come Markdown semplice.",
@@ -260,6 +266,19 @@
     "commentPending": "Invio…",
     "you": "Tu",
     "send": "Invia",
+    "comment": {
+      "actions": "Commento",
+      "edit": "Modifica",
+      "reply": "Rispondi",
+      "delete": "Elimina",
+      "deleteTitle": "Eliminare questo commento?",
+      "deleteMessage": "Sarà eliminato per tutti quelli che hanno accesso.",
+      "cancel": "Annulla",
+      "editing": "Modifica del tuo commento",
+      "replyingTo": "Risposta a {{name}}",
+      "editPlaceholder": "Modifica il tuo commento…",
+      "replyPlaceholder": "Scrivi una risposta…"
+    },
     "deleted": "Questa scheda non esiste più.",
     "menu": {
       "title": "Altro",

@@ -90,8 +90,8 @@
     "version": "v{{version}}",
     "about": {
       "title": "Über",
-      "name": "Nextcloud Calendar",
-      "description": "Eine quelloffene mobile Kalender-App für Nextcloud.",
+      "name": "Nextcloud Deck",
+      "description": "Eine quelloffene mobile Deck-App für Nextcloud.",
       "github": "Auf GitHub ansehen",
       "reportBug": "Fehler melden"
     },
@@ -249,6 +249,12 @@
     "clearColor": "Farbe entfernen",
     "files": "Dateien",
     "noFiles": "Keine Dateien",
+    "preview": {
+      "unsupported": "Diese Datei kann in der App nicht angezeigt werden.",
+      "tooLarge": "Diese Datei ist zu groß für eine Vorschau hier.",
+      "failed": "Diese Datei konnte nicht geladen werden.",
+      "openExternally": "Außerhalb der App öffnen"
+    },
     "description": "Beschreibung",
     "noDescription": "Keine Beschreibung",
     "rawEditorNotice": "Diese Beschreibung verwendet Formatierungen, die der Rich-Text-Editor nicht beibehalten kann. Bearbeitung als reines Markdown.",
@@ -260,6 +266,19 @@
     "commentPending": "Wird gesendet…",
     "you": "Sie",
     "send": "Senden",
+    "comment": {
+      "actions": "Kommentar",
+      "edit": "Bearbeiten",
+      "reply": "Antworten",
+      "delete": "Löschen",
+      "deleteTitle": "Diesen Kommentar löschen?",
+      "deleteMessage": "Er wird für alle mit Zugriff gelöscht.",
+      "cancel": "Abbrechen",
+      "editing": "Kommentar wird bearbeitet",
+      "replyingTo": "Antwort an {{name}}",
+      "editPlaceholder": "Kommentar bearbeiten…",
+      "replyPlaceholder": "Antwort schreiben…"
+    },
     "deleted": "Diese Karte existiert nicht mehr.",
     "menu": {
       "title": "Mehr",

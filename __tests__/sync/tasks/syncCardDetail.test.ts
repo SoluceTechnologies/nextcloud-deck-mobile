@@ -68,6 +68,9 @@ let stackRow: any;
 let boardRow: any;
 let existingComments: any[];
 let existingAttachments: any[];
+// The queued outbox entries syncCardDetail reads to shield a pending comment
+// edit or delete from the snapshot it just fetched.
+let queuedOutbox: any[];
 
 function prepareCreate(tag: string) {
   return jest.fn((writer: (r: any) => void) => {
@@ -89,6 +92,7 @@ const collections: Record<string, any> = {
     query: jest.fn(() => ({ fetch: jest.fn(async () => existingAttachments) })),
     prepareCreate: prepareCreate('attachments'),
   },
+  outbox: { query: jest.fn(() => ({ fetch: jest.fn(async () => queuedOutbox) })) },
 };
 
 const db: any = {
@@ -120,6 +124,7 @@ beforeEach(() => {
     }),
   ];
   existingAttachments = [makeRow({ id: 'at1', ...attachment() })];
+  queuedOutbox = [];
   // The remote twin of cm1 with a different message: the "one batch" test
   // observes exactly one update op.
   fetchCommentsMock.mockResolvedValue([comment({ remoteId: '7', message: 'new' })]);
@@ -151,6 +156,41 @@ describe('syncCardDetail', () => {
   it('does not delete a locally created comment that has no remote id', async () => {
     existingComments = [{ id: 'local-1', remoteId: '' }];
     fetchCommentsMock.mockResolvedValue([]);
+
+    await syncCardDetail({ db, account, cardLocalId: 'c1' });
+    expect(batchedOps()).toEqual([]);
+  });
+
+  /** A queued outbox row as loadQueuedIntents reads it. */
+  function queued(entityId: string, intent: Record<string, unknown>) {
+    return { id: `ob-${entityId}`, entityId, entityType: 'comment', payloadJson: JSON.stringify(intent) };
+  }
+
+  // The local row already holds the edited message; writing the snapshot over
+  // it would revert the edit on screen before the drain ever sent it.
+  it('leaves a comment with a queued edit alone', async () => {
+    queuedOutbox = [
+      queued('cm1', { kind: 'updateComment', commentId: 'cm1', cardId: 'c1', message: 'amended' }),
+    ];
+    // The default fixture: remote says 'new', the local row says 'old'.
+    await syncCardDetail({ db, account, cardLocalId: 'c1' });
+
+    expect(existingComments[0].prepareUpdate).not.toHaveBeenCalled();
+  });
+
+  // The row is already destroyed, so nothing local carries its remote id — the
+  // shield has to come off the intent or the snapshot recreates the comment.
+  it('does not recreate a comment whose delete is still queued', async () => {
+    existingComments = [];
+    queuedOutbox = [
+      queued('cm1', {
+        kind: 'deleteComment',
+        commentId: 'cm1',
+        cardId: 'c1',
+        commentRemoteId: '7',
+      }),
+    ];
+    fetchCommentsMock.mockResolvedValue([comment({ remoteId: '7' })]);
 
     await syncCardDetail({ db, account, cardLocalId: 'c1' });
     expect(batchedOps()).toEqual([]);

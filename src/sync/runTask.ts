@@ -1,5 +1,6 @@
 import type { Database } from '@nozbe/watermelondb';
 
+import { useUiStore } from '@/stores/uiStore';
 import type { Account } from '@/types';
 
 import type { SyncTask } from './dueTasks';
@@ -18,12 +19,20 @@ export function createTaskRunner(
       case 'upcoming':
         return syncUpcoming({ db, account });
       case 'boardContent':
-        return syncBoardContent({
-          db,
-          account,
-          boardRemoteId: task.boardRemoteId,
-          full: task.full,
-        });
+        try {
+          return await syncBoardContent({
+            db,
+            account,
+            boardRemoteId: task.boardRemoteId,
+            full: task.full,
+          });
+        } finally {
+          // The board screen cannot tell "no lists yet" from "not fetched
+          // yet" on its own. Stamped in `finally`, so a board whose fetch
+          // keeps failing stops spinning and reads as empty rather than
+          // waiting forever.
+          useUiStore.getState().markBoardContentFetched(account.id, task.boardRemoteId);
+        }
     }
   };
 }

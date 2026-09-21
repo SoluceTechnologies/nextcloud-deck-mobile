@@ -90,8 +90,8 @@
     "version": "v{{version}}",
     "about": {
       "title": "About",
-      "name": "Nextcloud Calendar",
-      "description": "An open-source mobile calendar app for Nextcloud.",
+      "name": "Nextcloud Deck",
+      "description": "An open-source mobile Deck app for Nextcloud.",
       "github": "View on GitHub",
       "reportBug": "Report a Bug"
     },
@@ -249,6 +249,12 @@
     "clearColor": "Clear color",
     "files": "Files",
     "noFiles": "No files",
+    "preview": {
+      "unsupported": "This file cannot be previewed in the app.",
+      "tooLarge": "This file is too large to preview here.",
+      "failed": "Could not load this file.",
+      "openExternally": "Open outside the app"
+    },
     "description": "Description",
     "noDescription": "No description",
     "rawEditorNotice": "This description uses formatting the rich editor cannot keep. Editing as plain Markdown.",
@@ -260,6 +266,19 @@
     "commentPending": "Sending…",
     "you": "You",
     "send": "Send",
+    "comment": {
+      "actions": "Comment",
+      "edit": "Edit",
+      "reply": "Reply",
+      "delete": "Delete",
+      "deleteTitle": "Delete this comment?",
+      "deleteMessage": "It will be removed for everyone with access.",
+      "cancel": "Cancel",
+      "editing": "Editing your comment",
+      "replyingTo": "Replying to {{name}}",
+      "editPlaceholder": "Edit your comment…",
+      "replyPlaceholder": "Write a reply…"
+    },
     "deleted": "This card no longer exists.",
     "menu": {
       "title": "More",

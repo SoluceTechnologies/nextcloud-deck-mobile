@@ -69,15 +69,15 @@ export function pendingEntityIds(pending: PendingCards): Set<string> {
 }
 
 /**
- * The queued intents filed against boards or stacks. `loadPendingCards` answers a
- * card-shaped question — which columns a queued mutation owns — because cards are
- * reconciled field by field. Boards and stacks are reconciled whole, so their
- * shield only needs to know which entities have something in flight and what it is.
+ * The queued intents filed against boards, stacks or comments. `loadPendingCards`
+ * answers a card-shaped question — which columns a queued mutation owns — because
+ * cards are reconciled field by field. These are reconciled whole, so their shield
+ * only needs to know which entities have something in flight and what it is.
  */
 export async function loadQueuedIntents(
   db: Database,
   accountId: string,
-  entityType: 'board' | 'stack',
+  entityType: 'board' | 'stack' | 'comment',
 ): Promise<PendingEntry[]> {
   const rows = await db
     .get<OutboxEntry>('outbox')

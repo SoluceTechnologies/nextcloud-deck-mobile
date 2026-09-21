@@ -21,6 +21,6 @@ describe('i18n instance', () => {
 
   it('falls back to English for a missing key in another language', async () => {
     await i18n.changeLanguage('fr');
-    expect(i18n.t('settings.about.name')).toBe('Nextcloud Calendar');
+    expect(i18n.t('settings.about.name')).toBe('Nextcloud Deck');
   });
 });
