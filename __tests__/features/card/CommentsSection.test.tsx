@@ -194,16 +194,25 @@ it('renders an orphaned reply as a root rather than dropping it', () => {
   expect(screen.getByTestId('comment-c9')).toBeTruthy();
 });
 
-it('shows a loader instead of the empty state while the fetch is in flight', () => {
-  renderSection({ comments: [], loading: true });
-  expect(screen.getByTestId('comments-loading')).toBeTruthy();
+it('waits when the card claims comments this device has not received yet', () => {
+  renderSection({ comments: [], loading: true, expectedCount: 2 });
+  expect(screen.getByTestId('comments-empty-loading')).toBeTruthy();
   expect(screen.queryByText('card.noComments')).toBeNull();
+});
+
+// Same as the files section: the card knows its own comment count, so an
+// empty thread on a card with none resolves straight to the empty state
+// instead of flashing a spinner and changing height on the way.
+it('does not flash a loader for a card the server says has no comments', () => {
+  renderSection({ comments: [], loading: true, expectedCount: 0 });
+  expect(screen.queryByTestId('comments-empty-loading')).toBeNull();
+  expect(screen.getByText('card.noComments')).toBeTruthy();
 });
 
 // hasMore/loadMore reuse the same flag, so a loader must never replace the
 // thread already on screen.
 it('keeps showing the thread while a further page loads', () => {
-  renderSection({ loading: true });
+  renderSection({ loading: true, expectedCount: 2 });
   expect(screen.getByTestId('comment-c1')).toBeTruthy();
-  expect(screen.queryByTestId('comments-loading')).toBeNull();
+  expect(screen.queryByTestId('comments-empty-loading')).toBeNull();
 });

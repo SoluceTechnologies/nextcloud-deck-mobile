@@ -274,12 +274,16 @@ export default function CardDetailScreen() {
             <AttachmentsSection
               attachments={attachments}
               loading={detailLoading}
+              // The card already knows how many files it has, so an empty
+              // list on a card with none needs no spinner at all.
+              expectedCount={card.attachmentCount}
               onOpen={setPreviewing}
             />
             <CommentsSection
               comments={comments}
               hasMore={hasMore}
               loading={detailLoading}
+              expectedCount={card.commentsCount}
               // CardAssignee.participant and Comment.actorId are both the
               // Nextcloud uid (normalize.ts's uidOf), which davUserId — not
               // the free-typed username — is kept in step with.

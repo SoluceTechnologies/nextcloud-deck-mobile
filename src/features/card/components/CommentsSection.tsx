@@ -6,7 +6,7 @@ import { Ellipsis, MessageSquare, Send, X } from 'lucide-react-native';
 
 import type Comment from '@/database/models/Comment';
 import { formatRelative } from '@/utils/relativeTime';
-import { Avatar, Button, EmptyState, IconButton, Spinner, TextField, Typography } from '@/ui/components';
+import { Avatar, Button, EmptyState, IconButton, TextField, Typography } from '@/ui/components';
 import { SectionCard } from './SectionCard';
 import { CommentMenu } from './CommentMenu';
 
@@ -15,6 +15,12 @@ export interface CommentsSectionProps {
   hasMore: boolean;
   /** The card's detail fetch is in flight — see useCardDetailSync. */
   loading?: boolean;
+  /**
+   * How many comments the server says this card has (`card.commentsCount`).
+   * Zero means the empty state is already right, so no spinner flashes and
+   * the block never changes height on its way there.
+   */
+  expectedCount?: number;
   /** The signed-in user's Nextcloud uid, matched against a comment's actorId. */
   me: string;
   onLoadMore: () => void;
@@ -52,6 +58,7 @@ export function CommentsSection({
   comments,
   hasMore,
   loading,
+  expectedCount = 0,
   me,
   onLoadMore,
   onSubmit,
@@ -165,18 +172,15 @@ export function CommentsSection({
   return (
     <SectionCard icon={<MessageSquare />} title={t('card.comments')}>
       {comments.length === 0 ? (
-        // Same reasoning as the files section: an empty thread reads as "none"
-        // only once the fetch has actually answered.
-        loading ? (
-          <Spinner testID="comments-loading" />
-        ) : (
-          <EmptyState
-            testID="comments-empty"
-            icon={<MessageSquare />}
-            title={t('card.noComments')}
-            description={t('card.noCommentsHint')}
-          />
-        )
+        <EmptyState
+          testID="comments-empty"
+          // Same reasoning as the files section: only wait when the card
+          // claims comments this device has not received yet.
+          loading={Boolean(loading) && expectedCount > 0}
+          icon={<MessageSquare />}
+          title={t('card.noComments')}
+          description={t('card.noCommentsHint')}
+        />
       ) : (
         roots.map((root) => (
           <View key={root.id}>

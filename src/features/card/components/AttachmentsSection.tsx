@@ -4,12 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { File, FileText, Image as ImageIcon, Paperclip } from 'lucide-react-native';
 
 import type Attachment from '@/database/models/Attachment';
-import { EmptyState, Icon, Item, List, SectionHeader, Spinner, Typography } from '@/ui/components';
+import { EmptyState, Icon, Item, List, SectionHeader, Typography } from '@/ui/components';
 
 export interface AttachmentsSectionProps {
   attachments: Attachment[];
   /** The card's detail fetch is in flight — see useCardDetailSync. */
   loading?: boolean;
+  /**
+   * How many files the server says this card has (`card.attachmentCount`).
+   * Zero means the empty state is already the right answer, so there is
+   * nothing to wait for and no spinner to flash.
+   */
+  expectedCount?: number;
   onOpen: (attachment: Attachment) => void;
 }
 
@@ -32,25 +38,28 @@ function iconFor(mime: string): ComponentType<{ color?: string; size?: number }>
  * is the caller's job (onOpen): this component knows nothing about accounts
  * or download URLs.
  */
-export function AttachmentsSection({ attachments, loading, onOpen }: AttachmentsSectionProps) {
+export function AttachmentsSection({
+  attachments,
+  loading,
+  expectedCount = 0,
+  onOpen,
+}: AttachmentsSectionProps) {
   const { t } = useTranslation();
+
+  // Only wait when the card claims files we have not received yet.
+  const waiting = Boolean(loading) && attachments.length === 0 && expectedCount > 0;
 
   return (
     <View>
       <SectionHeader title={t('card.files')} />
       {attachments.length === 0 ? (
-        // "No files" is only true once the fetch has answered: an empty list
-        // means "not in yet" just as often as it means "there are none".
-        loading ? (
-          <Spinner testID="files-loading" />
-        ) : (
-          <EmptyState
-            testID="files-empty"
-            icon={<Paperclip />}
-            title={t('card.noFiles')}
-            description={t('card.noFilesHint')}
-          />
-        )
+        <EmptyState
+          testID="files-empty"
+          loading={waiting}
+          icon={<Paperclip />}
+          title={t('card.noFiles')}
+          description={t('card.noFilesHint')}
+        />
       ) : (
         <List>
           {attachments.map((attachment) => {

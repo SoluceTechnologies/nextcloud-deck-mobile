@@ -78,22 +78,31 @@ it('formats a size at the MB boundary in MB with one decimal', () => {
 // An empty list means "the fetch has not answered yet" just as often as it
 // means "this card has none" — saying "no files" during the first is the bug
 // this covers.
-it('shows a loader instead of the empty state while the fetch is in flight', () => {
-  renderSection({ attachments: [], loading: true, onOpen: jest.fn() });
-  expect(screen.getByTestId('files-loading')).toBeTruthy();
+it('waits when the card claims files this device has not received yet', () => {
+  renderSection({ attachments: [], loading: true, expectedCount: 3, onOpen: jest.fn() });
+  expect(screen.getByTestId('files-empty-loading')).toBeTruthy();
   expect(screen.queryByText('card.noFiles')).toBeNull();
 });
 
-it('says there are none once the fetch has answered with nothing', () => {
-  renderSection({ attachments: [], loading: false, onOpen: jest.fn() });
+// The card carries its own attachment count, so a card with none has nothing
+// to wait for — a spinner there is a flash of the wrong answer, and the jump
+// from a spinner-sized box to a full empty state shoves the page around.
+it('does not flash a loader for a card the server says has no files', () => {
+  renderSection({ attachments: [], loading: true, expectedCount: 0, onOpen: jest.fn() });
+  expect(screen.queryByTestId('files-empty-loading')).toBeNull();
   expect(screen.getByText('card.noFiles')).toBeTruthy();
-  expect(screen.queryByTestId('files-loading')).toBeNull();
+});
+
+it('says there are none once the fetch has answered with nothing', () => {
+  renderSection({ attachments: [], loading: false, expectedCount: 3, onOpen: jest.fn() });
+  expect(screen.getByText('card.noFiles')).toBeTruthy();
+  expect(screen.queryByTestId('files-empty-loading')).toBeNull();
 });
 
 // loadMore reuses the same flag, so a loader must never replace rows already
 // on screen.
 it('keeps showing the files it has while a further page loads', () => {
-  renderSection({ attachments: [pdf], loading: true, onOpen: jest.fn() });
+  renderSection({ attachments: [pdf], loading: true, expectedCount: 3, onOpen: jest.fn() });
   expect(screen.getByText('contract.pdf')).toBeTruthy();
-  expect(screen.queryByTestId('files-loading')).toBeNull();
+  expect(screen.queryByTestId('files-empty-loading')).toBeNull();
 });
