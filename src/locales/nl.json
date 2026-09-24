@@ -1,0 +1,127 @@
+{
+  "common": {
+    "language": "Taal",
+    "cancel": "Annuleren",
+    "remove": "Verwijderen",
+    "close": "Sluiten",
+    "clear": "Wissen",
+    "errorPermission": "Toegang geweigerd. Je hebt geen bewerkrechten voor dit bord.",
+    "errorNetwork": "Netwerkfout. Controleer je verbinding en probeer het opnieuw.",
+    "errorGeneric": "Er is iets misgegaan. Probeer het opnieuw.",
+    "errorAuth": "Verificatie mislukt. Meld je opnieuw aan.",
+    "errorNotFound": "Dit item bestaat niet meer op de server.",
+    "errorServer": "De server is tijdelijk niet beschikbaar. Probeer het later opnieuw.",
+    "errorRateLimited": "Te veel verzoeken. Wacht even en probeer het opnieuw.",
+    "errorRateLimitedRetry": "Te veel verzoeken. Probeer het opnieuw over {{seconds}}s.",
+    "back": "Terug"
+  },
+  "tabs": {
+    "settings": "Instellingen"
+  },
+  "setup": {
+    "brand": "Deck",
+    "title": "Verbinden met Nextcloud",
+    "scanQr": "QR-code scannen",
+    "orManual": "of handmatig invoeren",
+    "serverUrl": "Server-URL",
+    "username": "Gebruikersnaam",
+    "appPassword": "App-wachtwoord",
+    "displayName": "Weergavenaam",
+    "optional": "(optioneel)",
+    "connect": "Verbinden",
+    "hint": "Genereer een app-wachtwoord in Nextcloud → Instellingen → Beveiliging → App-wachtwoorden.",
+    "footer": "Gemaakt met ♥ voor de community · Open source",
+    "placeholders": {
+      "serverUrl": "https://cloud.voorbeeld.com",
+      "username": "jan.jansen",
+      "appPassword": "xxxx-xxxx-xxxx-xxxx",
+      "displayName": "Werk"
+    },
+    "errors": {
+      "required": "Alle velden zijn verplicht.",
+      "invalidCreds": "Ongeldige gegevens. Controleer je app-wachtwoord.",
+      "serverNotFound": "Geen Nextcloud-server gevonden op dit adres. Controleer de URL, bijvoorbeeld https://cloud.voorbeeld.com",
+      "connect": "Kan geen verbinding maken: {{msg}}",
+      "qrOneTimeExpired": "Deze eenmalige inlogcode is al gebruikt of is verlopen. Genereer een nieuwe QR-code in Nextcloud en scan die opnieuw."
+    },
+    "qrCameraDenied": "Cameratoegang is geweigerd. Schakel het in bij je apparaatinstellingen om de QR-code te scannen.",
+    "qrOpenSettings": "Instellingen openen",
+    "qrInvalidCode": "Geen geldige Nextcloud-login-QR-code. Probeer opnieuw te scannen.",
+    "qrTryAgain": "Opnieuw proberen",
+    "qrHint": "Open je Nextcloud-dashboard → tik op je avatar → \"Aanmelden via QR-code\""
+  },
+  "settings": {
+    "title": "Instellingen",
+    "appearance": "Weergave",
+    "accessibility": {
+      "title": "Toegankelijkheid",
+      "haptics": "Haptische feedback",
+      "hapticsHint": "Trillen bij tikken en interacties.",
+      "reduceMotion": "Beweging verminderen",
+      "reduceMotionHint": "Animaties in de app minimaliseren."
+    },
+    "sections": {
+      "general": "Algemeen",
+      "app": "Applicatie"
+    },
+    "theme": "Thema",
+    "themeSystem": "Systeem",
+    "themeLight": "Licht",
+    "themeDark": "Donker",
+    "accounts": "Accounts",
+    "addAccount": "+ Account toevoegen",
+    "removeTitle": "Account verwijderen",
+    "removeMsg": "\"{{name}}\" van dit apparaat verwijderen?",
+    "version": "v{{version}}",
+    "about": {
+      "title": "Over",
+      "name": "Nextcloud Deck",
+      "description": "Een open-source mobiele Deck-app voor Nextcloud.",
+      "github": "Bekijken op GitHub",
+      "reportBug": "Een bug melden"
+    },
+    "account": {
+      "title": "Account",
+      "notFound": "Account niet gevonden.",
+      "server": "Server",
+      "serverUrl": "Serveradres",
+      "username": "Gebruikersnaam",
+      "connection": "Verbinding",
+      "reconnectHint": "Voer een nieuw app-wachtwoord in als het oude is ingetrokken.",
+      "appPassword": "App-wachtwoord",
+      "scanQr": "QR-code scannen",
+      "reconnect": "Opnieuw verbinden",
+      "reconnected": "Account opnieuw verbonden.",
+      "useThisAccount": "Dit account gebruiken",
+      "delete": "Account verwijderen",
+      "errors": {
+        "required": "Dit veld is verplicht.",
+        "accountMismatch": "Deze QR-code hoort bij een ander account."
+      },
+      "connectionLost": "De verbinding met deze server is verlopen. Maak opnieuw verbinding om te blijven synchroniseren.",
+      "use": "Gebruiken",
+      "editOnNextcloud": "Bewerken in Nextcloud"
+    },
+    "accountActive": "Actief"
+  },
+  "certTrust": {
+    "title": "Niet-vertrouwd certificaat",
+    "body": "De server {{host}} heeft een certificaat aangeboden dat niet is ondertekend door een bekende autoriteit.",
+    "warning": "Ga alleen verder als deze vingerafdruk overeenkomt met je server. Een verkeerde vingerafdruk betekent dat iemand je verbinding kan onderscheppen.",
+    "fingerprint": "SHA-256-vingerafdruk",
+    "subject": "Uitgegeven aan",
+    "issuer": "Uitgegeven door",
+    "validFrom": "Geldig vanaf",
+    "validTo": "Geldig tot",
+    "trust": "Vertrouwen en verbinden",
+    "cancel": "Annuleren"
+  },
+  "cleartext": {
+    "title": "Onversleutelde verbinding",
+    "body": "De verbinding met {{host}} is niet versleuteld. Je gebruikersnaam en app-wachtwoord zouden als platte tekst over het netwerk worden verzonden.",
+    "warning": "Iedereen tussen deze telefoon en de server — de wifibeheerder, je internetprovider, elk netwerk ertussen — kan je wachtwoord en borden en kaarten meelezen. Een Nextcloud app-wachtwoord geeft toegang tot je hele account, niet alleen tot Deck.",
+    "remedy": "Veiligere opties: de server bereiken via een VPN zoals Tailscale of WireGuard, of een gratis certificaat instellen met DuckDNS en Let's Encrypt.",
+    "connect": "Toch verbinden",
+    "cancel": "Annuleren"
+  }
+}

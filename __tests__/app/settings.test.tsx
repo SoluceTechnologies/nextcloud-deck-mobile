@@ -1,0 +1,76 @@
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import { ThemeProvider } from 'expo-router';
+import { lightTheme } from '../../src/theme';
+import SettingsScreen from '../../app/(tabs)/settings/index';
+import { useSettingsStore } from '../../src/stores/settingsStore';
+import i18n from '../../src/utils/i18n';
+
+const mockPush = jest.fn();
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+jest.mock('expo-router', () => ({
+  ...jest.requireActual('expo-router'),
+  useRouter: () => ({ replace: jest.fn(), push: mockPush, back: jest.fn() }),
+  useFocusEffect: () => {},
+}));
+jest.mock('expo-router/js-tabs', () => ({ useBottomTabBarHeight: () => 0 }));
+const mockFailedCount = jest.fn(() => 0);
+jest.mock('../../src/features/settings/hooks/useFailedSyncCount', () => ({
+  useFailedSyncCount: () => mockFailedCount(),
+}));
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  return React.createElement(ThemeProvider, { value: lightTheme, children });
+}
+
+describe('SettingsScreen', () => {
+  beforeEach(async () => {
+    mockPush.mockClear();
+    await i18n.changeLanguage('en');
+    useSettingsStore.setState({ language: 'en' });
+  });
+
+  it('lists every settings section as a row', () => {
+    const { getByText } = render(<SettingsScreen />, { wrapper });
+    expect(getByText('Settings')).toBeTruthy();
+    expect(getByText('Appearance')).toBeTruthy();
+    expect(getByText('Accessibility')).toBeTruthy();
+    expect(getByText('Accounts')).toBeTruthy();
+    expect(getByText('Sync')).toBeTruthy();
+    expect(getByText('About')).toBeTruthy();
+  });
+
+  it('keeps sub-page content off the index', () => {
+    const { queryByText } = render(<SettingsScreen />, { wrapper });
+    expect(queryByText('Theme')).toBeNull();
+    expect(queryByText('Week Starts On')).toBeNull();
+    expect(queryByText('Language')).toBeNull();
+  });
+
+  it('badges the Sync row with the number of failed changes', () => {
+    mockFailedCount.mockReturnValueOnce(2);
+    const { getByTestId, getByText } = render(<SettingsScreen />, { wrapper });
+    expect(getByTestId('settings-link-badge')).toBeTruthy();
+    expect(getByText('2')).toBeTruthy();
+  });
+
+  it('shows no badge when nothing failed', () => {
+    const { queryByTestId } = render(<SettingsScreen />, { wrapper });
+    expect(queryByTestId('settings-link-badge')).toBeNull();
+  });
+
+  it.each([
+    ['Appearance', '/(tabs)/settings/appearance'],
+    ['Accessibility', '/(tabs)/settings/accessibility'],
+    ['Accounts', '/(tabs)/settings/accounts'],
+    ['Sync', '/(tabs)/settings/sync'],
+    ['About', '/(tabs)/settings/about'],
+  ])('navigates to the %s page', (label, route) => {
+    const { getByText } = render(<SettingsScreen />, { wrapper });
+    fireEvent.press(getByText(label));
+    expect(mockPush).toHaveBeenCalledWith(route);
+  });
+});

@@ -1,0 +1,127 @@
+{
+  "common": {
+    "language": "Idioma",
+    "cancel": "Cancelar",
+    "remove": "Remover",
+    "close": "Fechar",
+    "clear": "Limpar",
+    "errorPermission": "Permissão negada. Não tem permissão de edição neste quadro.",
+    "errorNetwork": "Erro de rede. Verifique a sua ligação e tente novamente.",
+    "errorGeneric": "Algo correu mal. Tente novamente.",
+    "errorAuth": "Falha na autenticação. Inicie sessão novamente.",
+    "errorNotFound": "Este item já não existe no servidor.",
+    "errorServer": "O servidor está temporariamente indisponível. Tente novamente mais tarde.",
+    "errorRateLimited": "Demasiados pedidos. Aguarde um momento e tente novamente.",
+    "errorRateLimitedRetry": "Demasiados pedidos. Tente novamente dentro de {{seconds}}s.",
+    "back": "Voltar"
+  },
+  "tabs": {
+    "settings": "Definições"
+  },
+  "setup": {
+    "brand": "Deck",
+    "title": "Ligar ao Nextcloud",
+    "scanQr": "Ler código QR",
+    "orManual": "ou introduzir manualmente",
+    "serverUrl": "URL do servidor",
+    "username": "Nome de utilizador",
+    "appPassword": "Palavra-passe da aplicação",
+    "displayName": "Nome a apresentar",
+    "optional": "(opcional)",
+    "connect": "Ligar",
+    "hint": "Gere uma palavra-passe de aplicação no Nextcloud → Definições → Segurança → Palavras-passe de aplicações.",
+    "footer": "Feito com ♥ para a comunidade · Código aberto",
+    "placeholders": {
+      "serverUrl": "https://cloud.exemplo.com",
+      "username": "joao.silva",
+      "appPassword": "xxxx-xxxx-xxxx-xxxx",
+      "displayName": "Trabalho"
+    },
+    "errors": {
+      "required": "Todos os campos são obrigatórios.",
+      "invalidCreds": "Credenciais inválidas. Verifique a palavra-passe da aplicação.",
+      "serverNotFound": "Nenhum servidor Nextcloud encontrado neste endereço. Verifique o URL, por exemplo https://cloud.exemplo.com",
+      "connect": "Não foi possível ligar: {{msg}}",
+      "qrOneTimeExpired": "Este código de início de sessão de utilização única já foi usado ou expirou. Gere um novo código QR no Nextcloud e digitalize-o novamente."
+    },
+    "qrCameraDenied": "O acesso à câmara foi negado. Ative-o nas definições do dispositivo para ler o código QR.",
+    "qrOpenSettings": "Abrir definições",
+    "qrInvalidCode": "Não é um código QR de início de sessão válido do Nextcloud. Tente ler novamente.",
+    "qrTryAgain": "Tentar novamente",
+    "qrHint": "Abra o painel do Nextcloud → toque no seu avatar → \"Iniciar sessão via código QR\""
+  },
+  "settings": {
+    "title": "Definições",
+    "appearance": "Aparência",
+    "accessibility": {
+      "title": "Acessibilidade",
+      "haptics": "Retorno háptico",
+      "hapticsHint": "Vibrar ao tocar e interagir.",
+      "reduceMotion": "Reduzir movimento",
+      "reduceMotionHint": "Minimizar as animações no app."
+    },
+    "sections": {
+      "general": "Geral",
+      "app": "Aplicação"
+    },
+    "theme": "Tema",
+    "themeSystem": "Sistema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "accounts": "Contas",
+    "addAccount": "+ Adicionar conta",
+    "removeTitle": "Remover conta",
+    "removeMsg": "Remover \"{{name}}\" deste dispositivo?",
+    "version": "v{{version}}",
+    "about": {
+      "title": "Sobre",
+      "name": "Nextcloud Deck",
+      "description": "Uma aplicação Deck móvel de código aberto para o Nextcloud.",
+      "github": "Ver no GitHub",
+      "reportBug": "Reportar um erro"
+    },
+    "account": {
+      "title": "Conta",
+      "notFound": "Conta não encontrada.",
+      "server": "Servidor",
+      "serverUrl": "Endereço do servidor",
+      "username": "Nome de utilizador",
+      "connection": "Ligação",
+      "reconnectHint": "Introduza uma nova palavra-passe de aplicação se a anterior foi revogada.",
+      "appPassword": "Palavra-passe de aplicação",
+      "scanQr": "Ler um código QR",
+      "reconnect": "Voltar a ligar",
+      "reconnected": "Conta novamente ligada.",
+      "useThisAccount": "Usar esta conta",
+      "delete": "Remover conta",
+      "errors": {
+        "required": "Este campo é obrigatório.",
+        "accountMismatch": "Este código QR pertence a outra conta."
+      },
+      "connectionLost": "A ligação a este servidor expirou. Volte a ligar-se para continuar a sincronizar.",
+      "use": "Usar",
+      "editOnNextcloud": "Editar no Nextcloud"
+    },
+    "accountActive": "Ativa"
+  },
+  "certTrust": {
+    "title": "Certificado não confiável",
+    "body": "O servidor {{host}} apresentou um certificado que não é assinado por uma autoridade conhecida.",
+    "warning": "Continue apenas se esta impressão digital corresponder ao seu servidor. Uma impressão digital incorreta significa que alguém pode estar a intercetar a sua ligação.",
+    "fingerprint": "Impressão digital SHA-256",
+    "subject": "Emitido para",
+    "issuer": "Emitido por",
+    "validFrom": "Válido desde",
+    "validTo": "Válido até",
+    "trust": "Confiar e ligar",
+    "cancel": "Cancelar"
+  },
+  "cleartext": {
+    "title": "Ligação não encriptada",
+    "body": "A ligação a {{host}} não está encriptada. O seu nome de utilizador e a palavra-passe da aplicação seriam enviados em texto simples pela rede.",
+    "warning": "Qualquer pessoa entre este telemóvel e o servidor — o operador do Wi-Fi, o seu fornecedor de internet, qualquer rede pelo meio — pode ler a sua palavra-passe e os seus quadros e cartões. Uma palavra-passe de aplicação do Nextcloud dá acesso a toda a conta, não apenas ao Deck.",
+    "remedy": "Opções mais seguras: aceder ao servidor através de uma VPN como Tailscale ou WireGuard, ou configurar um certificado gratuito com DuckDNS e Let's Encrypt.",
+    "connect": "Ligar mesmo assim",
+    "cancel": "Cancelar"
+  }
+}

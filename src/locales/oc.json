@@ -1,0 +1,119 @@
+{
+  "common": {
+    "language": "Lenga",
+    "cancel": "Anullar",
+    "remove": "Suprimir",
+    "close": "Tampar",
+    "clear": "Escafar",
+    "errorPermission": "Permission refusada. Avètz pas lo drech de modificar aqueste tablèu.",
+    "errorNetwork": "Error de ret. Verificatz la connexion e tornatz ensajar.",
+    "errorGeneric": "Quicòm s'es mal passat. Tornatz ensajar.",
+    "errorAuth": "L'autentificacion a pas capitat. Tornatz-vos connectar.",
+    "errorNotFound": "Aqueste element existís pas mai sul servidor.",
+    "errorServer": "Lo servidor es temporàriament indisponible. Tornatz ensajar mai tard.",
+    "errorRateLimited": "Tròp de requèstas. Esperatz un moment e tornatz ensajar.",
+    "errorRateLimitedRetry": "Tròp de requèstas. Tornatz ensajar qu’aquí {{seconds}}s.",
+    "back": "Tornar"
+  },
+  "tabs": {
+    "settings": "Paramètres"
+  },
+  "setup": {
+    "brand": "Deck",
+    "title": "Se connectar a Nextcloud",
+    "scanQr": "Numerizar lo còdi QR",
+    "orManual": "o picar manualament",
+    "serverUrl": "URL del servidor",
+    "username": "Nom d'utilizaire",
+    "appPassword": "Senhal de l'aplicacion",
+    "displayName": "Nom d'afichatge",
+    "optional": "(facultatiu)",
+    "connect": "Se connectar",
+    "hint": "Generatz un senhal d'aplicacion dins Nextcloud → Paramètres → Seguretat → Senhals d'aplicacion.",
+    "footer": "Fach amb ♥ per la comunautat · Còdi font liure",
+    "placeholders": {
+      "serverUrl": "https://cloud.example.com",
+      "username": "john.doe",
+      "appPassword": "xxxx-xxxx-xxxx-xxxx",
+      "displayName": "Trabalh"
+    },
+    "errors": {
+      "required": "Totes los camps son obligatòris.",
+      "invalidCreds": "Identificants invalids. Verificatz vòstre senhal d'aplicacion.",
+      "serverNotFound": "Cap de servidor Nextcloud pas trobat a aquesta adreça. Verificatz l’URL, per exemple https://cloud.example.com",
+      "connect": "Impossible de se connectar : {{msg}}",
+      "qrOneTimeExpired": "Aqueste còdi de connexion de còp unic es ja estat utilizat o a expirat. Generatz un còdi QR novèl dins Nextcloud e numerizatz-lo tornarmai."
+    },
+    "qrCameraDenied": "L'accès a la camèra es refusat. Activatz-lo dins los paramètres de vòstre aparelh per numerizar lo còdi QR.",
+    "qrOpenSettings": "Dobrir los paramètres",
+    "qrInvalidCode": "Es pas un còdi QR de connexion Nextcloud valid. Tornatz ensajar de numerizar.",
+    "qrTryAgain": "Tornar ensajar",
+    "qrHint": "Dobrir vòstre tablèu de bòrd Nextcloud → picatz sus vòstre avatar → \"Se connectar via còdi QR\""
+  },
+  "settings": {
+    "title": "Paramètres",
+    "appearance": "Aparéncia",
+    "accessibility": {
+      "title": "Accessibilitat",
+      "haptics": "Retorn aptic",
+      "hapticsHint": "Vibra suls tusts e interaccions.",
+      "reduceMotion": "Redusir lo movement",
+      "reduceMotionHint": "Minimizar las animacions dins l'aplicacion."
+    },
+    "sections": {
+      "general": "General",
+      "app": "Aplicacion"
+    },
+    "theme": "Tèma",
+    "themeSystem": "Sistèma",
+    "themeLight": "Clar",
+    "themeDark": "Escur",
+    "accounts": "Comptes",
+    "addAccount": "+ Apondre un compte",
+    "removeTitle": "Suprimir lo compte",
+    "removeMsg": "Suprimir \"{{name}}\" d'aqueste aparelh ?",
+    "version": "v{{version}}",
+    "about": {
+      "title": "A prepaus",
+      "name": "Nextcloud Deck",
+      "description": "Una aplicacion mobila Deck de còdi font liure per Nextcloud.",
+      "github": "Veire sus GitHub",
+      "reportBug": "Senhalar un bug"
+    },
+    "account": {
+      "title": "Compte",
+      "notFound": "Compte pas trobat.",
+      "server": "Servidor",
+      "serverUrl": "Adreça del servidor",
+      "username": "Nom d'utilizaire",
+      "connection": "Connexion",
+      "reconnectHint": "Picatz un senhal d'aplicacion novèl se l’ancian es estat revocat.",
+      "appPassword": "Senhal d'aplicacion",
+      "scanQr": "Numerizar un còdi QR",
+      "reconnect": "Se reconnectar",
+      "reconnected": "Compte reconnectat.",
+      "useThisAccount": "Utilizar aqueste compte",
+      "delete": "Suprimir lo compte",
+      "errors": {
+        "required": "Aqueste camp es obligatòri.",
+        "accountMismatch": "Aqueste còdi QR aparten a un compte diferent."
+      },
+      "connectionLost": "La connexion a aqueste servidor a expirat. Reconnectatz-vos per contunhar la sincronizacion.",
+      "use": "Utilizar",
+      "editOnNextcloud": "Modificar sus Nextcloud"
+    },
+    "accountActive": "Actiu"
+  },
+  "certTrust": {
+    "title": "Certificat pas de fisança",
+    "body": "Lo servidor {{host}} a presentat un certificat qu'es pas signat per una autoritat coneguda.",
+    "warning": "Contunhatz solament se aquesta emprenta correspond a vòstre servidor. Una emprenta incorrècta significa que qualqu'un pòt interceptar vòstra connexion.",
+    "fingerprint": "Emprenta SHA-256",
+    "subject": "Fornit a",
+    "issuer": "Fornit per",
+    "validFrom": "Valid a partir de",
+    "validTo": "Valid fins a",
+    "trust": "Far fisança e se connectar",
+    "cancel": "Anullar"
+  }
+}
