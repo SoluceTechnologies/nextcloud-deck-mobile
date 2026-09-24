@@ -61,14 +61,14 @@ it('saves the markdown the editor reports, not the seeded value', async () => {
   const onSave = jest.fn();
   renderEditor({ initial: 'before', onSave });
   setEditorMarkdown('after');
-  fireEvent.press(screen.getByText('card.save'));
+  fireEvent.press(screen.getByTestId('editor-save'));
   await waitFor(() => expect(onSave).toHaveBeenCalledWith('after'));
 });
 
 it('does not save when nothing changed', async () => {
   const onSave = jest.fn();
   renderEditor({ initial: 'same', onSave });
-  fireEvent.press(screen.getByText('card.save'));
+  fireEvent.press(screen.getByTestId('editor-save'));
   await waitFor(() => expect(onSave).not.toHaveBeenCalled());
 });
 
@@ -83,7 +83,7 @@ it('saves against the text seeded at open, not a later initial prop', async () =
 
   rerender(<DescriptionEditor visible initial="v2" onClose={onClose} onSave={onSave} />);
 
-  fireEvent.press(screen.getByText('card.save'));
+  fireEvent.press(screen.getByTestId('editor-save'));
   await waitFor(() => expect(onClose).toHaveBeenCalled());
   expect(onSave).not.toHaveBeenCalled();
 });

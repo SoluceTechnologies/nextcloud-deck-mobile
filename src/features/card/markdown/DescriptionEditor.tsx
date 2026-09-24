@@ -9,6 +9,7 @@ import {
 } from 'react-native-enriched-markdown';
 import {
   Bold,
+  Check,
   Heading1,
   Heading2,
   Heading3,
@@ -21,7 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import { Button, IconButton, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
+import { IconButton, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 import { canUseRichEditor } from './unsupportedBlocks';
 import { RawMarkdownEditor } from './RawMarkdownEditor';
 import { useMarkdownStyle } from './markdownStyle';
@@ -96,11 +97,31 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
           <ScreenHeader
             title={t('card.description')}
             left={
-              <IconButton testID="editor-close" accessibilityLabel={t('common.close')} onPress={onClose}>
+              <IconButton
+                testID="editor-close"
+                variant="ghost"
+                glass
+                round
+                size={40}
+                accessibilityLabel={t('common.close')}
+                onPress={onClose}
+              >
                 <X size={22} color={colors.text} />
               </IconButton>
             }
-            right={<Button inline size="small" title={t('card.save')} onPress={handleSave} />}
+            right={
+              <IconButton
+                testID="editor-save"
+                variant="ghost"
+                glass
+                round
+                size={40}
+                accessibilityLabel={t('card.save')}
+                onPress={handleSave}
+              >
+                <Check size={22} color={colors.primary} />
+              </IconButton>
+            }
           />
           <KeyboardAvoidingView style={styles.flex} behavior="padding">
             {useRich ? (
