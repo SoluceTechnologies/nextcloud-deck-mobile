@@ -49,6 +49,16 @@ function matchesDate(duedate: number | null, term: DateTerm, now: number): boole
   }
 }
 
+function matchesAnyField(card: SearchableCard, needle: string): boolean {
+  return (
+    contains(card.title, needle) ||
+    contains(card.description, needle) ||
+    contains(card.stackTitle, needle) ||
+    anyContains(card.labels, needle) ||
+    anyContains(card.assignees, needle)
+  );
+}
+
 export function matchesQuery(card: SearchableCard, query: SearchQuery, now: number): boolean {
   return (
     query.title.every((t) => contains(card.title, t)) &&
@@ -56,7 +66,7 @@ export function matchesQuery(card: SearchableCard, query: SearchQuery, now: numb
     query.list.every((t) => contains(card.stackTitle, t)) &&
     query.tag.every((t) => anyContains(card.labels, t)) &&
     query.assigned.every((t) => anyContains(card.assignees, t)) &&
-    query.text.every((t) => contains(card.title, t) || contains(card.description, t)) &&
+    query.text.every((t) => matchesAnyField(card, t)) &&
     query.date.every((t) => matchesDate(card.duedate, t, now))
   );
 }

@@ -325,7 +325,7 @@
     "title": "Cerca",
     "placeholder": "Cerca bacheche, schede, commenti…",
     "operators": "OPERATORI",
-    "try": "PROVA",
+    "try": "PROVA GLI ESEMPI",
     "op": {
       "title": "Cerca nei titoli delle schede",
       "description": "Cerca nelle descrizioni",
@@ -334,6 +334,7 @@
       "assigned": "Filtra per assegnatario",
       "date": "Filtra per scadenza"
     },
+    "dateHelp": "Accettato: today, tomorrow o una data come 2026-09-25, eventualmente preceduti da <, <=, > o >= (date:<tomorrow). Non riconosciuto: altre parole (domani…), un anno da solo (2026), 25/09/2026.",
     "examples": ["note di rilascio", "tag:design", "tag:design date:<tomorrow"],
     "boards": "BACHECHE",
     "fromServer": "ALTRI RISULTATI DAL SERVER",

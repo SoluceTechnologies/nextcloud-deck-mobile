@@ -325,7 +325,7 @@
     "title": "Buscar",
     "placeholder": "Buscar tableros, tarjetas, comentarios…",
     "operators": "OPERADORES",
-    "try": "PROBAR",
+    "try": "PROBAR EJEMPLOS",
     "op": {
       "title": "Buscar en los títulos",
       "description": "Buscar en las descripciones",
@@ -334,6 +334,7 @@
       "assigned": "Filtrar por persona asignada",
       "date": "Filtrar por fecha de vencimiento"
     },
+    "dateHelp": "Aceptado: today, tomorrow o una fecha como 2026-09-25, con <, <=, > o >= delante si hace falta (date:<tomorrow). No reconocido: otras palabras (mañana…), solo un año (2026), 25/09/2026.",
     "examples": ["notas de la versión", "tag:design", "tag:design date:<tomorrow"],
     "boards": "TABLEROS",
     "fromServer": "MÁS RESULTADOS DEL SERVIDOR",

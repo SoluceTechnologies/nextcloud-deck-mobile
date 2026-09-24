@@ -325,7 +325,7 @@
     "title": "Suche",
     "placeholder": "Boards, Karten, Kommentare durchsuchen…",
     "operators": "OPERATOREN",
-    "try": "AUSPROBIEREN",
+    "try": "BEISPIELE AUSPROBIEREN",
     "op": {
       "title": "Kartentitel durchsuchen",
       "description": "Beschreibungen durchsuchen",
@@ -334,6 +334,7 @@
       "assigned": "Nach zugewiesener Person filtern",
       "date": "Nach Fälligkeitsdatum filtern"
     },
+    "dateHelp": "Erlaubt: today, tomorrow oder ein Datum wie 2026-09-25, optional mit <, <=, > oder >= davor (date:<tomorrow). Nicht erkannt: andere Wörter (morgen…), nur eine Jahreszahl (2026), 25.09.2026.",
     "examples": ["Versionshinweise", "tag:design", "tag:design date:<tomorrow"],
     "boards": "BOARDS",
     "fromServer": "WEITERE ERGEBNISSE VOM SERVER",

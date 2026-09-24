@@ -16,6 +16,13 @@ it('matches free text on the title or the description, case-insensitively', () =
   expect(matchesQuery(card(), parseQuery('zzz'), NOW)).toBe(false);
 });
 
+it('matches free text on the list, the tags and the assignees too', () => {
+  const tagged = card({ title: 'Bulletins', description: '', labels: ['SOCIAL/PAIE'] });
+  expect(matchesQuery(tagged, parseQuery('paie'), NOW)).toBe(true);
+  expect(matchesQuery(card(), parseQuery('cours'), NOW)).toBe(true);
+  expect(matchesQuery(card(), parseQuery('martin'), NOW)).toBe(true);
+});
+
 it('requires every term to match', () => {
   expect(matchesQuery(card(), parseQuery('loyer virement'), NOW)).toBe(true);
   expect(matchesQuery(card(), parseQuery('loyer zzz'), NOW)).toBe(false);

@@ -325,7 +325,7 @@
     "title": "Search",
     "placeholder": "Search boards, cards, comments…",
     "operators": "OPERATORS",
-    "try": "TRY",
+    "try": "TRY AN EXAMPLE",
     "op": {
       "title": "Match card titles",
       "description": "Search descriptions",
@@ -334,6 +334,7 @@
       "assigned": "Filter by assignee",
       "date": "Filter by due date"
     },
+    "dateHelp": "Accepted: today, tomorrow or a date as 2026-09-25, optionally after <, <=, > or >= (date:<tomorrow). Not recognised: other words, a year alone, 25/09/2026.",
     "examples": ["release notes", "tag:design", "tag:design date:<tomorrow"],
     "boards": "BOARDS",
     "fromServer": "MORE FROM THE SERVER",
