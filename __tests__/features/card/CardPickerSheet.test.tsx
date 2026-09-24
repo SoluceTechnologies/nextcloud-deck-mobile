@@ -58,6 +58,9 @@ it('opens on the given board and hides the excluded list', () => {
   );
   expect(screen.getByText('Terminé')).toBeTruthy();
   expect(screen.queryByText('En cours')).toBeNull();
+  expect(screen.queryByTestId('picker-back')).toBeNull();
+  fireEvent.press(screen.getByTestId('picker-other-board'));
+  expect(screen.getByText('Commercial')).toBeTruthy();
   useBoardStacks.mockReturnValue([{ id: 's1', title: 'En cours', boardId: 'b1' }]);
 });
 

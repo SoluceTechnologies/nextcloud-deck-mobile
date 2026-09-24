@@ -316,7 +316,8 @@
       "chooseCard": "Choisir une carte",
       "empty": "Rien ici",
       "copyTo": "Copier dans une liste",
-      "moveTo": "Déplacer vers une liste"
+      "moveTo": "Déplacer vers une liste",
+      "otherBoard": "Choisir un autre tableau"
     },
     "details": {
       "title": "DÉTAILS",

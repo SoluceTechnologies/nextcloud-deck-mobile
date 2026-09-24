@@ -316,7 +316,8 @@
       "chooseCard": "Choose a card",
       "empty": "Nothing here",
       "copyTo": "Copy to a list",
-      "moveTo": "Move to a list"
+      "moveTo": "Move to a list",
+      "otherBoard": "Choose another board"
     },
     "details": {
       "title": "DETAILS",

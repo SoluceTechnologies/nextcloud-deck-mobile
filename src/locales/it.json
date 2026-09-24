@@ -316,7 +316,8 @@
       "chooseCard": "Scegli una scheda",
       "empty": "Niente qui",
       "copyTo": "Copia in una lista",
-      "moveTo": "Sposta in una lista"
+      "moveTo": "Sposta in una lista",
+      "otherBoard": "Scegli un'altra bacheca"
     },
     "details": {
       "title": "DETTAGLI",

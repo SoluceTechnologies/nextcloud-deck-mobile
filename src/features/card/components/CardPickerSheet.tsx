@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react-native';
 
 import { useBoardCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
-import { IconButton, Item, List, Sheet, Typography } from '@/ui/components';
+import { IconButton, IconTile, Item, List, Sheet, Typography } from '@/ui/components';
 
 export type CardPickerMode = 'stack' | 'card';
 export type CardPickerResult = { boardLocalId: string; stackLocalId: string; cardLocalId?: string };
@@ -34,6 +34,7 @@ export function CardPickerSheet({
   const cards = useBoardCards(accountId, boardLocalId).filter((c) => c.stackId === stackLocalId);
 
   const level = stackLocalId ? 2 : boardLocalId ? 1 : 0;
+  const onStartBoard = level === 1 && initialBoardLocalId !== null && boardLocalId === initialBoardLocalId;
 
   useEffect(() => {
     if (visible) setBoardLocalId(initialBoardLocalId);
@@ -86,7 +87,7 @@ export function CardPickerSheet({
 
   return (
     <Sheet visible={visible} onClose={close} title={title}>
-      {level > 0 && (
+      {level > 0 && !onStartBoard && (
         <IconButton
           testID="picker-back"
           variant="ghost"
@@ -109,6 +110,17 @@ export function CardPickerSheet({
           {t('card.picker.empty')}
         </Typography>
       )}
+      {onStartBoard ? (
+        <List>
+          <Item
+            testID="picker-other-board"
+            title={t('card.picker.otherBoard')}
+            leading={<IconTile><LayoutGrid /></IconTile>}
+            trailing={<ChevronRight size={20} color={colors.textTertiary} />}
+            onPress={() => setBoardLocalId(null)}
+          />
+        </List>
+      ) : null}
     </Sheet>
   );
 }
