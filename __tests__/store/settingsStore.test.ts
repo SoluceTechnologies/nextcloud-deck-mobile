@@ -9,23 +9,7 @@ describe('settingsStore', () => {
     useSettingsStore.setState({
       themePreference: 'system',
       language: 'en',
-      weekStartsOn: 0,
     });
-  });
-
-  it('defaults weekStartsOn to 0 (Sunday)', () => {
-    expect(useSettingsStore.getState().weekStartsOn).toBe(0);
-  });
-
-  it('setWeekStartsOn(1) sets weekStartsOn to 1 (Monday)', () => {
-    useSettingsStore.getState().setWeekStartsOn(1);
-    expect(useSettingsStore.getState().weekStartsOn).toBe(1);
-  });
-
-  it('setWeekStartsOn(0) sets weekStartsOn back to 0 (Sunday)', () => {
-    useSettingsStore.getState().setWeekStartsOn(1);
-    useSettingsStore.getState().setWeekStartsOn(0);
-    expect(useSettingsStore.getState().weekStartsOn).toBe(0);
   });
 
   it('setLanguage updates the language', () => {

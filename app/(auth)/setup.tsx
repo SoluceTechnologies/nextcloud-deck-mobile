@@ -86,8 +86,6 @@ export default function SetupScreen() {
         username: params.username,
         appPassword: params.appPassword,
         davUserId: connected.davUserId,
-        timezone: connected.userInfo.timezone,
-        email: connected.userInfo.email,
       };
       await saveAccount(account);
       await setActiveAccountId(account.id);

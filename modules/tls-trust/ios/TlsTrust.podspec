@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   s.summary        = package['description'] || 'TOFU TLS trust module'
   s.description    = 'Trust-on-first-use TLS certificate pinning for self-signed Nextcloud instances.'
   s.author         = ''
-  s.homepage       = 'https://github.com/SoluceTechnologies/nextcloud-calendar-mobile'
+  s.homepage       = 'https://github.com/SoluceTechnologies/nextcloud-deck-mobile'
   s.platforms      = { :ios => '15.1' }
   s.source         = { git: '' }
   s.static_framework = true

@@ -5,8 +5,6 @@ export type Account = {
   username: string;
   appPassword: string;
   davUserId: string;
-  timezone?: string;
-  email?: string;
 };
 
 export type DeckAppStatus = 'unknown' | 'available' | 'unavailable';

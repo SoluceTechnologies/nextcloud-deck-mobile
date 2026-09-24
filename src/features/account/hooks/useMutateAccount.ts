@@ -6,29 +6,9 @@ import {refreshAccounts} from '@/hooks/useAccounts';
 import {useAsyncAction} from '@/hooks/useAsyncAction';
 import {ClearDatabaseForAccount} from '@/database/DatabaseProvider';
 import {storage} from '@/storage';
-import {
-    AccountFieldError, diffProfile, validateProfilePatch,
-    type AccountProfilePatch,
-} from '../utils/account';
+import {AccountFieldError} from '../utils/account';
 import type {Account} from '@/types';
 
-
-export function useUpdateAccount(account: Account) {
-    return useAsyncAction<AccountProfilePatch, Account>(
-        useCallback(async (patch: AccountProfilePatch) => {
-            const changes = diffProfile(account, patch);
-            if (Object.keys(changes).length === 0) return account;
-
-            const errors = validateProfilePatch(changes);
-            if (errors) throw new AccountFieldError(errors);
-
-            const next: Account = {...account, ...changes};
-            await saveAccount(next);
-            await refreshAccounts();
-            return next;
-        }, [account]),
-    );
-}
 
 export function useReconnectAccount(account: Account) {
     return useAsyncAction<{ appPassword: string; username?: string }, Account>(

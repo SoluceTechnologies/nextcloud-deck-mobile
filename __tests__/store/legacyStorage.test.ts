@@ -9,6 +9,7 @@ describe('legacyBackedStorage', () => {
   beforeEach(() => {
     storage.remove('app-store');
     storage.remove('account-store');
+    storage.remove('settings-store');
   });
 
   it('returns the own key when present, ignoring legacy', () => {
@@ -24,7 +25,6 @@ describe('legacyBackedStorage', () => {
       JSON.stringify({
         state: {
           activeAccountId: 'acc-9',
-          viewMode: 'month',
           themePreference: 'dark',
           language: 'fr',
         },
@@ -34,14 +34,14 @@ describe('legacyBackedStorage', () => {
     const migrated = JSON.parse(legacyBackedStorage(['activeAccountId']).getItem('account-store')!);
     expect(migrated.state).toEqual({ activeAccountId: 'acc-9' });
 
-    const calendar = JSON.parse(
-      legacyBackedStorage(['viewMode', 'hiddenCalendarIds', 'hourRowHeight']).getItem('calendar-store')!
+    const settings = JSON.parse(
+      legacyBackedStorage(['themePreference', 'language']).getItem('settings-store')!
     );
-    expect(calendar.state).toEqual({ viewMode: 'month' });
+    expect(settings.state).toEqual({ themePreference: 'dark', language: 'fr' });
   });
 
   it('returns null when neither own key nor legacy has any owned field', () => {
-    storage.set('app-store', JSON.stringify({ state: { viewMode: 'week' }, version: 0 }));
+    storage.set('app-store', JSON.stringify({ state: { language: 'fr' }, version: 0 }));
     expect(legacyBackedStorage(['activeAccountId']).getItem('account-store')).toBeNull();
   });
 

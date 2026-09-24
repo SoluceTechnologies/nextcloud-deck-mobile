@@ -5,7 +5,7 @@
     "remove": "Supprimer",
     "close": "Fermer",
     "clear": "Effacer",
-    "errorPermission": "Autorisation refusée. Cet agenda est en lecture seule ou partagé sans accès en écriture.",
+    "errorPermission": "Autorisation refusée. Vous n'avez pas le droit de modifier ce tableau.",
     "errorNetwork": "Erreur réseau. Vérifiez votre connexion et réessayez.",
     "errorGeneric": "Une erreur s'est produite. Veuillez réessayer.",
     "errorAuth": "Échec de l'authentification. Veuillez vous reconnecter.",
@@ -22,7 +22,7 @@
     "settings": "Paramètres"
   },
   "setup": {
-    "brand": "Calendrier",
+    "brand": "Deck",
     "title": "Se connecter à Nextcloud",
     "scanQr": "Scanner le QR Code",
     "orManual": "ou saisir manuellement",
@@ -65,24 +65,12 @@
     },
     "sections": {
       "general": "Général",
-      "alerts": "Alertes",
       "app": "Application"
     },
     "theme": "Thème",
     "themeSystem": "Système",
     "themeLight": "Clair",
     "themeDark": "Sombre",
-    "weekStart": "Début de semaine",
-    "sunday": "Dimanche",
-    "monday": "Lundi",
-    "calendarZoom": "Zoom du calendrier",
-    "reset": "Réinitialiser",
-    "zoom": {
-      "compact": "Compact",
-      "normal": "Normal",
-      "expanded": "Étendu",
-      "large": "Grand"
-    },
     "accounts": "Comptes",
     "addAccount": "+ Ajouter un compte",
     "removeTitle": "Supprimer le compte",
@@ -95,38 +83,9 @@
       "github": "Voir sur GitHub",
       "reportBug": "Signaler un bug"
     },
-    "alerts": {
-      "timed": "Alerte par défaut",
-      "allDay": "Journée entière",
-      "none": "Aucune",
-      "atTime": "À l'heure de l'événement",
-      "before": {
-        "5": "5 minutes avant",
-        "10": "10 minutes avant",
-        "15": "15 minutes avant",
-        "30": "30 minutes avant",
-        "60": "1 heure avant",
-        "120": "2 heures avant",
-        "1440": "1 jour avant",
-        "2880": "2 jours avant",
-        "10080": "1 semaine avant"
-      },
-      "allDayOpts": {
-        "1": "1 jour avant (9h00)",
-        "2": "2 jours avant (9h00)",
-        "7": "1 semaine avant (9h00)",
-        "sameDay": "Le jour même (9h00)"
-      },
-      "useDefault": "Par défaut",
-      "timedHint": "Rappel par défaut pour les événements sans rappel propre. Ceux qui en ont un gardent le leur.",
-      "allDayHint": "Rappel par défaut des événements journée entière sans rappel propre, déclenché à 9h00 le jour choisi."
-    },
     "account": {
       "title": "Compte",
       "notFound": "Compte introuvable.",
-      "displayName": "Nom d'affichage",
-      "email": "E-mail",
-      "emailHint": "Utilisé comme organisateur des événements que vous créez.",
       "server": "Serveur",
       "serverUrl": "Adresse du serveur",
       "username": "Nom d'utilisateur",
@@ -135,14 +94,11 @@
       "appPassword": "Mot de passe d'application",
       "scanQr": "Scanner un QR code",
       "reconnect": "Reconnecter",
-      "save": "Enregistrer",
-      "saved": "Modifications enregistrées.",
       "reconnected": "Compte reconnecté.",
       "useThisAccount": "Utiliser ce compte",
       "delete": "Supprimer le compte",
       "errors": {
         "required": "Ce champ est obligatoire.",
-        "invalidEmail": "Adresse e-mail invalide.",
         "accountMismatch": "Ce QR code correspond à un autre compte."
       },
       "connectionLost": "La connexion à ce serveur a expiré. Reconnectez-vous pour continuer à synchroniser.",
@@ -166,7 +122,7 @@
   "cleartext": {
     "title": "Connexion non chiffrée",
     "body": "La connexion à {{host}} n'est pas chiffrée. Votre nom d'utilisateur et votre mot de passe d'application seraient transmis en clair sur le réseau.",
-    "warning": "Toute personne située entre ce téléphone et le serveur — opérateur du Wi-Fi, fournisseur d'accès, réseau intermédiaire — peut lire votre mot de passe et vos données de calendrier. Un mot de passe d'application Nextcloud donne accès à tout le compte, pas seulement au calendrier.",
+    "warning": "Toute personne située entre ce téléphone et le serveur — opérateur du Wi-Fi, fournisseur d'accès, réseau intermédiaire — peut lire votre mot de passe et vos tableaux et vos cartes. Un mot de passe d'application Nextcloud donne accès à tout le compte, pas seulement à Deck.",
     "remedy": "Options plus sûres : joindre le serveur via un VPN comme Tailscale ou WireGuard, ou installer un certificat gratuit avec DuckDNS et Let's Encrypt.",
     "connect": "Se connecter quand même",
     "cancel": "Annuler"

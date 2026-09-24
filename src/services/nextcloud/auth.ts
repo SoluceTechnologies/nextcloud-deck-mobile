@@ -66,10 +66,8 @@ export async function refreshAccountProfiles(): Promise<Account[]> {
     try {
       const info = await fetchUserInfo(account);
       const displayName = info.displayName || account.displayName;
-      const timezone = info.timezone || account.timezone;
-      const email = info.email || account.email;
-      if (displayName !== account.displayName || timezone !== account.timezone || email !== account.email) {
-        await saveAccount({ ...account, displayName, timezone, email });
+      if (displayName !== account.displayName) {
+        await saveAccount({ ...account, displayName });
       }
     } catch {
     }

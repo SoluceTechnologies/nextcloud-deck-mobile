@@ -5,7 +5,7 @@
     "remove": "Entfernen",
     "close": "Schließen",
     "clear": "Löschen",
-    "errorPermission": "Zugriff verweigert. Dieser Kalender ist schreibgeschützt oder ohne Schreibzugriff freigegeben.",
+    "errorPermission": "Zugriff verweigert. Sie haben keine Bearbeitungsrechte für dieses Board.",
     "errorNetwork": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "errorGeneric": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
     "errorAuth": "Authentifizierung fehlgeschlagen. Bitte melden Sie sich erneut an.",
@@ -22,7 +22,7 @@
     "settings": "Einstellungen"
   },
   "setup": {
-    "brand": "Kalender",
+    "brand": "Deck",
     "title": "Mit Nextcloud verbinden",
     "scanQr": "QR-Code scannen",
     "orManual": "oder manuell eingeben",
@@ -65,24 +65,12 @@
     },
     "sections": {
       "general": "Allgemein",
-      "alerts": "Hinweise",
       "app": "Anwendung"
     },
     "theme": "Design",
     "themeSystem": "System",
     "themeLight": "Hell",
     "themeDark": "Dunkel",
-    "weekStart": "Woche beginnt am",
-    "sunday": "Sonntag",
-    "monday": "Montag",
-    "calendarZoom": "Kalender-Zoom",
-    "reset": "Zurücksetzen",
-    "zoom": {
-      "compact": "Kompakt",
-      "normal": "Normal",
-      "expanded": "Erweitert",
-      "large": "Groß"
-    },
     "accounts": "Konten",
     "addAccount": "+ Konto hinzufügen",
     "removeTitle": "Konto entfernen",
@@ -95,38 +83,9 @@
       "github": "Auf GitHub ansehen",
       "reportBug": "Fehler melden"
     },
-    "alerts": {
-      "timed": "Standarderinnerung",
-      "allDay": "Ganztägige Termine",
-      "none": "Keine",
-      "atTime": "Zum Terminbeginn",
-      "before": {
-        "5": "5 Minuten vorher",
-        "10": "10 Minuten vorher",
-        "15": "15 Minuten vorher",
-        "30": "30 Minuten vorher",
-        "60": "1 Stunde vorher",
-        "120": "2 Stunden vorher",
-        "1440": "1 Tag vorher",
-        "2880": "2 Tage vorher",
-        "10080": "1 Woche vorher"
-      },
-      "allDayOpts": {
-        "1": "1 Tag vorher (9:00)",
-        "2": "2 Tage vorher (9:00)",
-        "7": "1 Woche vorher (9:00)",
-        "sameDay": "Am selben Tag (9:00)"
-      },
-      "useDefault": "Standard",
-      "timedHint": "Standarderinnerung für Termine ohne eigene Erinnerung. Termine mit eigener Erinnerung behalten sie.",
-      "allDayHint": "Standarderinnerung für ganztägige Termine ohne eigene, ausgelöst um 9:00 am gewählten Tag."
-    },
     "account": {
       "title": "Konto",
       "notFound": "Konto nicht gefunden.",
-      "displayName": "Anzeigename",
-      "email": "E-Mail",
-      "emailHint": "Wird als Organisator der von Ihnen erstellten Termine verwendet.",
       "server": "Server",
       "serverUrl": "Serveradresse",
       "username": "Benutzername",
@@ -135,14 +94,11 @@
       "appPassword": "App-Passwort",
       "scanQr": "QR-Code scannen",
       "reconnect": "Neu verbinden",
-      "save": "Speichern",
-      "saved": "Änderungen gespeichert.",
       "reconnected": "Konto neu verbunden.",
       "useThisAccount": "Dieses Konto verwenden",
       "delete": "Konto entfernen",
       "errors": {
         "required": "Dieses Feld ist erforderlich.",
-        "invalidEmail": "Ungültige E-Mail-Adresse.",
         "accountMismatch": "Dieser QR-Code gehört zu einem anderen Konto."
       },
       "connectionLost": "Die Verbindung zu diesem Server ist abgelaufen. Verbinden Sie sich neu, um weiter zu synchronisieren.",
@@ -166,7 +122,7 @@
   "cleartext": {
     "title": "Unverschlüsselte Verbindung",
     "body": "Die Verbindung zu {{host}} ist nicht verschlüsselt. Ihr Benutzername und Ihr App-Passwort würden im Klartext über das Netzwerk gesendet.",
-    "warning": "Jeder zwischen diesem Telefon und dem Server – WLAN-Betreiber, Internetanbieter, jedes Netz dazwischen – kann Ihr Passwort und Ihre Kalenderdaten mitlesen. Ein Nextcloud-App-Passwort gewährt Zugriff auf das gesamte Konto, nicht nur auf den Kalender.",
+    "warning": "Jeder zwischen diesem Telefon und dem Server – WLAN-Betreiber, Internetanbieter, jedes Netz dazwischen – kann Ihr Passwort und Ihre Boards und Karten mitlesen. Ein Nextcloud-App-Passwort gewährt Zugriff auf das gesamte Konto, nicht nur auf Deck.",
     "remedy": "Sicherere Optionen: den Server über ein VPN wie Tailscale oder WireGuard erreichen oder ein kostenloses Zertifikat mit DuckDNS und Let's Encrypt einrichten.",
     "connect": "Trotzdem verbinden",
     "cancel": "Abbrechen"
