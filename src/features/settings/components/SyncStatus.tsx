@@ -13,7 +13,6 @@ import { describeMutationError } from '@/services/shared/errors';
 import { subjectKey, subjectOf, type SubjectRef } from '../syncLabels';
 import { Item, List, SectionHeader, Stack, Typography } from '@/ui/components';
 
-/** Local titles of the records the given subjects point at; missing ones are left out. */
 function useSubjectTitles(refs: SubjectRef[]): Map<string, string> {
   const database = useDatabase();
   const [titles, setTitles] = useState<Map<string, string>>(new Map());
