@@ -129,6 +129,7 @@
   },
   "sync": {
     "title": "Synchronisation",
+    "description": "Vos modifications sont d'abord enregistrées sur cet appareil, puis envoyées en arrière-plan à votre serveur Nextcloud, même après un travail hors ligne. Ce qui est encore en attente, refusé par le serveur ou remplacé par une modification plus récente sur le serveur apparaît ici.",
     "queued": "Modifications en attente",
     "failed": "Modifications en échec",
     "empty": "Tout est synchronisé.",
@@ -138,7 +139,43 @@
     "discardMsg": "Cette modification sera définitivement perdue et ne pourra pas être récupérée.",
     "conflicts": "Conflits",
     "conflictTitle": "Modification du serveur conservée",
-    "dismiss": "Ignorer"
+    "dismiss": "Ignorer",
+    "kinds": {
+      "createCard": "Créer une carte",
+      "patchCard": "Modifier une carte",
+      "moveCard": "Déplacer une carte",
+      "setCardArchived": "Archiver une carte",
+      "deleteCard": "Supprimer une carte",
+      "cloneCard": "Copier une carte",
+      "assignLabel": "Ajouter une étiquette",
+      "removeLabel": "Retirer une étiquette",
+      "assignUser": "Assigner une personne",
+      "unassignUser": "Désassigner une personne",
+      "addDependency": "Ajouter une dépendance",
+      "removeDependency": "Retirer une dépendance",
+      "createLabel": "Créer une étiquette",
+      "createStack": "Créer une liste",
+      "updateStack": "Modifier une liste",
+      "deleteStack": "Supprimer une liste",
+      "createBoard": "Créer un tableau",
+      "createComment": "Ajouter un commentaire",
+      "updateComment": "Modifier un commentaire",
+      "deleteComment": "Supprimer un commentaire",
+      "updateBoard": "Modifier un tableau",
+      "deleteBoard": "Supprimer un tableau",
+      "unknown": "Modification"
+    },
+    "fields": {
+      "title": "titre",
+      "description": "description",
+      "duedate": "échéance",
+      "startdate": "date de début",
+      "doneAt": "terminée",
+      "color": "couleur",
+      "stackId": "liste",
+      "order": "position",
+      "archived": "archivée"
+    }
   },
   "deck": {
     "unavailableTitle": "Deck n'est pas disponible",

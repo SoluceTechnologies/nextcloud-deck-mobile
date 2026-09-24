@@ -1,7 +1,9 @@
-import { Tabs, useTheme } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+import { Tabs, usePathname, useTheme } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import {
-  Sun, LayoutGrid, Search, Settings as SettingsIcon, type LucideIcon,
+  Sun, LayoutGrid, Plus, Search, Settings as SettingsIcon, type LucideIcon,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { SFSymbol } from 'sf-symbols-typescript';
@@ -10,6 +12,9 @@ import { nativeTabsEnabled } from '@/utils/nativeTabs';
 import { useActiveAccount } from '@/hooks/useAccounts';
 import { useAccountStore } from '@/stores/accountStore';
 import { DeckUnavailable, useDeckAvailability } from '@/features/board/components/DeckUnavailable';
+import { QuickAddCardFlow } from '@/features/card/components/QuickAddCardFlow';
+import { useFailedSyncCount } from '@/features/settings/hooks/useFailedSyncCount';
+import { Typography } from '@/ui/components';
 
 type IconState<T> = { default: T; selected: T };
 
@@ -52,25 +57,53 @@ const TAB_ITEMS: TabItem[] = [
   },
 ];
 
+// Tabs whose screens offer "Add a card"; on iOS 26 it floats above the tab bar
+// as the native bottom accessory instead of sitting under the glass bar.
+const QUICK_ADD_PATHS = new Set(['/today', '/search']);
+
 function NativeTabsLayout() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const pathname = usePathname();
+  const accountId = useAccountStore((s) => s.activeAccountId);
+  const [addVisible, setAddVisible] = useState(false);
+  const failedSyncCount = useFailedSyncCount();
 
   return (
+    <>
       <NativeTabs labelStyle={{ color: theme.colors.text }} tintColor={theme.colors.primary}>
+        {QUICK_ADD_PATHS.has(pathname) ? (
+            <NativeTabs.BottomAccessory>
+              <Pressable
+                  testID="tabs-add-card"
+                  accessibilityRole="button"
+                  style={styles.accessory}
+                  onPress={() => setAddVisible(true)}
+              >
+                <Plus size={18} color={theme.colors.primary} />
+                <Typography color="primary" weight="600">{t('today.addCard')}</Typography>
+              </Pressable>
+            </NativeTabs.BottomAccessory>
+        ) : null}
         {TAB_ITEMS.map((tab) => (
             <NativeTabs.Trigger key={tab.name} name={tab.name}>
               <NativeTabs.Trigger.Label>{t(tab.labelKey)}</NativeTabs.Trigger.Label>
               <NativeTabs.Trigger.Icon sf={tab.sf} md={tab.md} />
+              {tab.name === 'settings' && failedSyncCount > 0 ? (
+                  <NativeTabs.Trigger.Badge>{String(failedSyncCount)}</NativeTabs.Trigger.Badge>
+              ) : null}
             </NativeTabs.Trigger>
         ))}
       </NativeTabs>
+      <QuickAddCardFlow visible={addVisible} accountId={accountId} onClose={() => setAddVisible(false)} />
+    </>
   );
 }
 
 function JsTabsLayout() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const failedSyncCount = useFailedSyncCount();
 
   return (
       <Tabs
@@ -94,6 +127,7 @@ function JsTabsLayout() {
                 options={{
                   title: t(labelKey),
                   tabBarLabel: t(labelKey),
+                  tabBarBadge: name === 'settings' && failedSyncCount > 0 ? failedSyncCount : undefined,
                   tabBarIcon: ({ color, focused }) => (
                       <Icon size={focused ? 26 : 24} color={color} strokeWidth={focused ? 2.5 : 2} />
                   ),
@@ -114,3 +148,6 @@ export default function TabsLayout() {
 
   return nativeTabsEnabled() ? <NativeTabsLayout /> : <JsTabsLayout />;
 }
+const styles = StyleSheet.create({
+  accessory: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+});

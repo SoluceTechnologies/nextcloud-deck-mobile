@@ -30,7 +30,8 @@ function fakeEntry(over: Record<string, unknown> = {}) {
     state: OUTBOX_FAILED,
     attempts: 3,
     nextAttemptAt: 999_999,
-    lastError: 'HTTP 500',
+    lastError: 'HttpError: createCard HTTP 500',
+    payloadJson: JSON.stringify({ kind: 'createCard', cardId: 'card-1' }),
     ...over,
   };
   row.update = jest.fn(async (writer: (r: any) => void) => writer(row));
@@ -41,14 +42,18 @@ function fakeEntry(over: Record<string, unknown> = {}) {
 }
 
 /** Mirrors `database.get(table).query(...).observeWithColumns(...).subscribe(cb)`. */
-function makeDatabase(rows: any[]) {
+function makeDatabase(rows: any[], titles: Record<string, string> = {}) {
   const subscribe = jest.fn((cb: (rows: any[]) => void) => {
     cb(rows);
     return { unsubscribe: jest.fn() };
   });
   const observeWithColumns = jest.fn(() => ({ subscribe }));
   const query = jest.fn(() => ({ observeWithColumns }));
-  const get = jest.fn(() => ({ query }));
+  const find = jest.fn(async (id: string) => {
+    if (!(id in titles)) throw new Error('not found');
+    return { title: titles[id] };
+  });
+  const get = jest.fn(() => ({ query, find }));
   return { get } as any;
 }
 
@@ -82,7 +87,23 @@ describe('SyncStatus', () => {
 
     expect(getByText('1')).toBeTruthy(); // queued count
     expect(getByText('Failed changes')).toBeTruthy();
-    expect(getByText(failedRow.kind)).toBeTruthy();
+    expect(getByText('Create card')).toBeTruthy();
+  });
+
+  it('names a failed change by its action, the local title, and a readable error', async () => {
+    const failedRow = fakeEntry({
+      kind: 'patchCard',
+      lastError: 'HttpError: patchCard HTTP 403',
+      payloadJson: JSON.stringify({ kind: 'patchCard', cardId: 'card-1', fields: ['title'], base: {} }),
+    });
+    mockUseDatabase.mockReturnValue(makeDatabase([failedRow], { 'card-1': 'Release notes' }));
+
+    const { getByText, findByText } = render(<SyncStatus />, { wrapper });
+
+    expect(getByText('Edit card')).toBeTruthy();
+    expect(
+      await findByText("Release notes · Permission denied. You don't have edit access to this board."),
+    ).toBeTruthy();
   });
 
   it('retry resets state, attempts, nextAttemptAt and lastError through safeWrite', async () => {
@@ -170,7 +191,7 @@ describe('SyncStatus', () => {
     const { getByText } = render(<SyncStatus />, { wrapper });
 
     expect(getByText('Conflicts')).toBeTruthy();
-    expect(getByText('title')).toBeTruthy();
+    expect(getByText('title')).toBeTruthy(); // card title unknown locally: field only
 
     fireEvent.press(getByText('Dismiss'));
 

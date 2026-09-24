@@ -13,6 +13,7 @@ import { useIsOnline } from '@/services/shared/network';
 import { OperatorsSection } from '@/features/search/components/OperatorsSection';
 import { SearchResults } from '@/features/search/components/SearchResults';
 import { QuickAddCardFlow } from '@/features/card/components/QuickAddCardFlow';
+import { nativeTabsEnabled } from '@/utils/nativeTabs';
 import {
   Button, IconButton, ScreenHeader, TextField, ViewContainer,
 } from '@/ui/components';
@@ -83,6 +84,7 @@ export default function SearchScreen() {
           style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="automatic"
         >
           {local.isEmpty ? (
             <OperatorsSection onTry={setQuery} />
@@ -100,14 +102,16 @@ export default function SearchScreen() {
           )}
         </ScrollView>
 
-        <Button
-          testID="search-add-card"
-          variant="secondary"
-          icon={<Plus size={18} color={colors.primary} />}
-          title={t('today.addCard')}
-          style={styles.addCard}
-          onPress={() => setAddVisible(true)}
-        />
+        {nativeTabsEnabled() ? null : (
+          <Button
+            testID="search-add-card"
+            variant="secondary"
+            icon={<Plus size={18} color={colors.primary} />}
+            title={t('today.addCard')}
+            style={styles.addCard}
+            onPress={() => setAddVisible(true)}
+          />
+        )}
       </SafeAreaView>
 
       <QuickAddCardFlow visible={addVisible} accountId={accountId} onClose={() => setAddVisible(false)} />

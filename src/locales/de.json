@@ -129,6 +129,7 @@
   },
   "sync": {
     "title": "Synchronisierung",
+    "description": "Ihre Änderungen werden zuerst auf diesem Gerät gespeichert und dann im Hintergrund an Ihren Nextcloud-Server gesendet, auch nach der Arbeit offline. Was noch wartet, vom Server abgelehnt oder durch eine neuere Änderung auf dem Server ersetzt wurde, erscheint hier.",
     "queued": "Ausstehende Änderungen",
     "failed": "Fehlgeschlagene Änderungen",
     "empty": "Alles ist synchronisiert.",
@@ -138,7 +139,43 @@
     "discardMsg": "Diese Änderung geht dauerhaft verloren und kann nicht wiederhergestellt werden.",
     "conflicts": "Konflikte",
     "conflictTitle": "Änderung des Servers beibehalten",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "kinds": {
+      "createCard": "Karte erstellen",
+      "patchCard": "Karte bearbeiten",
+      "moveCard": "Karte verschieben",
+      "setCardArchived": "Karte archivieren",
+      "deleteCard": "Karte löschen",
+      "cloneCard": "Karte kopieren",
+      "assignLabel": "Label hinzufügen",
+      "removeLabel": "Label entfernen",
+      "assignUser": "Person zuweisen",
+      "unassignUser": "Zuweisung entfernen",
+      "addDependency": "Abhängigkeit hinzufügen",
+      "removeDependency": "Abhängigkeit entfernen",
+      "createLabel": "Label erstellen",
+      "createStack": "Liste erstellen",
+      "updateStack": "Liste bearbeiten",
+      "deleteStack": "Liste löschen",
+      "createBoard": "Board erstellen",
+      "createComment": "Kommentar hinzufügen",
+      "updateComment": "Kommentar bearbeiten",
+      "deleteComment": "Kommentar löschen",
+      "updateBoard": "Board bearbeiten",
+      "deleteBoard": "Board löschen",
+      "unknown": "Änderung"
+    },
+    "fields": {
+      "title": "Titel",
+      "description": "Beschreibung",
+      "duedate": "Fälligkeitsdatum",
+      "startdate": "Startdatum",
+      "doneAt": "erledigt",
+      "color": "Farbe",
+      "stackId": "Liste",
+      "order": "Position",
+      "archived": "archiviert"
+    }
   },
   "deck": {
     "unavailableTitle": "Deck ist nicht verfügbar",

@@ -123,6 +123,7 @@ export default function BoardsScreen() {
 
         <FlatList
           style={styles.flex}
+          contentInsetAdjustmentBehavior="automatic"
           data={rows}
           keyExtractor={(item) => item.board.id}
           renderItem={({ item }) => (

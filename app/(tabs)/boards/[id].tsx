@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import Reanimated, { useAnimatedScrollHandler } from 'react-native-reanimated';
@@ -32,6 +32,7 @@ import { edgeDirection, orderFor } from '@/features/board/dnd/dropTarget';
 import { recordRecentBoard } from '@/features/today/recentBoards';
 import { useIsOnline } from '@/services/shared/network';
 import { requestBoardSnapshot } from '@/sync/scheduler';
+import { nativeTabsEnabled } from '@/utils/nativeTabs';
 import { Button, ScreenHeader, Spinner, ViewContainer } from '@/ui/components';
 
 const PEEK = 40;
@@ -207,6 +208,9 @@ function BoardColumns({
   const activeData = useDragActiveData();
   const listRef = useRef<FlatList<Stack>>(null);
   const listHeightRef = useRef(0);
+  // The iOS 26 tab bar floats over the screen; its height is in the tab's bottom inset.
+  const insets = useSafeAreaInsets();
+  const tabBarInset = nativeTabsEnabled() ? insets.bottom : 0;
 
   useEffect(() => {
     const stackIds = stacks.map((s) => s.id);
@@ -269,7 +273,7 @@ function BoardColumns({
         onLayout={(e: LayoutChangeEvent) => {
           listHeightRef.current = e.nativeEvent.layout.height;
         }}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 12 + tabBarInset }]}
         snapToInterval={columnWidth + GAP}
         snapToAlignment="start"
         decelerationRate="fast"
@@ -295,6 +299,6 @@ function BoardColumns({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  listContent: { paddingHorizontal: GAP, paddingBottom: 12, gap: GAP },
+  listContent: { paddingHorizontal: GAP, gap: GAP },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 48 },
 });

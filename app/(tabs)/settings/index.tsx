@@ -10,6 +10,7 @@ import { useAccountStore } from '@/stores/accountStore';
 import { useActiveAccount } from '@/hooks/useAccounts';
 import { AvatarImage } from '@/components/AvatarImage';
 import { SettingsLink } from '@/features/settings/components/SettingsLink';
+import { useFailedSyncCount } from '@/features/settings/hooks/useFailedSyncCount';
 import {
   Item, List, ScreenHeader, SectionHeader, Stack, Typography, ViewContainer,
 } from '@/ui/components';
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const activeAccountId = useAccountStore((s) => s.activeAccountId);
   const activeAccount = useActiveAccount(activeAccountId);
+  const failedSyncCount = useFailedSyncCount();
 
   return (
     <ViewContainer>
@@ -84,6 +86,7 @@ export default function SettingsScreen() {
               <SettingsLink
                 title={t('sync.title')}
                 icon={<RefreshCw />}
+                badge={failedSyncCount}
                 onPress={() => router.push('/(tabs)/settings/sync')}
               />
               <SettingsLink

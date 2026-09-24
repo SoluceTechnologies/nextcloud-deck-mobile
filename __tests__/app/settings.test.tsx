@@ -17,6 +17,10 @@ jest.mock('expo-router', () => ({
   useFocusEffect: () => {},
 }));
 jest.mock('expo-router/js-tabs', () => ({ useBottomTabBarHeight: () => 0 }));
+const mockFailedCount = jest.fn(() => 0);
+jest.mock('../../src/features/settings/hooks/useFailedSyncCount', () => ({
+  useFailedSyncCount: () => mockFailedCount(),
+}));
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(ThemeProvider, { value: lightTheme, children });
@@ -44,6 +48,18 @@ describe('SettingsScreen', () => {
     expect(queryByText('Theme')).toBeNull();
     expect(queryByText('Week Starts On')).toBeNull();
     expect(queryByText('Language')).toBeNull();
+  });
+
+  it('badges the Sync row with the number of failed changes', () => {
+    mockFailedCount.mockReturnValueOnce(2);
+    const { getByTestId, getByText } = render(<SettingsScreen />, { wrapper });
+    expect(getByTestId('settings-link-badge')).toBeTruthy();
+    expect(getByText('2')).toBeTruthy();
+  });
+
+  it('shows no badge when nothing failed', () => {
+    const { queryByTestId } = render(<SettingsScreen />, { wrapper });
+    expect(queryByTestId('settings-link-badge')).toBeNull();
   });
 
   it.each([

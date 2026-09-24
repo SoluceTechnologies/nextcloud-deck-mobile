@@ -129,6 +129,7 @@
   },
   "sync": {
     "title": "Sincronización",
+    "description": "Tus cambios se guardan primero en este dispositivo y luego se envían en segundo plano a tu servidor Nextcloud, incluso después de trabajar sin conexión. Aquí aparece lo que sigue pendiente, lo que el servidor rechazó o lo que un cambio más reciente en el servidor sustituyó.",
     "queued": "Cambios en cola",
     "failed": "Cambios fallidos",
     "empty": "Todo está sincronizado.",
@@ -138,7 +139,43 @@
     "discardMsg": "Este cambio se perderá de forma permanente y no se podrá recuperar.",
     "conflicts": "Conflictos",
     "conflictTitle": "Se mantuvo el cambio del servidor",
-    "dismiss": "Cerrar"
+    "dismiss": "Cerrar",
+    "kinds": {
+      "createCard": "Crear tarjeta",
+      "patchCard": "Editar tarjeta",
+      "moveCard": "Mover tarjeta",
+      "setCardArchived": "Archivar tarjeta",
+      "deleteCard": "Eliminar tarjeta",
+      "cloneCard": "Copiar tarjeta",
+      "assignLabel": "Añadir etiqueta",
+      "removeLabel": "Quitar etiqueta",
+      "assignUser": "Asignar persona",
+      "unassignUser": "Desasignar persona",
+      "addDependency": "Añadir dependencia",
+      "removeDependency": "Quitar dependencia",
+      "createLabel": "Crear etiqueta",
+      "createStack": "Crear lista",
+      "updateStack": "Editar lista",
+      "deleteStack": "Eliminar lista",
+      "createBoard": "Crear tablero",
+      "createComment": "Añadir comentario",
+      "updateComment": "Editar comentario",
+      "deleteComment": "Eliminar comentario",
+      "updateBoard": "Editar tablero",
+      "deleteBoard": "Eliminar tablero",
+      "unknown": "Cambio"
+    },
+    "fields": {
+      "title": "título",
+      "description": "descripción",
+      "duedate": "fecha de vencimiento",
+      "startdate": "fecha de inicio",
+      "doneAt": "completada",
+      "color": "color",
+      "stackId": "lista",
+      "order": "posición",
+      "archived": "archivada"
+    }
   },
   "deck": {
     "unavailableTitle": "Deck no está disponible",

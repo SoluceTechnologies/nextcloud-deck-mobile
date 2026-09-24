@@ -17,6 +17,7 @@ import { OverdueBanner } from '@/features/today/components/OverdueBanner';
 import { RecentBoardCard } from '@/features/today/components/RecentBoardCard';
 import { TodayRow } from '@/features/today/components/TodayRow';
 import { QuickAddCardFlow } from '@/features/card/components/QuickAddCardFlow';
+import { nativeTabsEnabled } from '@/utils/nativeTabs';
 import { haptic } from '@/utils/haptics';
 import {
   Button, ScreenHeader, SectionHeader, Typography, ViewContainer,
@@ -70,6 +71,7 @@ export default function TodayScreen() {
         <SectionList
           style={styles.flex}
           contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
           sections={sections}
           keyExtractor={(card) => card.id}
           renderSectionHeader={({ section }) => (
@@ -117,14 +119,16 @@ export default function TodayScreen() {
           }
         />
 
-        <Button
-          testID="today-add-card"
-          variant="secondary"
-          icon={<Plus size={18} color={colors.primary} />}
-          title={t('today.addCard')}
-          style={styles.addCard}
-          onPress={() => setAddVisible(true)}
-        />
+        {nativeTabsEnabled() ? null : (
+          <Button
+            testID="today-add-card"
+            variant="secondary"
+            icon={<Plus size={18} color={colors.primary} />}
+            title={t('today.addCard')}
+            style={styles.addCard}
+            onPress={() => setAddVisible(true)}
+          />
+        )}
       </SafeAreaView>
 
       <QuickAddCardFlow visible={addVisible} accountId={accountId} onClose={() => setAddVisible(false)} />

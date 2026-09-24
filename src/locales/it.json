@@ -129,6 +129,7 @@
   },
   "sync": {
     "title": "Sincronizzazione",
+    "description": "Le modifiche vengono salvate prima su questo dispositivo e poi inviate in background al tuo server Nextcloud, anche dopo aver lavorato offline. Qui compare ciò che è ancora in attesa, ciò che il server ha rifiutato o ciò che è stato sostituito da una modifica più recente sul server.",
     "queued": "Modifiche in coda",
     "failed": "Modifiche non riuscite",
     "empty": "Tutto è sincronizzato.",
@@ -138,7 +139,43 @@
     "discardMsg": "Questa modifica andrà persa definitivamente e non potrà essere recuperata.",
     "conflicts": "Conflitti",
     "conflictTitle": "Mantenuta la modifica del server",
-    "dismiss": "Chiudi"
+    "dismiss": "Chiudi",
+    "kinds": {
+      "createCard": "Crea scheda",
+      "patchCard": "Modifica scheda",
+      "moveCard": "Sposta scheda",
+      "setCardArchived": "Archivia scheda",
+      "deleteCard": "Elimina scheda",
+      "cloneCard": "Copia scheda",
+      "assignLabel": "Aggiungi etichetta",
+      "removeLabel": "Rimuovi etichetta",
+      "assignUser": "Assegna persona",
+      "unassignUser": "Rimuovi assegnazione",
+      "addDependency": "Aggiungi dipendenza",
+      "removeDependency": "Rimuovi dipendenza",
+      "createLabel": "Crea etichetta",
+      "createStack": "Crea lista",
+      "updateStack": "Modifica lista",
+      "deleteStack": "Elimina lista",
+      "createBoard": "Crea bacheca",
+      "createComment": "Aggiungi commento",
+      "updateComment": "Modifica commento",
+      "deleteComment": "Elimina commento",
+      "updateBoard": "Modifica bacheca",
+      "deleteBoard": "Elimina bacheca",
+      "unknown": "Modifica"
+    },
+    "fields": {
+      "title": "titolo",
+      "description": "descrizione",
+      "duedate": "scadenza",
+      "startdate": "data di inizio",
+      "doneAt": "completata",
+      "color": "colore",
+      "stackId": "lista",
+      "order": "posizione",
+      "archived": "archiviata"
+    }
   },
   "deck": {
     "unavailableTitle": "Deck non è disponibile",

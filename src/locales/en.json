@@ -129,6 +129,7 @@
   },
   "sync": {
     "title": "Sync",
+    "description": "Changes you make are saved on this device first, then sent to your Nextcloud server in the background, even after working offline. Anything still waiting, rejected by the server, or overwritten by a newer change on the server shows up here.",
     "queued": "Queued changes",
     "failed": "Failed changes",
     "empty": "Everything is in sync.",
@@ -138,7 +139,43 @@
     "discardMsg": "This change will be permanently lost and cannot be recovered.",
     "conflicts": "Conflicts",
     "conflictTitle": "Kept the server's change",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "kinds": {
+      "createCard": "Create card",
+      "patchCard": "Edit card",
+      "moveCard": "Move card",
+      "setCardArchived": "Archive card",
+      "deleteCard": "Delete card",
+      "cloneCard": "Copy card",
+      "assignLabel": "Add label",
+      "removeLabel": "Remove label",
+      "assignUser": "Assign person",
+      "unassignUser": "Unassign person",
+      "addDependency": "Add dependency",
+      "removeDependency": "Remove dependency",
+      "createLabel": "Create label",
+      "createStack": "Create list",
+      "updateStack": "Edit list",
+      "deleteStack": "Delete list",
+      "createBoard": "Create board",
+      "createComment": "Add comment",
+      "updateComment": "Edit comment",
+      "deleteComment": "Delete comment",
+      "updateBoard": "Edit board",
+      "deleteBoard": "Delete board",
+      "unknown": "Change"
+    },
+    "fields": {
+      "title": "title",
+      "description": "description",
+      "duedate": "due date",
+      "startdate": "start date",
+      "doneAt": "done",
+      "color": "color",
+      "stackId": "list",
+      "order": "position",
+      "archived": "archived"
+    }
   },
   "deck": {
     "unavailableTitle": "Deck is not available",
