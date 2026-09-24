@@ -50,11 +50,24 @@ it('explains why the raw editor is being used', () => {
 
 it('offers only the toolbar actions the library supports', () => {
   renderEditor({ initial: '' });
-  for (const id of ['bold', 'italic', 'strike', 'h1', 'h2', 'h3', 'ul', 'ol', 'link']) {
+  for (const id of [
+    'bold', 'italic', 'strike', 'h1', 'h2', 'h3', 'ul', 'ol', 'indent', 'outdent',
+    'task', 'quote', 'codeBlock', 'link',
+  ]) {
     expect(screen.getByTestId(`md-${id}`)).toBeTruthy();
   }
   // No inline-code toggle exists on the instance; offering one would be a lie.
   expect(screen.queryByTestId('md-code')).toBeNull();
+});
+
+it('switches to the Markdown editor with a checklist item when the rich editor cannot hold one', async () => {
+  renderEditor({ initial: 'Intro' });
+  setEditorMarkdown('Intro');
+  fireEvent.press(screen.getByTestId('md-task'));
+
+  await waitFor(() => expect(screen.getByTestId('raw-editor')).toBeTruthy());
+  expect(screen.getByTestId('raw-editor').props.value).toBe('Intro\n\n- [ ] ');
+  expect(screen.queryByTestId('rich-editor')).toBeNull();
 });
 
 it('saves the markdown the editor reports, not the seeded value', async () => {

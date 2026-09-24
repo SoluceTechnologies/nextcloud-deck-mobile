@@ -17,3 +17,14 @@ it('inserts a task marker at the cursor', () => {
 
   expect(onChangeText).toHaveBeenCalledWith('x\n- [ ] ');
 });
+
+it('puts a block marker at the start of the current line', () => {
+  const onChangeText = jest.fn();
+  render(<RawMarkdownEditor value={'first\nsecond'} onChangeText={onChangeText} />, { wrapper: ThemeWrapper });
+
+  const input = screen.getByTestId('raw-editor');
+  fireEvent(input, 'selectionChange', { nativeEvent: { selection: { start: 9, end: 9 } } });
+  fireEvent.press(screen.getByTestId('raw-quote'));
+
+  expect(onChangeText).toHaveBeenCalledWith('first\n> second');
+});

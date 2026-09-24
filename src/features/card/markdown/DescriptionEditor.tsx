@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -13,10 +13,15 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  IndentDecrease,
+  IndentIncrease,
   Italic,
   Link,
   List,
   ListOrdered,
+  ListTodo,
+  Quote,
+  SquareCode,
   Strikethrough,
   X,
   type LucideIcon,
@@ -25,6 +30,7 @@ import {
 import { IconButton, ScreenHeader, Typography, ViewContainer } from '@/ui/components';
 import { canUseRichEditor } from './unsupportedBlocks';
 import { RawMarkdownEditor } from './RawMarkdownEditor';
+import { MarkdownToolbar } from './MarkdownToolbar';
 import { useMarkdownStyle } from './markdownStyle';
 
 export interface DescriptionEditorProps {
@@ -34,22 +40,41 @@ export interface DescriptionEditorProps {
   onSave: (markdown: string) => void;
 }
 
-const TOOLBAR: ReadonlyArray<{
-  id: string;
-  Icon: LucideIcon;
-  run: (ref: EnrichedMarkdownTextInputInstance) => void;
-}> = [
-  { id: 'bold', Icon: Bold, run: (r) => r.toggleBold() },
-  { id: 'italic', Icon: Italic, run: (r) => r.toggleItalic() },
-  { id: 'strike', Icon: Strikethrough, run: (r) => r.toggleStrikethrough() },
-  { id: 'h1', Icon: Heading1, run: (r) => r.toggleHeading(1) },
-  { id: 'h2', Icon: Heading2, run: (r) => r.toggleHeading(2) },
-  { id: 'h3', Icon: Heading3, run: (r) => r.toggleHeading(3) },
-  { id: 'ul', Icon: List, run: (r) => r.toggleUnorderedList() },
-  { id: 'ol', Icon: ListOrdered, run: (r) => r.toggleOrderedList() },
-  // No URL prompt in v0 — drop in a placeholder link the user edits in place.
-  { id: 'link', Icon: Link, run: (r) => r.insertLink('link', 'https://') },
+type RichAction = { id: string; Icon: LucideIcon; run: (ref: EnrichedMarkdownTextInputInstance) => void };
+type MarkdownOnlyAction = { id: string; Icon: LucideIcon; snippet: string };
+
+const RICH_GROUPS: ReadonlyArray<ReadonlyArray<RichAction>> = [
+  [
+    { id: 'bold', Icon: Bold, run: (r) => r.toggleBold() },
+    { id: 'italic', Icon: Italic, run: (r) => r.toggleItalic() },
+    { id: 'strike', Icon: Strikethrough, run: (r) => r.toggleStrikethrough() },
+  ],
+  [
+    { id: 'h1', Icon: Heading1, run: (r) => r.toggleHeading(1) },
+    { id: 'h2', Icon: Heading2, run: (r) => r.toggleHeading(2) },
+    { id: 'h3', Icon: Heading3, run: (r) => r.toggleHeading(3) },
+  ],
+  [
+    { id: 'ul', Icon: List, run: (r) => r.toggleUnorderedList() },
+    { id: 'ol', Icon: ListOrdered, run: (r) => r.toggleOrderedList() },
+    { id: 'indent', Icon: IndentIncrease, run: (r) => r.indentList() },
+    { id: 'outdent', Icon: IndentDecrease, run: (r) => r.outdentList() },
+  ],
 ];
+
+const MARKDOWN_ONLY: ReadonlyArray<MarkdownOnlyAction> = [
+  { id: 'task', Icon: ListTodo, snippet: '- [ ] ' },
+  { id: 'quote', Icon: Quote, snippet: '> ' },
+  { id: 'codeBlock', Icon: SquareCode, snippet: '```\n\n```' },
+];
+
+// No URL prompt in v0 — drop in a placeholder link the user edits in place.
+const LINK_ACTION: RichAction = { id: 'link', Icon: Link, run: (r) => r.insertLink('link', 'https://') };
+
+function appendBlock(markdown: string, snippet: string): string {
+  const body = markdown.replace(/\s+$/, '');
+  return body ? `${body}\n\n${snippet}` : snippet;
+}
 
 export function DescriptionEditor({ visible, initial, onClose, onSave }: DescriptionEditorProps) {
   const { t } = useTranslation();
@@ -73,6 +98,28 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
     if (markdown !== seed) onSave(markdown);
     onClose();
   };
+
+  const switchToMarkdown = (snippet: string) => {
+    editorRef.current
+      ?.getMarkdown()
+      .then((markdown) => {
+        setRawValue(appendBlock(markdown, snippet));
+        setUseRich(false);
+      })
+      .catch(() => undefined);
+  };
+
+  const run = (action: RichAction) => () => {
+    if (editorRef.current) action.run(editorRef.current);
+  };
+
+  const richGroups = [
+    ...RICH_GROUPS.map((group) => group.map((action) => ({ ...action, onPress: run(action) }))),
+    [
+      ...MARKDOWN_ONLY.map(({ id, Icon, snippet }) => ({ id, Icon, onPress: () => switchToMarkdown(snippet) })),
+      { ...LINK_ACTION, onPress: run(LINK_ACTION) },
+    ],
+  ];
 
   const handleSave = () => {
     if (useRich) {
@@ -126,17 +173,7 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
           <KeyboardAvoidingView style={styles.flex} behavior="padding">
             {useRich ? (
               <>
-                <View style={styles.toolbar}>
-                  {TOOLBAR.map(({ id, Icon, run }) => (
-                    <IconButton
-                      key={id}
-                      testID={`md-${id}`}
-                      onPress={() => editorRef.current && run(editorRef.current)}
-                    >
-                      <Icon size={18} color={colors.text} />
-                    </IconButton>
-                  ))}
-                </View>
+                <MarkdownToolbar testIDPrefix="md" groups={richGroups} />
                 <EnrichedMarkdownTextInput
                   key={visible ? 'open' : 'closed'}
                   ref={editorRef}
@@ -166,7 +203,6 @@ export function DescriptionEditor({ visible, initial, onClose, onSave }: Descrip
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingHorizontal: 12, paddingBottom: 8 },
-  editor: { paddingHorizontal: 16 },
+  editor: { paddingHorizontal: 16, paddingTop: 12 },
   notice: { paddingHorizontal: 16, paddingBottom: 8 },
 });
