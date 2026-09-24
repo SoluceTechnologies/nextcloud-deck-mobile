@@ -10,13 +10,17 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'expo-router';
+import { Plus } from 'lucide-react-native';
 
 import type Stack from '@/database/models/Stack';
 import { Button, Divider, Typography } from '@/ui/components';
 import { CardTile, type CardTileData } from './CardTile';
 import { DraggableCard } from '../dnd/DraggableCard';
 import { useOptionalDrag } from '../dnd/DragContext';
-import type { TileLayout } from '../dnd/dropTarget';
+import { stackTileLayouts } from '../dnd/dropTarget';
+
+const LIST_PADDING = 8;
+const LIST_GAP = 8;
 
 export interface StackColumnProps {
   stack: Pick<Stack, 'id' | 'title'>;
@@ -52,10 +56,12 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
   const dragCtxRef = useRef(dragCtx);
   dragCtxRef.current = dragCtx;
 
-  const tileLayouts = useRef(new Map<string, TileLayout>());
-  for (const id of tileLayouts.current.keys()) {
-    if (!liveIds.has(id)) tileLayouts.current.delete(id);
+  const tileHeights = useRef(new Map<string, number>());
+  for (const id of tileHeights.current.keys()) {
+    if (!liveIds.has(id)) tileHeights.current.delete(id);
   }
+  const cardIdsRef = useRef<string[]>([]);
+  cardIdsRef.current = cards.map((data) => data.card.id);
   const scrollYRef = useRef(0);
   const listRef = useRef<FlatList<CardTileData>>(null);
   const listContainerRef = useRef<View>(null);
@@ -65,7 +71,7 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
     if (!ctx) return;
     ctx.reportColumn(stackIdRef.current, {
       scrollY: scrollYRef.current,
-      tiles: Array.from(tileLayouts.current.values()),
+      tiles: stackTileLayouts(cardIdsRef.current, tileHeights.current, LIST_PADDING, LIST_GAP),
     });
   }, []);
 
@@ -100,8 +106,7 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
       return (
         <View
           onLayout={(e: LayoutChangeEvent) => {
-            const { y, height } = e.nativeEvent.layout;
-            tileLayouts.current.set(item.card.id, { cardId: item.card.id, y, height });
+            tileHeights.current.set(item.card.id, e.nativeEvent.layout.height);
             pushColumnState();
           }}
         >
@@ -160,7 +165,12 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
       )}
 
       <View style={styles.footer}>
-        <Button variant="ghost" size="small" alignment="start" title={t('board.addCard')} onPress={handleAddCard} />
+        <Button
+          variant="secondary"
+          icon={<Plus size={18} color={colors.primary} />}
+          title={t('board.addCard')}
+          onPress={handleAddCard}
+        />
       </View>
     </View>
   );
@@ -172,7 +182,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, marginRight: 8 },
   list: { flex: 1 },
   listInner: { flex: 1 },
-  listContent: { padding: 8, gap: 8 },
+  listContent: { padding: LIST_PADDING, gap: LIST_GAP },
   empty: { padding: 16 },
   footer: { padding: 8 },
 });
