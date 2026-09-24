@@ -43,8 +43,30 @@ export function LabelsSheet({ visible, boardLabels, selected, onClose, onToggle,
     resetForm();
   };
 
+  const footer = creating ? (
+    <View style={styles.form}>
+      <TextField
+        testID="new-label-title"
+        value={title}
+        onChangeText={setTitle}
+        placeholder={t('card.newLabel')}
+        autoFocus
+      />
+      <PaletteRow value={color} onSelect={setColor} />
+      <Button title={t('card.create')} disabled={!title.trim()} onPress={submit} />
+    </View>
+  ) : (
+    <List>
+      <Item
+        title={t('card.newLabel')}
+        leading={<IconTile tint="primary"><Plus /></IconTile>}
+        onPress={() => setCreating(true)}
+      />
+    </List>
+  );
+
   return (
-    <Sheet visible={visible} onClose={close} title={t('card.labels')}>
+    <Sheet visible={visible} onClose={close} title={t('card.labels')} footer={footer}>
       {boardLabels.map((label) => {
         const checked = selected.includes(label.id);
         return (
@@ -74,27 +96,6 @@ export function LabelsSheet({ visible, boardLabels, selected, onClose, onToggle,
           </AnimatedPressable>
         );
       })}
-
-      {creating ? (
-        <View style={styles.form}>
-          <TextField
-            testID="new-label-title"
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('card.newLabel')}
-          />
-          <PaletteRow value={color} onSelect={setColor} />
-          <Button title={t('card.create')} disabled={!title.trim()} onPress={submit} />
-        </View>
-      ) : (
-        <List>
-          <Item
-            title={t('card.newLabel')}
-            leading={<IconTile tint="primary"><Plus /></IconTile>}
-            onPress={() => setCreating(true)}
-          />
-        </List>
-      )}
     </Sheet>
   );
 }
@@ -103,5 +104,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16 },
   swatch: { width: 24, height: 24, borderRadius: 12 },
   title: { flex: 1 },
-  form: { gap: 12, paddingHorizontal: 16, paddingBottom: 8 },
+  form: { gap: 12 },
 });
