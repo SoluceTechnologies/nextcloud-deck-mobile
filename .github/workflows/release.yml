@@ -1,0 +1,143 @@
+name: Auto Release & Publish
+
+on:
+  workflow_dispatch:
+  pull_request_target:
+    types: [ closed ]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.set-skip.outputs.skip }}
+    steps:
+      - name: Determine if release should be skipped
+        id: set-skip
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          TITLE="$PR_TITLE"
+          echo "PR title: $TITLE"
+
+          if [[ "$TITLE" == *"[release]"* ]]; then
+            echo "PR title contains [release], proceeding with release jobs."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "PR title does not contain [release], skipping release jobs."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+  create-release:
+    needs: check-skip
+    if: ${{ needs.check-skip.outputs.skip == 'false' }}
+    runs-on: ubuntu-latest
+    outputs:
+      draft_tag: ${{ steps.release_step.outputs.draft_tag }}
+      version: ${{ steps.release_step.outputs.version }}
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - run: corepack enable
+
+      - run: yarn install --immutable
+
+      - run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Run release-it
+        id: release_step
+        run: |
+          git pull origin main
+
+          VERSION=$(yarn release-it --ci --release-version)
+          echo $VERSION
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::unexpected release version '$VERSION'"
+            exit 1
+          fi
+          IFS=. read -r MAJOR MINOR PATCH <<< "$VERSION"
+          VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          sed -i -E "s/^const versionCode = [0-9]+;\$/const versionCode = $VERSION_CODE;/" app.config.ts
+          if ! grep -qxF "const versionCode = $VERSION_CODE;" app.config.ts; then
+            echo "::error::failed to set versionCode to $VERSION_CODE in app.config.ts"
+            exit 1
+          fi
+          git diff --quiet || git commit -am "chore: set versionCode to $VERSION_CODE"
+
+          OUTPUT=$(yarn release-it --ci)
+          echo "$OUTPUT"
+
+          DRAFT_TAG=$(echo "$OUTPUT" | grep -oE 'untagged-[a-z0-9]+')
+          echo $DRAFT_TAG
+          echo "draft_tag=$DRAFT_TAG" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+
+  build-and-publish:
+    needs: create-release
+    if: ${{ needs.create-release.result == 'success' }}
+    uses: ./.github/workflows/expo.yml
+    with:
+      version: ${{ needs.create-release.outputs.version }}
+      ref: ${{ needs.create-release.outputs.version }}
+    secrets:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  finalize-release:
+    needs:
+      - create-release
+      - build-and-publish
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.publish_release_step.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./apk
+
+      - name: Attach APK to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.create-release.outputs.draft_tag }} "./apk/NextcloudDeck-v${{ needs.create-release.outputs.version }}.apk" --clobber
+
+      - name: Publish GitHub Release
+        id: publish_release_step
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUTPUT=$(gh release edit ${{ needs.create-release.outputs.draft_tag }} --draft=false)
+          echo "$OUTPUT"
+          RELEASE_TAG=$(echo "$OUTPUT" | sed -E 's|.*/releases/tag/||')
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT

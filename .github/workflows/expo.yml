@@ -1,0 +1,100 @@
+name: Build & Publish (Expo / EAS)
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      ref:
+        required: true
+        type: string
+    secrets:
+      EXPO_TOKEN:
+        required: true
+
+jobs:
+  build:
+    name: EAS Build (${{ inputs.version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Setup Expo & EAS
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8.2.1
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+
+      - name: Strip tracked native dirs so EAS runs a managed prebuild
+        run: rm -rf android ios
+
+      - name: Build & submit on EAS (production)
+        run: eas build --profile production --platform all --non-interactive --auto-submit
+
+  build-apk:
+    name: EAS Build APK (${{ inputs.version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Setup Expo & EAS
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8.2.1
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: npm
+
+      - name: Strip tracked native dirs so EAS runs a managed prebuild
+        run: rm -rf android ios
+
+      - name: Build APK on EAS
+        run: |
+          eas build --profile apk --platform android --non-interactive --wait --json > build-output.json
+          cat build-output.json
+          APK_URL=$(jq -r '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl' build-output.json)
+          echo "Downloading APK from: $APK_URL"
+          curl -L -o "./NextcloudCalendar-v${{ inputs.version }}.apk" "$APK_URL"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ./NextcloudCalendar-v${{ inputs.version }}.apk
