@@ -179,7 +179,9 @@
   },
   "deck": {
     "unavailableTitle": "Deck non è disponibile",
-    "unavailableHint": "L'app Deck non è abilitata su questo server. Chiedi a un amministratore di installarla, oppure passa a un altro account."
+    "unavailableHint": "L'app Deck non è abilitata su questo server. Chiedi a un amministratore di installarla, oppure passa a un altro account.",
+    "switchAccount": "Cambia account",
+    "addAccount": "Aggiungi un altro account"
   },
   "boards": {
     "title": "Bacheche",
@@ -349,6 +351,7 @@
       "week": "PROSSIMI 7 GIORNI"
     },
     "recent": "BACHECHE RECENTI",
+    "emptyTitle": "Tutto in pari",
     "empty": "Niente in scadenza — goditi la calma.",
     "addCard": "Aggiungi una scheda",
     "markDone": "Segna come completata",

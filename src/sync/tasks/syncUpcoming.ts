@@ -9,6 +9,8 @@ import { fetchUpcoming, flattenUpcoming } from '@/services/deck/overview';
 import { localWriteEpoch } from '@/sync/localWrites';
 import { loadPendingCards } from '@/sync/outbox/pending';
 import { reconcile } from '@/sync/reconcile';
+import { syncBoardContent } from '@/sync/tasks/syncBoardContent';
+import type { DeckCard } from '@/services/deck/types';
 import type { Account } from '@/types';
 
 export type SyncUpcomingParams = {
@@ -16,9 +18,38 @@ export type SyncUpcomingParams = {
   account: Account;
 };
 
+// Lists only reach the local DB through a board content sync (opening the
+// board), and a card can't be stored without its list. Pull the content of
+// known boards whose lists are missing, or a fresh login shows an empty Today
+// until every board has been opened once.
+async function syncBoardsWithUnknownStacks(
+  db: Database,
+  account: Account,
+  remote: DeckCard[],
+): Promise<void> {
+  const boardRows = await db.get<Board>('boards').query(Q.where('account_id', account.id)).fetch();
+  const stackRows = await db.get<Stack>('stacks').query(Q.where('account_id', account.id)).fetch();
+  const knownBoards = new Set(boardRows.map((r) => r.remoteId));
+  const knownStacks = new Set(stackRows.map((r) => r.remoteId));
+
+  const boardRemoteIds = new Set(
+    remote
+      .filter((c) => knownBoards.has(c.boardRemoteId) && !knownStacks.has(c.stackRemoteId))
+      .map((c) => c.boardRemoteId),
+  );
+  for (const boardRemoteId of boardRemoteIds) {
+    try {
+      await syncBoardContent({ db, account, boardRemoteId, full: true });
+    } catch (error) {
+      console.warn('[sync] board content for upcoming failed', boardRemoteId, String(error));
+    }
+  }
+}
+
 export async function syncUpcoming({ db, account }: SyncUpcomingParams): Promise<boolean> {
   const epoch = localWriteEpoch();
   const remote = flattenUpcoming(await fetchUpcoming(account));
+  await syncBoardsWithUnknownStacks(db, account, remote);
 
   return safeWrite(
     db,

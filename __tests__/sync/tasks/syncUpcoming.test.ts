@@ -5,9 +5,13 @@ import { reconcile } from '../../../src/sync/reconcile';
 import { markLocalWrite } from '../../../src/sync/localWrites';
 import type { Account } from '../../../src/types';
 import type { DeckCard } from '../../../src/services/deck/types';
+import { syncBoardContent } from '../../../src/sync/tasks/syncBoardContent';
 
 jest.mock('../../../src/services/deck/overview');
 jest.mock('../../../src/sync/reconcile');
+jest.mock('../../../src/sync/tasks/syncBoardContent', () => ({
+  syncBoardContent: jest.fn(async () => true),
+}));
 jest.mock('../../../src/database/utils/safeTransaction', () => ({
   safeWrite: (_db: unknown, fn: () => Promise<unknown>) => fn(),
 }));
@@ -153,7 +157,7 @@ describe('syncUpcoming', () => {
     expect(batch).not.toHaveBeenCalled();
   });
 
-  it('skips a card whose stack is not cached', async () => {
+  it('pulls the board content when a card sits in a list not cached yet', async () => {
     const testCard = card({ stackRemoteId: '99' });
     mockFetchUpcoming.mockResolvedValue(groups([testCard]));
     mockFlattenUpcoming.mockImplementation((upcoming: any) => upcoming.overdue || []);
@@ -161,7 +165,23 @@ describe('syncUpcoming', () => {
 
     await syncUpcoming({ db, account });
 
+    // Fresh login: lists are unknown until the board content sync stores them
+    // (and the card with them); this pass itself still can't place the card.
+    expect(syncBoardContent).toHaveBeenCalledTimes(1);
+    expect(syncBoardContent).toHaveBeenCalledWith(
+      expect.objectContaining({ boardRemoteId: '7', full: true }),
+    );
     expect(batch).not.toHaveBeenCalled();
+  });
+
+  it('does not pull board content when every list is cached, or the board is unknown', async () => {
+    mockFetchUpcoming.mockResolvedValue(groups([card(), card({ remoteId: '43', boardRemoteId: '99', stackRemoteId: '98' })]));
+    mockFlattenUpcoming.mockImplementation((upcoming: any) => upcoming.overdue || []);
+    const { db } = makeDb({ boards: [boardRow], stacks: [stackRow] });
+
+    await syncUpcoming({ db, account });
+
+    expect(syncBoardContent).not.toHaveBeenCalled();
   });
 
   it('never removes a local card, because the response is a filtered subset', async () => {

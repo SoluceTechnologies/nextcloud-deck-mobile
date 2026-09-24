@@ -3,7 +3,7 @@ import { FlatList, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react-native';
+import { CircleCheckBig, Plus } from 'lucide-react-native';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { useAccountCards, useBoards } from '@/database/hooks/useBoards';
@@ -20,7 +20,7 @@ import { QuickAddCardFlow } from '@/features/card/components/QuickAddCardFlow';
 import { nativeTabsEnabled } from '@/utils/nativeTabs';
 import { haptic } from '@/utils/haptics';
 import {
-  Button, ScreenHeader, SectionHeader, Typography, ViewContainer,
+  Button, EmptyState, ScreenHeader, SectionHeader, ViewContainer,
 } from '@/ui/components';
 
 export default function TodayScreen() {
@@ -72,6 +72,7 @@ export default function TodayScreen() {
           style={styles.flex}
           contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic"
+          stickySectionHeadersEnabled={false}
           sections={sections}
           keyExtractor={(card) => card.id}
           renderSectionHeader={({ section }) => (
@@ -93,9 +94,16 @@ export default function TodayScreen() {
           )}
           ListHeaderComponent={<OverdueBanner count={groups.overdue.length} />}
           ListEmptyComponent={
-            <Typography testID="today-empty" color="secondary" align="center" style={styles.empty}>
-              {t('today.empty')}
-            </Typography>
+            <EmptyState
+              testID="today-empty"
+              icon={
+                <View style={[styles.emptyBadge, { backgroundColor: `${colors.primary}1f` }]}>
+                  <CircleCheckBig size={34} color={colors.primary} />
+                </View>
+              }
+              title={t('today.emptyTitle')}
+              description={t('today.empty')}
+            />
           }
           ListFooterComponent={
             recentBoards.length > 0 ? (
@@ -139,7 +147,7 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 24, gap: 4 },
-  empty: { marginTop: 32 },
+  emptyBadge: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   recentSection: { marginTop: 8 },
   recentList: { gap: 12, paddingVertical: 4 },
   addCard: { marginHorizontal: 16, marginBottom: 12 },

@@ -179,7 +179,9 @@
   },
   "deck": {
     "unavailableTitle": "Deck n'est pas disponible",
-    "unavailableHint": "L'application Deck n'est pas activée sur ce serveur. Demandez à un administrateur de l'installer, ou changez de compte."
+    "unavailableHint": "L'application Deck n'est pas activée sur ce serveur. Demandez à un administrateur de l'installer, ou changez de compte.",
+    "switchAccount": "Changer de compte",
+    "addAccount": "Ajouter un autre compte"
   },
   "boards": {
     "title": "Tableaux",
@@ -349,6 +351,7 @@
       "week": "7 PROCHAINS JOURS"
     },
     "recent": "TABLEAUX RÉCENTS",
+    "emptyTitle": "Tout est à jour",
     "empty": "Rien à échéance — profitez du calme.",
     "addCard": "Ajouter une carte",
     "markDone": "Marquer comme terminée",

@@ -179,7 +179,9 @@
   },
   "deck": {
     "unavailableTitle": "Deck is not available",
-    "unavailableHint": "The Deck app is not enabled on this server. Ask an administrator to install it, or switch to another account."
+    "unavailableHint": "The Deck app is not enabled on this server. Ask an administrator to install it, or switch to another account.",
+    "switchAccount": "Switch account",
+    "addAccount": "Add another account"
   },
   "boards": {
     "title": "Boards",
@@ -349,6 +351,7 @@
       "week": "NEXT 7 DAYS"
     },
     "recent": "RECENT BOARDS",
+    "emptyTitle": "All caught up",
     "empty": "Nothing due — enjoy the calm.",
     "addCard": "Add a card",
     "markDone": "Mark done",

@@ -28,7 +28,7 @@ export default function SetupScreen() {
   const theme = useTheme();
   const setStoreId = useAccountStore((s) => s.setActiveAccountId);
   const { t } = useTranslation();
-  const canGoBack = useAccounts().length > 1 && router.canGoBack();
+  const canGoBack = useAccounts().length > 0 && router.canGoBack();
 
   const [baseUrl, setBaseUrl] = useState('');
   const [username, setUsername] = useState('');

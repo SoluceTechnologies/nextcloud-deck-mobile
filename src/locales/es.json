@@ -179,7 +179,9 @@
   },
   "deck": {
     "unavailableTitle": "Deck no está disponible",
-    "unavailableHint": "La aplicación Deck no está habilitada en este servidor. Pide a un administrador que la instale, o cambia a otra cuenta."
+    "unavailableHint": "La aplicación Deck no está habilitada en este servidor. Pide a un administrador que la instale, o cambia a otra cuenta.",
+    "switchAccount": "Cambiar de cuenta",
+    "addAccount": "Añadir otra cuenta"
   },
   "boards": {
     "title": "Tableros",
@@ -349,6 +351,7 @@
       "week": "PRÓXIMOS 7 DÍAS"
     },
     "recent": "TABLEROS RECIENTES",
+    "emptyTitle": "Todo al día",
     "empty": "Nada pendiente — disfruta de la calma.",
     "addCard": "Añadir una tarjeta",
     "markDone": "Marcar como hecha",

@@ -1,13 +1,22 @@
 // __tests__/features/DeckUnavailable.test.tsx
-import { render, screen, renderHook } from '@testing-library/react-native';
+import React from 'react';
+import { fireEvent, render, screen, renderHook } from '@testing-library/react-native';
 
 import { DeckUnavailable, useDeckAvailability } from '../../src/features/board/components/DeckUnavailable';
 import { useAccountStore } from '../../src/stores/accountStore';
 
 // `useTheme` is the only thing the UI primitives pull from expo-router; the
 // proxy answers every colour lookup so the component never reads undefined.
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  useTheme: () => ({ colors: new Proxy({}, { get: () => '#000000' }) }),
+  useTheme: () => ({ colors: new Proxy({}, { get: () => '#000000' }), radius: new Proxy({}, { get: () => 8 }) }),
+  useRouter: () => ({ push: mockPush }),
+}));
+
+const mockAccounts = jest.fn(() => [{ id: 'acc-1' }]);
+jest.mock('../../src/hooks/useAccounts', () => ({ useAccounts: () => mockAccounts() }));
+jest.mock('../../src/features/account/components/AccountSwitcher', () => ({
+  AccountSwitcher: ({ trigger }: { trigger: React.ReactNode }) => trigger,
 }));
 
 // There is no global i18n mock in jest.setup.js, so translation is stubbed here
@@ -30,6 +39,21 @@ describe('DeckUnavailable', () => {
   it('explains what to do about it', () => {
     render(<DeckUnavailable baseUrl="https://cloud.example.com" />);
     expect(screen.getByText('deck.unavailableHint')).toBeTruthy();
+  });
+
+  it('lets the user add another account', () => {
+    render(<DeckUnavailable baseUrl="https://cloud.example.com" />);
+    fireEvent.press(screen.getByTestId('deck-add-account'));
+    expect(mockPush).toHaveBeenCalledWith('/(auth)/setup');
+  });
+
+  it('offers switching only when there is another account to switch to', () => {
+    render(<DeckUnavailable baseUrl="https://cloud.example.com" />);
+    expect(screen.queryByTestId('deck-switch-account')).toBeNull();
+
+    mockAccounts.mockReturnValue([{ id: 'acc-1' }, { id: 'acc-2' }]);
+    render(<DeckUnavailable baseUrl="https://cloud.example.com" />);
+    expect(screen.getByTestId('deck-switch-account')).toBeTruthy();
   });
 });
 

@@ -32,7 +32,7 @@ export function OverdueBanner({ count }: OverdueBannerProps) {
 }
 
 const styles = StyleSheet.create({
-  root: { flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+  root: { flexDirection: 'row', alignItems: 'center', overflow: 'hidden', marginBottom: 16 },
   edge: { width: 4, alignSelf: 'stretch' },
   content: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   text: { flex: 1, gap: 2 },

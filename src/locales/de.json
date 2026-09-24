@@ -179,7 +179,9 @@
   },
   "deck": {
     "unavailableTitle": "Deck ist nicht verfügbar",
-    "unavailableHint": "Die App Deck ist auf diesem Server nicht aktiviert. Bitten Sie einen Administrator, sie zu installieren, oder wechseln Sie zu einem anderen Konto."
+    "unavailableHint": "Die App Deck ist auf diesem Server nicht aktiviert. Bitten Sie einen Administrator, sie zu installieren, oder wechseln Sie zu einem anderen Konto.",
+    "switchAccount": "Konto wechseln",
+    "addAccount": "Weiteres Konto hinzufügen"
   },
   "boards": {
     "title": "Boards",
@@ -349,6 +351,7 @@
       "week": "NÄCHSTE 7 TAGE"
     },
     "recent": "ZULETZT VERWENDETE BOARDS",
+    "emptyTitle": "Alles erledigt",
     "empty": "Nichts fällig — genießen Sie die Ruhe.",
     "addCard": "Karte hinzufügen",
     "markDone": "Als erledigt markieren",
