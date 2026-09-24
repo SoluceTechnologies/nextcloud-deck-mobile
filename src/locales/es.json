@@ -193,8 +193,11 @@
     "updated": "Actualizado {{when}}",
     "empty": "Aún no hay tableros",
     "emptyFiltered": "Ningún tablero coincide con ese filtro",
-    "sortTitle": "Ordenar por título",
-    "sortRecent": "Ordenar por recientes",
+    "sort": {
+      "label": "Ordenar",
+      "title": "Alfabético",
+      "lastModified": "Última modificación"
+    },
     "form": {
       "newTitle": "Nuevo tablero",
       "renameTitle": "Cambiar nombre del tablero",

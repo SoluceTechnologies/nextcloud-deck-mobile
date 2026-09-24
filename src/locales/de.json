@@ -193,8 +193,11 @@
     "updated": "Aktualisiert {{when}}",
     "empty": "Noch keine Boards",
     "emptyFiltered": "Kein Board entspricht diesem Filter",
-    "sortTitle": "Nach Titel sortieren",
-    "sortRecent": "Nach Aktualität sortieren",
+    "sort": {
+      "label": "Sortieren",
+      "title": "Alphabetisch",
+      "lastModified": "Zuletzt geändert"
+    },
     "form": {
       "newTitle": "Neues Board",
       "renameTitle": "Board umbenennen",

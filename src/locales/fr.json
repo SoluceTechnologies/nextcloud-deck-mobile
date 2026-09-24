@@ -193,8 +193,11 @@
     "updated": "Modifié {{when}}",
     "empty": "Aucun tableau",
     "emptyFiltered": "Aucun tableau ne correspond à ce filtre",
-    "sortTitle": "Trier par titre",
-    "sortRecent": "Trier par récence",
+    "sort": {
+      "label": "Trier",
+      "title": "Alphabétique",
+      "lastModified": "Dernière modification"
+    },
     "form": {
       "newTitle": "Nouveau tableau",
       "renameTitle": "Renommer le tableau",

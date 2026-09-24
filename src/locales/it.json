@@ -193,8 +193,11 @@
     "updated": "Aggiornata {{when}}",
     "empty": "Ancora nessuna bacheca",
     "emptyFiltered": "Nessuna bacheca corrisponde a questo filtro",
-    "sortTitle": "Ordina per titolo",
-    "sortRecent": "Ordina per recenti",
+    "sort": {
+      "label": "Ordina",
+      "title": "Alfabetico",
+      "lastModified": "Ultima modifica"
+    },
     "form": {
       "newTitle": "Nuova bacheca",
       "renameTitle": "Rinomina bacheca",
