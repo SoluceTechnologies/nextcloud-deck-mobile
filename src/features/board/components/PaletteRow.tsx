@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from 'expo-router';
 
 import { AnimatedPressable } from '@/ui/components';
@@ -13,7 +13,13 @@ export function PaletteRow({ value, onSelect }: PaletteRowProps) {
   const { colors } = useTheme();
 
   return (
-    <View style={styles.palette}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scroll}
+      contentContainerStyle={styles.palette}
+    >
       {DECK_PALETTE.map((hex) => {
         const selected = value === hex;
         return (
@@ -30,11 +36,12 @@ export function PaletteRow({ value, onSelect }: PaletteRowProps) {
           />
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  palette: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingVertical: 8 },
+  scroll: { flexGrow: 0, marginHorizontal: -16 },
+  palette: { gap: 12, paddingVertical: 8, paddingHorizontal: 16 },
   swatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 3 },
 });
