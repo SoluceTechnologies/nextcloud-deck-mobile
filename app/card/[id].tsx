@@ -380,6 +380,7 @@ export default function CardDetailScreen() {
         accountId={accountId}
         mode="stack"
         initialBoardLocalId={card.boardId}
+        excludeStackLocalId={pickerPurpose === 'move' ? card.stackId : null}
         title={t(pickerPurpose === 'copy' ? 'card.picker.copyTo' : 'card.picker.moveTo')}
         onClose={() => setPickerPurpose(null)}
         onPick={({ stackLocalId }) => {
@@ -387,6 +388,7 @@ export default function CardDetailScreen() {
             ? cardActions.clone(card, stackLocalId)
             : cardActions.move(card, stackLocalId);
           void action.catch(() => undefined);
+          router.back();
         }}
       />
     </ViewContainer>

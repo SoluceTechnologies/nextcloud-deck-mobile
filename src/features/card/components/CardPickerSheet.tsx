@@ -15,13 +15,14 @@ export interface CardPickerSheetProps {
   accountId: string | null;
   mode: CardPickerMode;
   initialBoardLocalId?: string | null;
+  excludeStackLocalId?: string | null;
   title?: string;
   onClose: () => void;
   onPick: (result: CardPickerResult) => void;
 }
 
 export function CardPickerSheet({
-  visible, accountId, mode, initialBoardLocalId = null, title: heading, onClose, onPick,
+  visible, accountId, mode, initialBoardLocalId = null, excludeStackLocalId = null, title: heading, onClose, onPick,
 }: CardPickerSheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -73,7 +74,7 @@ export function CardPickerSheet({
           onPress: () => pick({ boardLocalId: boardLocalId!, stackLocalId: stackLocalId!, cardLocalId: c.id }),
         }))
       : level === 1
-        ? stacks.map((s) => ({
+        ? stacks.filter((s) => s.id !== excludeStackLocalId).map((s) => ({
             key: s.id,
             title: s.title,
             onPress: () =>
