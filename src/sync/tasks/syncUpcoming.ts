@@ -18,10 +18,6 @@ export type SyncUpcomingParams = {
   account: Account;
 };
 
-// Lists only reach the local DB through a board content sync (opening the
-// board), and a card can't be stored without its list. Pull the content of
-// known boards whose lists are missing, or a fresh login shows an empty Today
-// until every board has been opened once.
 async function syncBoardsWithUnknownStacks(
   db: Database,
   account: Account,

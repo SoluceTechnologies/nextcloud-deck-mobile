@@ -193,8 +193,11 @@
     "updated": "Aktualisiert {{when}}",
     "empty": "Noch keine Boards",
     "emptyFiltered": "Kein Board entspricht diesem Filter",
-    "sortTitle": "Nach Titel sortieren",
-    "sortRecent": "Nach Aktualität sortieren",
+    "sort": {
+      "label": "Sortieren",
+      "title": "Alphabetisch",
+      "lastModified": "Zuletzt geändert"
+    },
     "form": {
       "newTitle": "Neues Board",
       "renameTitle": "Board umbenennen",
@@ -256,6 +259,23 @@
     "noDescription": "Keine Beschreibung",
     "addDescription": "Beschreibung hinzufügen…",
     "rawEditorNotice": "Diese Beschreibung verwendet Formatierungen, die der Rich-Text-Editor nicht beibehalten kann. Bearbeitung als reines Markdown.",
+    "format": {
+      "bold": "Fett",
+      "italic": "Kursiv",
+      "strike": "Durchgestrichen",
+      "h1": "Überschrift 1",
+      "h2": "Überschrift 2",
+      "h3": "Überschrift 3",
+      "ul": "Aufzählung",
+      "ol": "Nummerierte Liste",
+      "task": "Checkliste",
+      "indent": "Einzug vergrößern",
+      "outdent": "Einzug verkleinern",
+      "quote": "Zitat",
+      "code": "Inline-Code",
+      "codeBlock": "Codeblock",
+      "link": "Link"
+    },
     "save": "Speichern",
     "comments": "Kommentare",
     "noComments": "Keine Kommentare",
@@ -322,7 +342,7 @@
     "title": "Suche",
     "placeholder": "Boards, Karten, Kommentare durchsuchen…",
     "operators": "OPERATOREN",
-    "try": "AUSPROBIEREN",
+    "try": "BEISPIELE AUSPROBIEREN",
     "op": {
       "title": "Kartentitel durchsuchen",
       "description": "Beschreibungen durchsuchen",
@@ -331,6 +351,7 @@
       "assigned": "Nach zugewiesener Person filtern",
       "date": "Nach Fälligkeitsdatum filtern"
     },
+    "dateHelp": "Erlaubt: today, tomorrow oder ein Datum wie 2026-09-25, optional mit <, <=, > oder >= davor (date:<tomorrow). Nicht erkannt: andere Wörter (morgen…), nur eine Jahreszahl (2026), 25.09.2026.",
     "examples": ["Versionshinweise", "tag:design", "tag:design date:<tomorrow"],
     "boards": "BOARDS",
     "fromServer": "WEITERE ERGEBNISSE VOM SERVER",

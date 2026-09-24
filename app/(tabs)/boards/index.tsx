@@ -17,7 +17,7 @@ import { BoardRow } from '@/features/board/components/BoardRow';
 import type Board from '@/database/models/Board';
 import { haptic } from '@/utils/haptics';
 import {
-  IconButton, ScreenHeader, SectionHeader, TextField, Typography, ViewContainer,
+  IconButton, ScreenHeader, SectionHeader, Select, TextField, Typography, ViewContainer,
 } from '@/ui/components';
 
 export default function BoardsScreen() {
@@ -79,17 +79,18 @@ export default function BoardsScreen() {
           }
           right={
             <View style={styles.headerRight}>
-              <IconButton
-                variant="ghost"
+              <Select<BoardSort>
+                variant="icon"
                 glass
-                round
-                size={40}
-                accessibilityRole="button"
-                accessibilityLabel={t(sort === 'title' ? 'boards.sortTitle' : 'boards.sortRecent')}
-                onPress={() => setSort((s) => (s === 'title' ? 'lastModified' : 'title'))}
-              >
-                <ArrowUpDown size={20} color={colors.text} />
-              </IconButton>
+                value={sort}
+                onChange={setSort}
+                accessibilityLabel={t('boards.sort.label')}
+                icon={(color) => <ArrowUpDown size={20} color={color} />}
+                options={[
+                  { value: 'title', label: t('boards.sort.title') },
+                  { value: 'lastModified', label: t('boards.sort.lastModified') },
+                ]}
+              />
               <IconButton
                 variant="ghost"
                 glass

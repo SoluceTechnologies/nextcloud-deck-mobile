@@ -11,7 +11,6 @@ interface Props {
   color?: string;
   icon: React.ReactNode;
   onPress: () => void;
-  /** Count shown in a red pill before the chevron; hidden when 0 or absent. */
   badge?: number;
 }
 

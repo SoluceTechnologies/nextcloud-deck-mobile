@@ -108,6 +108,7 @@ jest.mock('react-native-reanimated', () => {
     },
     useAnimatedStyle: () => ({}),
     useAnimatedRef: () => ({ current: null }),
+    useAnimatedKeyboard: () => ({ height: { value: 0 }, state: { value: 0 } }),
     useAnimatedScrollHandler: (h) => h,
     scrollTo: () => {},
     useEvent: () => null,

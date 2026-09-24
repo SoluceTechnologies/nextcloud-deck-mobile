@@ -2,7 +2,6 @@ import type { Intent } from '@/sync/outbox/types';
 
 export type SubjectRef = { table: 'cards' | 'stacks' | 'labels' | 'boards'; id: string };
 
-/** The record an outbox entry is about, so the Sync page can name it by title. */
 export function subjectOf(payloadJson: string): SubjectRef | null {
   let intent: Intent;
   try {

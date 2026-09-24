@@ -9,6 +9,24 @@ export function columnIndexAt(absoluteX: number, scrollX: number, geometry: Colu
   return Math.min(geometry.columnCount - 1, Math.max(0, raw));
 }
 
+export function stackTileLayouts(
+  cardIds: string[],
+  heights: ReadonlyMap<string, number>,
+  padding: number,
+  gap: number,
+): TileLayout[] {
+  const known = cardIds.map((id) => heights.get(id)).filter((h): h is number => h !== undefined);
+  const fallback = known.length > 0 ? known.reduce((sum, h) => sum + h, 0) / known.length : 0;
+  const tiles: TileLayout[] = [];
+  let y = padding;
+  for (const cardId of cardIds) {
+    const height = heights.get(cardId) ?? fallback;
+    tiles.push({ cardId, y, height });
+    y += height + gap;
+  }
+  return tiles;
+}
+
 export function insertionIndexAt(localY: number, tiles: TileLayout[], draggedId: string): number {
   'worklet';
   let index = 0;

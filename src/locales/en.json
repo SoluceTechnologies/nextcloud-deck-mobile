@@ -193,8 +193,11 @@
     "updated": "Updated {{when}}",
     "empty": "No boards yet",
     "emptyFiltered": "No board matches that filter",
-    "sortTitle": "Sort by title",
-    "sortRecent": "Sort by recent",
+    "sort": {
+      "label": "Sort",
+      "title": "Alphabetical",
+      "lastModified": "Last modified"
+    },
     "form": {
       "newTitle": "New board",
       "renameTitle": "Rename board",
@@ -256,6 +259,23 @@
     "noDescription": "No description",
     "addDescription": "Add description…",
     "rawEditorNotice": "This description uses formatting the rich editor cannot keep. Editing as plain Markdown.",
+    "format": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strike": "Strikethrough",
+      "h1": "Heading 1",
+      "h2": "Heading 2",
+      "h3": "Heading 3",
+      "ul": "Bulleted list",
+      "ol": "Numbered list",
+      "task": "Checklist",
+      "indent": "Indent",
+      "outdent": "Outdent",
+      "quote": "Quote",
+      "code": "Inline code",
+      "codeBlock": "Code block",
+      "link": "Link"
+    },
     "save": "Save",
     "comments": "Comments",
     "noComments": "No comments",
@@ -322,7 +342,7 @@
     "title": "Search",
     "placeholder": "Search boards, cards, comments…",
     "operators": "OPERATORS",
-    "try": "TRY",
+    "try": "TRY AN EXAMPLE",
     "op": {
       "title": "Match card titles",
       "description": "Search descriptions",
@@ -331,6 +351,7 @@
       "assigned": "Filter by assignee",
       "date": "Filter by due date"
     },
+    "dateHelp": "Accepted: today, tomorrow or a date as 2026-09-25, optionally after <, <=, > or >= (date:<tomorrow). Not recognised: other words, a year alone, 25/09/2026.",
     "examples": ["release notes", "tag:design", "tag:design date:<tomorrow"],
     "boards": "BOARDS",
     "fromServer": "MORE FROM THE SERVER",

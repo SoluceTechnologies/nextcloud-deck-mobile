@@ -1,4 +1,6 @@
-import { columnIndexAt, edgeDirection, insertionIndexAt, orderFor } from '../../../../src/features/board/dnd/dropTarget';
+import {
+  columnIndexAt, edgeDirection, insertionIndexAt, orderFor, stackTileLayouts,
+} from '../../../../src/features/board/dnd/dropTarget';
 
 const g = { gap: 12, columnWidth: 350, columnCount: 3 };   // columns at content x 12, 374, 736
 
@@ -49,5 +51,26 @@ describe('edgeDirection', () => {
     expect(edgeDirection(10, 400, 48)).toBe(-1);
     expect(edgeDirection(380, 400, 48)).toBe(1);
     expect(edgeDirection(200, 400, 48)).toBe(0);
+  });
+});
+
+describe('stackTileLayouts', () => {
+  it('stacks tiles in card order below the list padding, one gap apart', () => {
+    const heights = new Map([['a', 60], ['b', 100], ['c', 60]]);
+    expect(stackTileLayouts(['a', 'b', 'c'], heights, 8, 8)).toEqual([
+      { cardId: 'a', y: 8, height: 60 },
+      { cardId: 'b', y: 76, height: 100 },
+      { cardId: 'c', y: 184, height: 60 },
+    ]);
+  });
+
+  it('lets a card dragged downward land between the cards below it', () => {
+    const tiles = stackTileLayouts(['a', 'b', 'c'], new Map([['a', 60], ['b', 60], ['c', 60]]), 8, 8);
+    expect(insertionIndexAt(120, tiles, 'a')).toBe(1);
+  });
+
+  it('estimates tiles not measured yet from the measured ones', () => {
+    const tiles = stackTileLayouts(['a', 'b', 'c'], new Map([['a', 50]]), 0, 10);
+    expect(tiles.map((t) => t.y)).toEqual([0, 60, 120]);
   });
 });

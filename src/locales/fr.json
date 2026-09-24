@@ -193,8 +193,11 @@
     "updated": "Modifié {{when}}",
     "empty": "Aucun tableau",
     "emptyFiltered": "Aucun tableau ne correspond à ce filtre",
-    "sortTitle": "Trier par titre",
-    "sortRecent": "Trier par récence",
+    "sort": {
+      "label": "Trier",
+      "title": "Alphabétique",
+      "lastModified": "Dernière modification"
+    },
     "form": {
       "newTitle": "Nouveau tableau",
       "renameTitle": "Renommer le tableau",
@@ -256,6 +259,23 @@
     "noDescription": "Aucune description",
     "addDescription": "Ajouter une description…",
     "rawEditorNotice": "Cette description utilise une mise en forme que l'éditeur enrichi ne sait pas conserver. Édition en Markdown brut.",
+    "format": {
+      "bold": "Gras",
+      "italic": "Italique",
+      "strike": "Barré",
+      "h1": "Titre 1",
+      "h2": "Titre 2",
+      "h3": "Titre 3",
+      "ul": "Liste à puces",
+      "ol": "Liste numérotée",
+      "task": "Liste de cases à cocher",
+      "indent": "Augmenter le retrait",
+      "outdent": "Diminuer le retrait",
+      "quote": "Citation",
+      "code": "Code en ligne",
+      "codeBlock": "Bloc de code",
+      "link": "Lien"
+    },
     "save": "Enregistrer",
     "comments": "Commentaires",
     "noComments": "Aucun commentaire",
@@ -322,7 +342,7 @@
     "title": "Rechercher",
     "placeholder": "Rechercher des tableaux, cartes, commentaires…",
     "operators": "OPÉRATEURS",
-    "try": "ESSAYER",
+    "try": "ESSAYER DES EXEMPLES",
     "op": {
       "title": "Chercher dans les titres",
       "description": "Chercher dans les descriptions",
@@ -331,6 +351,7 @@
       "assigned": "Filtrer par personne assignée",
       "date": "Filtrer par échéance"
     },
+    "dateHelp": "Accepté : today, tomorrow ou une date au format 2026-09-25, précédés si besoin de <, <=, > ou >= (date:<tomorrow). Non reconnu : les autres mots (demain…), une année seule (2026), 25/09/2026.",
     "examples": ["notes de version", "tag:design", "tag:design date:<tomorrow"],
     "boards": "TABLEAUX",
     "fromServer": "AUTRES RÉSULTATS DU SERVEUR",

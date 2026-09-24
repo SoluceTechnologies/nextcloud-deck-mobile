@@ -23,6 +23,7 @@ export function OperatorsSection({ onTry }: OperatorsSectionProps) {
               key={op}
               testID={`operator-${op}`}
               title={t(`search.op.${op}`)}
+              description={op === 'date' ? t('search.dateHelp') : undefined}
               trailing={
                 <Typography variant="body2" color="secondary" style={styles.mono}>
                   {`${op}:`}

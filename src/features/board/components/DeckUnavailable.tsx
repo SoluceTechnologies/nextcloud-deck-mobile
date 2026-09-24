@@ -38,7 +38,6 @@ export function DeckUnavailable({ baseUrl }: { baseUrl: string }) {
           {accounts.length > 1 ? (
             <AccountSwitcher
               trigger={
-                // The switcher's own pressable opens the menu; the button is only its look.
                 <View pointerEvents="none">
                   <Button testID="deck-switch-account" title={t('deck.switchAccount')} />
                 </View>
