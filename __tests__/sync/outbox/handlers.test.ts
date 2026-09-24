@@ -256,6 +256,32 @@ describe('executeIntent', () => {
     expect(cardsApi.cloneCard).toHaveBeenCalledWith(account, '42');
   });
 
+  it('clones into the picked list and stores the copy locally right away', async () => {
+    const { normalizeCard } = jest.requireActual('../../../src/services/deck/normalize');
+    (cardsApi.cloneCard as jest.Mock).mockResolvedValue(
+      normalizeCard({ id: 99, stackId: 5, title: 'Pay the rent' }, '7'),
+    );
+    const byId: Record<string, any> = { 's-local': stackRow, 'b-local': boardRow };
+    const created: any = {};
+    const cards = {
+      query: jest.fn(() => ({ fetch: jest.fn(async () => []) })),
+      create: jest.fn(async (writer: (r: any) => void) => writer(created)),
+    };
+    const db: any = {
+      get: jest.fn((table: string) =>
+        table === 'cards' ? cards : { find: jest.fn(async (id: string) => byId[id]) },
+      ),
+    };
+
+    await executeIntent(
+      { db, account },
+      { kind: 'cloneCard', cardId: 'c-local', cardRemoteId: '42', toStackId: 's-local' },
+    );
+
+    expect(cardsApi.cloneCard).toHaveBeenCalledWith(account, '42', { boardRemoteId: '7', stackRemoteId: '5' });
+    expect(created).toMatchObject({ remoteId: '99', boardId: 'b-local', stackId: 's-local', accountId: 'acc-1' });
+  });
+
   it('adds a dependency between two cards by their remote ids', async () => {
     const db = makeDb({ 'c-local': cardRow(), 's-local': stackRow, 'b-local': boardRow });
 

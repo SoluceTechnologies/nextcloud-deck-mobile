@@ -352,8 +352,8 @@ export default function CardDetailScreen() {
         visible={menuVisible}
         card={card}
         onClose={() => setMenuVisible(false)}
-        onMove={() => setPickerVisible(true)}
-        onCopy={() => void cardActions.clone(card).catch(() => undefined)}
+        onMove={() => setPickerPurpose('move')}
+        onCopy={() => setPickerPurpose('copy')}
         onArchive={() => {
           void cardActions.setArchived(card, !card.archived).catch(() => undefined);
           router.back();
@@ -371,11 +371,18 @@ export default function CardDetailScreen() {
         onOpenExternally={openExternally}
       />
       <CardPickerSheet
-        visible={pickerVisible}
+        visible={pickerPurpose !== null}
         accountId={accountId}
         mode="stack"
-        onClose={() => setPickerVisible(false)}
-        onPick={({ stackLocalId }) => void cardActions.move(card, stackLocalId).catch(() => undefined)}
+        initialBoardLocalId={card.boardId}
+        title={t(pickerPurpose === 'copy' ? 'card.picker.copyTo' : 'card.picker.moveTo')}
+        onClose={() => setPickerPurpose(null)}
+        onPick={({ stackLocalId }) => {
+          const action = pickerPurpose === 'copy'
+            ? cardActions.clone(card, stackLocalId)
+            : cardActions.move(card, stackLocalId);
+          void action.catch(() => undefined);
+        }}
       />
     </ViewContainer>
   );

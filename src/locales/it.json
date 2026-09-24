@@ -314,7 +314,9 @@
       "chooseBoard": "Scegli una bacheca",
       "chooseList": "Scegli una lista",
       "chooseCard": "Scegli una scheda",
-      "empty": "Niente qui"
+      "empty": "Niente qui",
+      "copyTo": "Copia in una lista",
+      "moveTo": "Sposta in una lista"
     },
     "details": {
       "title": "DETTAGLI",

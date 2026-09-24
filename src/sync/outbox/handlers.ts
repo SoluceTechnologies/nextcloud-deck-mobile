@@ -1,4 +1,4 @@
-import type { Database } from '@nozbe/watermelondb';
+import { Q, type Database } from '@nozbe/watermelondb';
 
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
@@ -6,6 +6,7 @@ import type Comment from '@/database/models/Comment';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import { safeWrite } from '@/database/utils/safeTransaction';
+import { writeCardRow } from '@/database/writers';
 import {
   createBoard,
   createStack,
@@ -157,9 +158,34 @@ export async function executeIntent(
       await deleteCard(account, intent.ref);
       return;
 
-    case 'cloneCard':
-      await cloneCard(account, intent.cardRemoteId);
+    case 'cloneCard': {
+      if (!intent.toStackId) {
+        await cloneCard(account, intent.cardRemoteId);
+        return;
+      }
+      const stack = await db.get<Stack>('stacks').find(intent.toStackId);
+      const board = await db.get<Board>('boards').find(stack.boardId);
+      const created = await cloneCard(account, intent.cardRemoteId, {
+        boardRemoteId: await requireRemoteId(board, 'board'),
+        stackRemoteId: await requireRemoteId(stack, 'stack'),
+      });
+      await safeWrite(
+        db,
+        async () => {
+          const cards = db.get<Card>('cards');
+          const existing = await cards
+            .query(Q.where('account_id', account.id), Q.where('remote_id', created.remoteId))
+            .fetch();
+          if (existing.length > 0) return;
+          await cards.create((r: Card) =>
+            writeCardRow(r, created, { accountId: account.id, boardLocalId: board.id, stackLocalId: stack.id }),
+          );
+        },
+        10000,
+        'cloneCard:writeback',
+      );
       return;
+    }
 
     case 'assignLabel':
     case 'removeLabel': {

@@ -314,7 +314,9 @@
       "chooseBoard": "Choose a board",
       "chooseList": "Choose a list",
       "chooseCard": "Choose a card",
-      "empty": "Nothing here"
+      "empty": "Nothing here",
+      "copyTo": "Copy to a list",
+      "moveTo": "Move to a list"
     },
     "details": {
       "title": "DETAILS",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react-native';
@@ -14,11 +14,15 @@ export interface CardPickerSheetProps {
   visible: boolean;
   accountId: string | null;
   mode: CardPickerMode;
+  initialBoardLocalId?: string | null;
+  title?: string;
   onClose: () => void;
   onPick: (result: CardPickerResult) => void;
 }
 
-export function CardPickerSheet({ visible, accountId, mode, onClose, onPick }: CardPickerSheetProps) {
+export function CardPickerSheet({
+  visible, accountId, mode, initialBoardLocalId = null, title: heading, onClose, onPick,
+}: CardPickerSheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const [boardLocalId, setBoardLocalId] = useState<string | null>(null);
@@ -29,6 +33,10 @@ export function CardPickerSheet({ visible, accountId, mode, onClose, onPick }: C
   const cards = useBoardCards(accountId, boardLocalId).filter((c) => c.stackId === stackLocalId);
 
   const level = stackLocalId ? 2 : boardLocalId ? 1 : 0;
+
+  useEffect(() => {
+    if (visible) setBoardLocalId(initialBoardLocalId);
+  }, [visible, initialBoardLocalId]);
 
   const reset = () => {
     setBoardLocalId(null);
@@ -52,7 +60,8 @@ export function CardPickerSheet({ visible, accountId, mode, onClose, onPick }: C
   };
 
   const title =
-    level === 2 ? t('card.picker.chooseCard')
+    heading && level === 1 ? heading
+    : level === 2 ? t('card.picker.chooseCard')
     : level === 1 ? t('card.picker.chooseList')
     : t('card.picker.chooseBoard');
 
