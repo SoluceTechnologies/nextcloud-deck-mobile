@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../../helpers/theme';
 import { QuickAddCardFlow } from '../../../src/features/card/components/QuickAddCardFlow';
@@ -92,12 +92,12 @@ it('closes the whole flow when the picker is cancelled without a pick', () => {
   expect(onClose).toHaveBeenCalled();
 });
 
-it('resets to the picker when closed from the form', async () => {
+it('resets to the picker when closed from the form', () => {
   renderFlow();
   pickCard({ boardLocalId: 'b1', stackLocalId: 's1' });
   expect(screen.getByTestId('quick-title')).toBeTruthy();
 
   fireEvent.press(screen.getByLabelText('common.close'));
 
-  await waitFor(() => expect(screen.queryByTestId('quick-title')).toBeNull());
+  expect(screen.queryByTestId('quick-title')).toBeNull();
 });
