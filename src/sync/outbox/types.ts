@@ -17,7 +17,7 @@ export type Intent =
   | { kind: 'moveCard'; cardId: string; toStackId: string; order: number }
   | { kind: 'setCardArchived'; cardId: string; archived: boolean }
   | { kind: 'deleteCard'; cardId: string; ref: CardRemoteRef }
-  | { kind: 'cloneCard'; cardId: string; cardRemoteId: string }
+  | { kind: 'cloneCard'; cardId: string; cardRemoteId: string; toStackId?: string }
   | { kind: 'assignLabel'; cardId: string; labelId: string }
   | { kind: 'removeLabel'; cardId: string; labelId: string }
   | { kind: 'assignUser'; cardId: string; participant: string; assigneeType: number }

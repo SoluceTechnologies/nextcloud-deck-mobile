@@ -34,7 +34,7 @@ export type CardActions = {
   setArchived(card: Card, archived: boolean): Promise<void>;
   remove(card: Card): Promise<void>;
   move(card: Card, toStackLocalId: string, order?: number, localOrder?: number): Promise<void>;
-  clone(card: Card): Promise<void>;
+  clone(card: Card, toStackLocalId: string): Promise<void>;
   addLabel(card: Card, labelLocalId: string): Promise<void>;
   removeLabel(card: Card, labelLocalId: string): Promise<void>;
   createLabel(boardLocalId: string, input: { title: string; color: string | null }): Promise<string | null>;
@@ -213,7 +213,7 @@ export function useCardActions(accountId: string | null): CardActions {
       });
     };
 
-    const clone: CardActions['clone'] = async (card) => {
+    const clone: CardActions['clone'] = async (card, toStackLocalId) => {
       if (!accountId) return;
       // The copy is server-only (spec §9) — a card that never synced has nothing to
       // clone, and the menu that offers this action already hides it in that case.
@@ -222,7 +222,7 @@ export function useCardActions(accountId: string | null): CardActions {
       await mutate({
         db,
         accountId,
-        intent: { kind: 'cloneCard', cardId: card.id, cardRemoteId: card.remoteId },
+        intent: { kind: 'cloneCard', cardId: card.id, cardRemoteId: card.remoteId, toStackId: toStackLocalId },
         applyLocal: () => [],
       });
     };

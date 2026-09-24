@@ -194,14 +194,16 @@ export async function removeDependentCard(
 export async function cloneCard(
   account: DeckAccount,
   cardRemoteId: string,
-): Promise<{ remoteId: string }> {
+  target?: { boardRemoteId: string; stackRemoteId: string },
+): Promise<DeckCard> {
   const result = await deckRequest<Record<string, any>>(account, {
     path: `/cards/${cardRemoteId}/clone`,
     api: 'ocs',
     method: 'POST',
+    body: target ? { targetStackId: Number(target.stackRemoteId) } : undefined,
     context: 'cloneCard',
   });
-  return { remoteId: String((result.data ?? {}).id) };
+  return normalizeCard(result.data ?? {}, target?.boardRemoteId ?? '');
 }
 
 export async function createLabel(

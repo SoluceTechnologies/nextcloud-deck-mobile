@@ -134,6 +134,8 @@
     "failed": "Cambios fallidos",
     "empty": "Todo está sincronizado.",
     "retry": "Reintentar",
+    "retryNow": "Reintentar ahora",
+    "waiting": "Pendiente de envío",
     "discard": "Descartar",
     "discardTitle": "¿Descartar el cambio?",
     "discardMsg": "Este cambio se perderá de forma permanente y no se podrá recuperar.",
@@ -314,7 +316,10 @@
       "chooseBoard": "Elegir un tablero",
       "chooseList": "Elegir una lista",
       "chooseCard": "Elegir una tarjeta",
-      "empty": "Nada aquí"
+      "empty": "Nada aquí",
+      "copyTo": "Copiar a una lista",
+      "moveTo": "Mover a una lista",
+      "otherBoard": "Elegir otro tablero"
     },
     "details": {
       "title": "DETALLES",

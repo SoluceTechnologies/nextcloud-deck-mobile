@@ -1,4 +1,4 @@
-import type { Database } from '@nozbe/watermelondb';
+import { Q, type Database } from '@nozbe/watermelondb';
 
 import type Board from '@/database/models/Board';
 import type Card from '@/database/models/Card';
@@ -6,6 +6,7 @@ import type Comment from '@/database/models/Comment';
 import type Label from '@/database/models/Label';
 import type Stack from '@/database/models/Stack';
 import { safeWrite } from '@/database/utils/safeTransaction';
+import { writeCardRow } from '@/database/writers';
 import {
   createBoard,
   createStack,
@@ -32,6 +33,8 @@ import {
   type CardRef,
   type CardWriteState,
 } from '@/services/deck/cards';
+import type { DeckCard } from '@/services/deck/types';
+import { buildCardRelationOps } from '@/sync/tasks/cardRelations';
 import type { Account } from '@/types';
 
 import type { Intent } from './types';
@@ -87,6 +90,54 @@ function writeStateOf(card: Card, serverOverrides: Record<string, unknown>): Car
   }
 
   return state as CardWriteState;
+}
+
+async function completeClone(
+  ctx: HandlerContext,
+  sourceLocalId: string,
+  created: DeckCard,
+  target: { boardRemoteId: string; stackRemoteId: string },
+): Promise<DeckCard> {
+  let source: Card;
+  try {
+    source = await ctx.db.get<Card>('cards').find(sourceLocalId);
+  } catch {
+    return created;
+  }
+
+  const missing = {
+    duedate: source.duedate ?? null,
+    startdate: source.startdate ?? null,
+    color: source.color ?? null,
+  };
+  if (
+    missing.duedate === created.duedate &&
+    missing.startdate === created.startdate &&
+    missing.color === created.color
+  ) {
+    return created;
+  }
+
+  try {
+    const updated = await updateCard(
+      ctx.account,
+      { ...target, cardRemoteId: created.remoteId },
+      {
+        title: created.title,
+        description: created.description,
+        type: created.type,
+        owner: created.owner,
+        order: created.order,
+        doneAt: created.doneAt,
+        archived: false,
+        ...missing,
+      },
+    );
+    return { ...created, ...missing, lastModified: updated.lastModified || created.lastModified };
+  } catch (error) {
+    console.warn('[outbox] copied card kept without its dates:', String(error));
+    return created;
+  }
 }
 
 export async function executeIntent(
@@ -157,9 +208,55 @@ export async function executeIntent(
       await deleteCard(account, intent.ref);
       return;
 
-    case 'cloneCard':
-      await cloneCard(account, intent.cardRemoteId);
+    case 'cloneCard': {
+      if (!intent.toStackId) {
+        await cloneCard(account, intent.cardRemoteId);
+        return;
+      }
+      const stack = await db.get<Stack>('stacks').find(intent.toStackId);
+      const board = await db.get<Board>('boards').find(stack.boardId);
+      const target = {
+        boardRemoteId: await requireRemoteId(board, 'board'),
+        stackRemoteId: await requireRemoteId(stack, 'stack'),
+      };
+      const created = await cloneCard(account, intent.cardRemoteId, target);
+      const copy = await completeClone(ctx, intent.cardId, created, target);
+
+      await safeWrite(
+        db,
+        async () => {
+          const cards = db.get<Card>('cards');
+          const existing = await cards
+            .query(Q.where('account_id', account.id), Q.where('remote_id', copy.remoteId))
+            .fetch();
+          if (existing.length > 0) return;
+
+          const row = cards.prepareCreate((r: Card) =>
+            writeCardRow(r, copy, { accountId: account.id, boardLocalId: board.id, stackLocalId: stack.id }),
+          );
+          const labels = await db
+            .get<Label>('labels')
+            .query(Q.where('account_id', account.id), Q.where('board_id', board.id))
+            .fetch();
+          await db.batch([
+            row,
+            ...buildCardRelationOps({
+              db,
+              accountId: account.id,
+              cardLocalId: row.id,
+              remote: copy,
+              labelLocalIdByRemote: new Map(labels.map((l) => [l.remoteId, l.id])),
+              labelRows: [],
+              assigneeRows: [],
+              pending: new Map(),
+            }),
+          ]);
+        },
+        10000,
+        'cloneCard:writeback',
+      );
       return;
+    }
 
     case 'assignLabel':
     case 'removeLabel': {

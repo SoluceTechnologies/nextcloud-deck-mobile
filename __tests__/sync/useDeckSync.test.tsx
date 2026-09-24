@@ -2,14 +2,17 @@ import { AppState } from 'react-native';
 import { renderHook, act } from '@testing-library/react-native';
 
 import { useDeckSync } from '../../src/sync/useDeckSync';
-import { drainOutbox } from '../../src/sync/outbox/drain';
+import { drainOutbox, nextRetryAt } from '../../src/sync/outbox/drain';
 import { createSyncScheduler } from '../../src/sync/scheduler';
 import { useAccountStore } from '../../src/stores/accountStore';
 import { useUiStore } from '../../src/stores/uiStore';
 import { setAccounts } from '../../src/hooks/useAccounts';
 import { markLocalWrite } from '../../src/sync/localWrites';
 
-jest.mock('../../src/sync/outbox/drain', () => ({ drainOutbox: jest.fn(async () => {}) }));
+jest.mock('../../src/sync/outbox/drain', () => ({
+  drainOutbox: jest.fn(async () => {}),
+  nextRetryAt: jest.fn(async () => null),
+}));
 jest.mock('../../src/sync/scheduler', () => {
   const start = jest.fn();
   const stop = jest.fn();
@@ -129,6 +132,28 @@ describe('useDeckSync', () => {
     act(() => markLocalWrite());
 
     expect(drainOutbox).toHaveBeenCalledTimes(1);
+  });
+
+  it('drains again once the backoff of a failed send has elapsed', async () => {
+    jest.useFakeTimers({ now: 1_000 });
+    (nextRetryAt as jest.Mock).mockResolvedValueOnce(6_000);
+    setAccounts([account]);
+    act(() => useAccountStore.getState().setActiveAccountId('acc-1'));
+
+    renderHook(() => useDeckSync());
+    for (let i = 0; i < 5; i += 1) await act(async () => {});
+    (drainOutbox as jest.Mock).mockClear();
+
+    await act(async () => {
+      jest.advanceTimersByTime(4_999);
+    });
+    expect(drainOutbox).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(drainOutbox).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   it('stops listening for local writes on unmount', () => {

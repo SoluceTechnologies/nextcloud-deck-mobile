@@ -38,6 +38,32 @@ it('drills from a board into its lists', () => {
   expect(screen.getByText('En cours')).toBeTruthy();
 });
 
+it('opens on the given board and hides the excluded list', () => {
+  const { useBoardStacks } = jest.requireMock('../../../src/database/hooks/useBoardContent');
+  useBoardStacks.mockReturnValue([
+    { id: 's1', title: 'En cours', boardId: 'b1' },
+    { id: 's2', title: 'Terminé', boardId: 'b1' },
+  ]);
+  render(
+    <CardPickerSheet
+      visible
+      accountId="a1"
+      mode="stack"
+      initialBoardLocalId="b1"
+      excludeStackLocalId="s1"
+      onClose={jest.fn()}
+      onPick={jest.fn()}
+    />,
+    { wrapper: ThemeWrapper },
+  );
+  expect(screen.getByText('Terminé')).toBeTruthy();
+  expect(screen.queryByText('En cours')).toBeNull();
+  expect(screen.queryByTestId('picker-back')).toBeNull();
+  fireEvent.press(screen.getByTestId('picker-other-board'));
+  expect(screen.getByText('Commercial')).toBeTruthy();
+  useBoardStacks.mockReturnValue([{ id: 's1', title: 'En cours', boardId: 'b1' }]);
+});
+
 it('resolves at the list in stack mode', () => {
   const onPick = jest.fn();
   render(

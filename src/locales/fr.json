@@ -134,6 +134,8 @@
     "failed": "Modifications en échec",
     "empty": "Tout est synchronisé.",
     "retry": "Réessayer",
+    "retryNow": "Réessayer maintenant",
+    "waiting": "En attente d'envoi",
     "discard": "Abandonner",
     "discardTitle": "Abandonner la modification ?",
     "discardMsg": "Cette modification sera définitivement perdue et ne pourra pas être récupérée.",
@@ -314,7 +316,10 @@
       "chooseBoard": "Choisir un tableau",
       "chooseList": "Choisir une liste",
       "chooseCard": "Choisir une carte",
-      "empty": "Rien ici"
+      "empty": "Rien ici",
+      "copyTo": "Copier dans une liste",
+      "moveTo": "Déplacer vers une liste",
+      "otherBoard": "Choisir un autre tableau"
     },
     "details": {
       "title": "DÉTAILS",

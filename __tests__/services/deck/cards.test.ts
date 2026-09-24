@@ -181,6 +181,13 @@ describe('dependencies and clone use the OCS API', () => {
     );
   });
 
+  it('clones into the requested list', async () => {
+    mockFetch.mockResolvedValue(ok({ ocs: { data: { id: 43, stackId: 9 } } }));
+    const created = await cloneCard(account, '42', { boardRemoteId: '7', stackRemoteId: '9' });
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({ targetStackId: 9 });
+    expect(created).toMatchObject({ remoteId: '43', boardRemoteId: '7', stackRemoteId: '9' });
+  });
+
   it('reads a clone response that arrives inside an OCS envelope', async () => {
     mockFetch.mockResolvedValue(ok({ ocs: { data: { id: 42 } } }));
     await expect(cloneCard(account, '42')).resolves.toMatchObject({ remoteId: '42' });

@@ -134,6 +134,8 @@
     "failed": "Failed changes",
     "empty": "Everything is in sync.",
     "retry": "Retry",
+    "retryNow": "Retry now",
+    "waiting": "Waiting to be sent",
     "discard": "Discard",
     "discardTitle": "Discard Change?",
     "discardMsg": "This change will be permanently lost and cannot be recovered.",
@@ -314,7 +316,10 @@
       "chooseBoard": "Choose a board",
       "chooseList": "Choose a list",
       "chooseCard": "Choose a card",
-      "empty": "Nothing here"
+      "empty": "Nothing here",
+      "copyTo": "Copy to a list",
+      "moveTo": "Move to a list",
+      "otherBoard": "Choose another board"
     },
     "details": {
       "title": "DETAILS",

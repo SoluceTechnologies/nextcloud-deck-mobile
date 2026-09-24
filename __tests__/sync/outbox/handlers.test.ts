@@ -256,6 +256,58 @@ describe('executeIntent', () => {
     expect(cardsApi.cloneCard).toHaveBeenCalledWith(account, '42');
   });
 
+  it('gives the copy the dates and color Deck does not clone, and stores its labels', async () => {
+    const { normalizeCard } = jest.requireActual('../../../src/services/deck/normalize');
+    (cardsApi.cloneCard as jest.Mock).mockResolvedValue(
+      normalizeCard({ id: 99, stackId: 5, title: 'Pay the rent', labels: [{ id: 3, title: 'Urgent' }] }, '7'),
+    );
+    (cardsApi.updateCard as jest.Mock).mockResolvedValue(normalizeCard({ id: 99, lastModified: 500 }, '7'));
+    const byId: Record<string, any> = {
+      's-local': stackRow,
+      'b-local': boardRow,
+      'c-local': cardRow({ duedate: 86400000, color: '#ff0000' }),
+    };
+    const created: any = { id: 'copy-local' };
+    const joins: any[] = [];
+    const tables: Record<string, any> = {
+      cards: {
+        find: jest.fn(async (id: string) => byId[id]),
+        query: jest.fn(() => ({ fetch: jest.fn(async () => []) })),
+        prepareCreate: jest.fn((writer: (r: any) => void) => {
+          writer(created);
+          return created;
+        }),
+      },
+      labels: { query: jest.fn(() => ({ fetch: jest.fn(async () => [{ id: 'l-local', remoteId: '3' }]) })) },
+      card_labels: {
+        prepareCreate: jest.fn((writer: (r: any) => void) => {
+          const join: any = {};
+          writer(join);
+          joins.push(join);
+          return join;
+        }),
+      },
+      card_assignees: { prepareCreate: jest.fn() },
+    };
+    const db: any = {
+      get: jest.fn((table: string) => tables[table] ?? { find: jest.fn(async (id: string) => byId[id]) }),
+      batch: jest.fn(async () => {}),
+    };
+
+    await executeIntent(
+      { db, account },
+      { kind: 'cloneCard', cardId: 'c-local', cardRemoteId: '42', toStackId: 's-local' },
+    );
+
+    expect(cardsApi.updateCard).toHaveBeenCalledWith(
+      account,
+      { boardRemoteId: '7', stackRemoteId: '5', cardRemoteId: '99' },
+      expect.objectContaining({ duedate: 86400000, color: '#ff0000' }),
+    );
+    expect(created).toMatchObject({ remoteId: '99', duedate: 86400000, color: '#ff0000' });
+    expect(joins).toEqual([expect.objectContaining({ cardId: 'copy-local', labelId: 'l-local' })]);
+  });
+
   it('adds a dependency between two cards by their remote ids', async () => {
     const db = makeDb({ 'c-local': cardRow(), 's-local': stackRow, 'b-local': boardRow });
 

@@ -134,6 +134,8 @@
     "failed": "Fehlgeschlagene Änderungen",
     "empty": "Alles ist synchronisiert.",
     "retry": "Erneut versuchen",
+    "retryNow": "Jetzt erneut versuchen",
+    "waiting": "Wartet auf Übertragung",
     "discard": "Verwerfen",
     "discardTitle": "Änderung verwerfen?",
     "discardMsg": "Diese Änderung geht dauerhaft verloren und kann nicht wiederhergestellt werden.",
@@ -314,7 +316,10 @@
       "chooseBoard": "Board auswählen",
       "chooseList": "Liste auswählen",
       "chooseCard": "Karte auswählen",
-      "empty": "Nichts hier"
+      "empty": "Nichts hier",
+      "copyTo": "In eine Liste kopieren",
+      "moveTo": "In eine Liste verschieben",
+      "otherBoard": "Anderes Board wählen"
     },
     "details": {
       "title": "DETAILS",

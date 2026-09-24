@@ -10,6 +10,7 @@ import { safeWrite } from '@/database/utils/safeTransaction';
 import { useAccountStore } from '@/stores/accountStore';
 import { useUiStore } from '@/stores/uiStore';
 import { OUTBOX_FAILED, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
+import { onLocalWrite } from '@/sync/localWrites';
 import i18n from '@/utils/i18n';
 
 // No precedent in this repo for full WatermelonDB wiring in a component
@@ -83,11 +84,12 @@ describe('SyncStatus', () => {
     const failedRow = fakeEntry({ id: 'f1', state: OUTBOX_FAILED });
     mockUseDatabase.mockReturnValue(makeDatabase([queuedRow, failedRow]));
 
-    const { getByText } = render(<SyncStatus />, { wrapper });
+    const { getByText, getAllByText } = render(<SyncStatus />, { wrapper });
 
-    expect(getByText('1')).toBeTruthy(); // queued count
+    expect(getByText('Queued changes')).toBeTruthy();
+    expect(getByText('Retry now')).toBeTruthy();
     expect(getByText('Failed changes')).toBeTruthy();
-    expect(getByText('Create card')).toBeTruthy();
+    expect(getAllByText('Create card')).toHaveLength(2);
   });
 
   it('names a failed change by its action, the local title, and a readable error', async () => {
@@ -127,6 +129,30 @@ describe('SyncStatus', () => {
     expect(failedRow.attempts).toBe(0);
     expect(failedRow.nextAttemptAt).toBe(0);
     expect(failedRow.lastError).toBeUndefined();
+  });
+
+  it('sends a retried change right away instead of waiting for the next sync trigger', async () => {
+    const onWrite = jest.fn();
+    const off = onLocalWrite(onWrite);
+    const failedRow = fakeEntry();
+    mockUseDatabase.mockReturnValue(makeDatabase([failedRow]));
+
+    const { getByText } = render(<SyncStatus />, { wrapper });
+    await act(async () => {
+      fireEvent.press(getByText('Retry'));
+    });
+
+    expect(onWrite).toHaveBeenCalledTimes(1);
+    off();
+  });
+
+  it('shows a change still waiting for its first send as waiting, not as an error', () => {
+    const queuedRow = fakeEntry({ id: 'q1', state: OUTBOX_QUEUED, attempts: 0, lastError: undefined });
+    mockUseDatabase.mockReturnValue(makeDatabase([queuedRow]));
+
+    const { getByText } = render(<SyncStatus />, { wrapper });
+
+    expect(getByText('Waiting to be sent')).toBeTruthy();
   });
 
   it('discard asks for confirmation instead of destroying the entry immediately', () => {

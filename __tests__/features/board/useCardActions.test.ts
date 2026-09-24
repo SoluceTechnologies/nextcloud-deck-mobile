@@ -254,15 +254,15 @@ it('marks a card deleted locally and enqueues deleteCard with the board, stack, 
   expect(markDeleted).toHaveBeenCalled();
 });
 
-it('enqueues cloneCard with no local write', async () => {
+it('enqueues cloneCard toward the picked list, with no local write', async () => {
   const card: any = { id: 'c1', remoteId: 'card-remote' };
   const { result } = renderHook(() => useCardActions('a1'));
 
-  await act(() => result.current.clone(card));
+  await act(() => result.current.clone(card, 's2'));
 
   expect(mutate).toHaveBeenCalledTimes(1);
   const call = (mutate as jest.Mock).mock.calls[0][0];
-  expect(call.intent).toEqual({ kind: 'cloneCard', cardId: 'c1', cardRemoteId: 'card-remote' });
+  expect(call.intent).toEqual({ kind: 'cloneCard', cardId: 'c1', cardRemoteId: 'card-remote', toStackId: 's2' });
   expect(await call.applyLocal()).toEqual([]);
 });
 
@@ -271,7 +271,7 @@ it('does nothing when cloning a card that never synced', async () => {
   const card: any = { id: 'c1', remoteId: '' };
   const { result } = renderHook(() => useCardActions('a1'));
 
-  await act(() => result.current.clone(card));
+  await act(() => result.current.clone(card, 's2'));
 
   expect(mutate).not.toHaveBeenCalled();
 });

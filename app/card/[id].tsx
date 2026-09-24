@@ -77,7 +77,7 @@ export default function CardDetailScreen() {
   const [dependenciesSheetVisible, setDependenciesSheetVisible] = useState(false);
   const [descriptionEditorVisible, setDescriptionEditorVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerPurpose, setPickerPurpose] = useState<'move' | 'copy' | null>(null);
   const [previewing, setPreviewing] = useState<Attachment | null>(null);
   const dependencies = useMemo(() => {
     const ids = parseArray<string>(card?.dependentCardsJson ?? '[]');
@@ -156,7 +156,12 @@ export default function CardDetailScreen() {
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
         <ScreenHeader left={closeButton} right={menuButton} />
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+        >
           <CardIdentity
             title={card.title}
             boardTitle={board?.title ?? ''}
@@ -352,8 +357,8 @@ export default function CardDetailScreen() {
         visible={menuVisible}
         card={card}
         onClose={() => setMenuVisible(false)}
-        onMove={() => setPickerVisible(true)}
-        onCopy={() => void cardActions.clone(card).catch(() => undefined)}
+        onMove={() => setPickerPurpose('move')}
+        onCopy={() => setPickerPurpose('copy')}
         onArchive={() => {
           void cardActions.setArchived(card, !card.archived).catch(() => undefined);
           router.back();
@@ -371,11 +376,20 @@ export default function CardDetailScreen() {
         onOpenExternally={openExternally}
       />
       <CardPickerSheet
-        visible={pickerVisible}
+        visible={pickerPurpose !== null}
         accountId={accountId}
         mode="stack"
-        onClose={() => setPickerVisible(false)}
-        onPick={({ stackLocalId }) => void cardActions.move(card, stackLocalId).catch(() => undefined)}
+        initialBoardLocalId={card.boardId}
+        excludeStackLocalId={pickerPurpose === 'move' ? card.stackId : null}
+        title={t(pickerPurpose === 'copy' ? 'card.picker.copyTo' : 'card.picker.moveTo')}
+        onClose={() => setPickerPurpose(null)}
+        onPick={({ stackLocalId }) => {
+          const action = pickerPurpose === 'copy'
+            ? cardActions.clone(card, stackLocalId)
+            : cardActions.move(card, stackLocalId);
+          void action.catch(() => undefined);
+          router.back();
+        }}
       />
     </ViewContainer>
   );
