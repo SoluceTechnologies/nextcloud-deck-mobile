@@ -32,6 +32,7 @@ const config: ExpoConfig = {
     ios: {
         supportsTablet: true,
         bundleIdentifier: 'com.soluce.nextcloud-deck',
+        icon: './assets/icon-ios.icon',
         infoPlist: {
             CFBundleDisplayName: 'Nextcloud Deck',
             ITSAppUsesNonExemptEncryption: false,
@@ -53,6 +54,12 @@ const config: ExpoConfig = {
 
     web: {
         favicon: './assets/favicon.png',
+    },
+
+    extra: {
+        eas: {
+            projectId: '62202980-0da4-4706-ac4f-c83223d85bb9',
+        },
     },
 
     owner: 'soluce',
