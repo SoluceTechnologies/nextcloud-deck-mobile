@@ -32,6 +32,15 @@ export type DrainParams = {
   onConflict?: (info: { cardId: string; fields: string[] }) => void;
 };
 
+export async function nextRetryAt(db: Database, accountId: string, now: number): Promise<number | null> {
+  const rows = await db
+    .get<OutboxEntry>('outbox')
+    .query(Q.where('account_id', accountId), Q.where('state', OUTBOX_QUEUED))
+    .fetch();
+  const later = rows.map((r) => r.nextAttemptAt).filter((at) => at > now);
+  return later.length > 0 ? Math.min(...later) : null;
+}
+
 const inFlight = new Map<string, Promise<void>>();
 const rerun = new Set<string>();
 

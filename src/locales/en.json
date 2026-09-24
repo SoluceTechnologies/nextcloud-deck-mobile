@@ -134,6 +134,8 @@
     "failed": "Failed changes",
     "empty": "Everything is in sync.",
     "retry": "Retry",
+    "retryNow": "Retry now",
+    "waiting": "Waiting to be sent",
     "discard": "Discard",
     "discardTitle": "Discard Change?",
     "discardMsg": "This change will be permanently lost and cannot be recovered.",

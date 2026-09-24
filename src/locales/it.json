@@ -134,6 +134,8 @@
     "failed": "Modifiche non riuscite",
     "empty": "Tutto è sincronizzato.",
     "retry": "Riprova",
+    "retryNow": "Riprova ora",
+    "waiting": "In attesa di invio",
     "discard": "Scarta",
     "discardTitle": "Scartare la modifica?",
     "discardMsg": "Questa modifica andrà persa definitivamente e non potrà essere recuperata.",

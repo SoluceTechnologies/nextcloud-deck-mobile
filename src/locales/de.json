@@ -134,6 +134,8 @@
     "failed": "Fehlgeschlagene Änderungen",
     "empty": "Alles ist synchronisiert.",
     "retry": "Erneut versuchen",
+    "retryNow": "Jetzt erneut versuchen",
+    "waiting": "Wartet auf Übertragung",
     "discard": "Verwerfen",
     "discardTitle": "Änderung verwerfen?",
     "discardMsg": "Diese Änderung geht dauerhaft verloren und kann nicht wiederhergestellt werden.",

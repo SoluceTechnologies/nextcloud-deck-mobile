@@ -8,7 +8,7 @@ import { useAccountStore } from '@/stores/accountStore';
 import { useUiStore } from '@/stores/uiStore';
 
 import { onLocalWrite } from './localWrites';
-import { drainOutbox } from './outbox/drain';
+import { drainOutbox, nextRetryAt } from './outbox/drain';
 import { createTaskRunner } from './runTask';
 import { createSyncScheduler, registerScheduler, unregisterScheduler } from './scheduler';
 
@@ -37,11 +37,25 @@ export function useDeckSync(): void {
     });
     registerScheduler(account.id, scheduler);
 
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
+
     const drain = () => {
       if (!getIsOnline()) return;
-      void drainOutbox({ db, account, onConflict }).catch((e) =>
-        console.warn('[sync] outbox drain failed:', String(e)),
-      );
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+      void drainOutbox({ db, account, onConflict })
+        .then(() => nextRetryAt(db, account.id, Date.now()))
+        .then((at) => {
+          if (disposed || at == null || retryTimer) return;
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            drain();
+          }, Math.max(0, at - Date.now()));
+        })
+        .catch((e) => console.warn('[sync] outbox drain failed:', String(e)));
     };
 
     const offLocalWrite = onLocalWrite(drain);
@@ -59,6 +73,8 @@ export function useDeckSync(): void {
     });
 
     return () => {
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
       appStateSub.remove();
       offLocalWrite();
       scheduler.stop();

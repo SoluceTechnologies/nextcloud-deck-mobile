@@ -9,6 +9,7 @@ import { safeWrite } from '@/database/utils/safeTransaction';
 import { useAccountStore } from '@/stores/accountStore';
 import { useUiStore } from '@/stores/uiStore';
 import { OUTBOX_FAILED, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
+import { markLocalWrite } from '@/sync/localWrites';
 import { describeMutationError } from '@/services/shared/errors';
 import { subjectKey, subjectOf, type SubjectRef } from '../syncLabels';
 import { Item, List, SectionHeader, Stack, Typography } from '@/ui/components';
@@ -59,7 +60,7 @@ export function SyncStatus() {
     const subscription = database
       .get<OutboxEntry>('outbox')
       .query(Q.where('account_id', accountId))
-      .observeWithColumns(['state', 'attempts', 'last_error'])
+      .observeWithColumns(['state', 'attempts', 'last_error', 'next_attempt_at'])
       .subscribe(setEntries);
     return () => subscription.unsubscribe();
   }, [accountId, database]);
@@ -69,19 +70,19 @@ export function SyncStatus() {
 
   const subjects = useMemo(() => {
     const refs: SubjectRef[] = conflicts.map((c) => ({ table: 'cards', id: c.cardId }));
-    for (const entry of failed) {
+    for (const entry of entries) {
       const ref = subjectOf(entry.payloadJson);
       if (ref) refs.push(ref);
     }
     return refs;
-  }, [conflicts, failed]);
+  }, [conflicts, entries]);
   const titles = useSubjectTitles(subjects);
 
   const titleOf = (ref: SubjectRef | null) => (ref ? titles.get(subjectKey(ref)) : undefined);
   const joinParts = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' · ');
 
-  const retry = (entry: OutboxEntry) =>
-    safeWrite(
+  const retry = async (entry: OutboxEntry) => {
+    await safeWrite(
       database,
       () =>
         entry.update((r: OutboxEntry) => {
@@ -93,6 +94,8 @@ export function SyncStatus() {
       10000,
       'syncStatus:retry',
     );
+    markLocalWrite();
+  };
 
   const discard = (entry: OutboxEntry) =>
     safeWrite(database, () => entry.destroyPermanently(), 10000, 'syncStatus:discard');
@@ -106,6 +109,26 @@ export function SyncStatus() {
         onPress: () => void discard(entry).catch(() => undefined),
       },
     ]);
+
+  const renderEntry = (entry: OutboxEntry, retryLabel: string) => (
+    <Item
+      key={entry.id}
+      testID={`sync-entry-${entry.id}`}
+      title={t(`sync.kinds.${entry.kind}`, { defaultValue: t('sync.kinds.unknown') })}
+      description={joinParts(
+        titleOf(subjectOf(entry.payloadJson)),
+        entry.state === OUTBOX_QUEUED && entry.attempts === 0
+          ? t('sync.waiting')
+          : describeMutationError(new Error(entry.lastError ?? '')),
+      )}
+      trailing={
+        <Stack direction="horizontal" gap={16}>
+          <Item title={t(retryLabel)} onPress={() => void retry(entry).catch(() => undefined)} />
+          <Item title={t('sync.discard')} onPress={() => confirmDiscard(entry)} />
+        </Stack>
+      }
+    />
+  );
 
   const intro = (
     <Typography variant="caption" color="secondary" style={styles.intro}>
@@ -148,39 +171,17 @@ export function SyncStatus() {
         </View>
       ) : null}
 
-      {entries.length > 0 ? (
+      {queued.length > 0 ? (
         <View>
-          <SectionHeader title={t('sync.queued')} trailing={undefined} />
-          <List>
-            <Item title={String(queued.length)} description={t('sync.queued')} />
-          </List>
+          <SectionHeader title={t('sync.queued')} />
+          <List>{queued.map((entry) => renderEntry(entry, 'sync.retryNow'))}</List>
         </View>
       ) : null}
 
       {failed.length > 0 ? (
         <View>
           <SectionHeader title={t('sync.failed')} />
-          <List>
-            {failed.map((entry) => (
-              <Item
-                key={entry.id}
-                title={t(`sync.kinds.${entry.kind}`, { defaultValue: t('sync.kinds.unknown') })}
-                description={joinParts(
-                  titleOf(subjectOf(entry.payloadJson)),
-                  describeMutationError(new Error(entry.lastError ?? '')),
-                )}
-                trailing={
-                  <Stack direction="horizontal" gap={16}>
-                    <Item
-                      title={t('sync.retry')}
-                      onPress={() => void retry(entry).catch(() => undefined)}
-                    />
-                    <Item title={t('sync.discard')} onPress={() => confirmDiscard(entry)} />
-                  </Stack>
-                }
-              />
-            ))}
-          </List>
+          <List>{failed.map((entry) => renderEntry(entry, 'sync.retry'))}</List>
         </View>
       ) : null}
     </Stack>
