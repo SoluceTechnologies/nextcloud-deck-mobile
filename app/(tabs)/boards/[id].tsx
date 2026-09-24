@@ -123,8 +123,6 @@ export default function BoardScreen() {
 
       const others = cards.filter((c) => c.stackId === toStackId && c.id !== cardId);
       if (toStackId === fromStackId) {
-        // Same list: a drop back at the card's own current position (among the
-        // others) changes nothing — skip the write rather than reorder a no-op.
         const currentIndex = others.filter((c) => c.order < card.order).length;
         if (currentIndex === index) return;
       }
@@ -188,7 +186,6 @@ type BoardColumnsProps = {
   columnWidth: number;
   windowWidth: number;
   renderStack: (info: ListRenderItemInfo<Stack>) => ReactElement;
-  /** The board's first content fetch is still in flight. */
   loading: boolean;
   onAddList: () => void;
 };
@@ -208,7 +205,6 @@ function BoardColumns({
   const activeData = useDragActiveData();
   const listRef = useRef<FlatList<Stack>>(null);
   const listHeightRef = useRef(0);
-  // The iOS 26 tab bar floats over the screen; its height is in the tab's bottom inset.
   const insets = useSafeAreaInsets();
   const tabBarInset = nativeTabsEnabled() ? insets.bottom : 0;
 

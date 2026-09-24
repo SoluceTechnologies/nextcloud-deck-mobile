@@ -57,8 +57,6 @@ const TAB_ITEMS: TabItem[] = [
   },
 ];
 
-// Tabs whose screens offer "Add a card"; on iOS 26 it floats above the tab bar
-// as the native bottom accessory instead of sitting under the glass bar.
 const QUICK_ADD_PATHS = new Set(['/today', '/search']);
 
 function NativeTabsLayout() {
