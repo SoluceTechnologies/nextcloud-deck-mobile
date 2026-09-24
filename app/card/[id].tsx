@@ -77,7 +77,7 @@ export default function CardDetailScreen() {
   const [dependenciesSheetVisible, setDependenciesSheetVisible] = useState(false);
   const [descriptionEditorVisible, setDescriptionEditorVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerPurpose, setPickerPurpose] = useState<'move' | 'copy' | null>(null);
   const [previewing, setPreviewing] = useState<Attachment | null>(null);
   const dependencies = useMemo(() => {
     const ids = parseArray<string>(card?.dependentCardsJson ?? '[]');
@@ -156,7 +156,12 @@ export default function CardDetailScreen() {
     <ViewContainer>
       <SafeAreaView edges={['top']} style={styles.flex}>
         <ScreenHeader left={closeButton} right={menuButton} />
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+        >
           <CardIdentity
             title={card.title}
             boardTitle={board?.title ?? ''}
