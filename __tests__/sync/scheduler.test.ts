@@ -9,6 +9,7 @@ import type { SyncTask } from '../../src/sync/dueTasks';
 import * as syncBoardsModule from '../../src/sync/tasks/syncBoards';
 import * as syncUpcomingModule from '../../src/sync/tasks/syncUpcoming';
 import * as syncBoardContentModule from '../../src/sync/tasks/syncBoardContent';
+import * as syncChangedBoardsModule from '../../src/sync/tasks/syncChangedBoards';
 import { useUiStore } from '../../src/stores/uiStore';
 import type { Database } from '@nozbe/watermelondb';
 import type { Account } from '@/types';
@@ -38,7 +39,7 @@ describe('createSyncScheduler', () => {
   it('runs the due tasks on demand', async () => {
     const { scheduler, ran } = setup();
     await scheduler.runNow();
-    expect(ran.map((t) => t.kind)).toEqual(['boards', 'upcoming']);
+    expect(ran.map((t) => t.kind)).toEqual(['boards', 'changedBoards', 'upcoming']);
   });
 
   it('skips the run entirely when offline', async () => {
@@ -93,7 +94,7 @@ describe('createSyncScheduler', () => {
     });
 
     await expect(scheduler.runNow()).resolves.toBeUndefined();
-    expect(ran.map((t) => t.kind)).toEqual(['upcoming']);
+    expect(ran.map((t) => t.kind)).toEqual(['changedBoards', 'upcoming']);
   });
 
   it('ticks on the interval once started, and stops on stop', async () => {
@@ -167,11 +168,11 @@ describe('createSyncScheduler', () => {
 
     await jest.advanceTimersByTimeAsync(30_000);
 
-    // With these deps, dueTasks always returns exactly ['boards', 'upcoming']
+    // With these deps, dueTasks always returns exactly ['boards', 'changedBoards', 'upcoming']
     // (see 'runs the due tasks on demand' above), so one interval pass adds
-    // exactly 2 entries. A second timer from the duplicate start() would
-    // double that to 4.
-    expect(ran.length - afterStart).toBe(2);
+    // exactly 3 entries. A second timer from the duplicate start() would
+    // double that to 6.
+    expect(ran.length - afterStart).toBe(3);
 
     scheduler.stop();
   });
@@ -375,5 +376,22 @@ describe('createTaskRunner', () => {
       boardRemoteId: 'board-123',
       full: false,
     });
+  });
+
+  it('routes changedBoards tasks to syncChangedBoards, with one memory of synced boards per runner', async () => {
+    const mock = jest.fn().mockResolvedValue(true);
+    jest.spyOn(syncChangedBoardsModule, 'syncChangedBoards').mockImplementation(mock);
+
+    const db = {} as Database;
+    const account = { id: 'acc-1' } as Account;
+    const runner = createTaskRunner(db, account);
+
+    await runner({ kind: 'changedBoards', all: false, skip: ['7'] });
+    await runner({ kind: 'changedBoards', all: true, skip: [] });
+
+    expect(mock).toHaveBeenCalledWith(
+      expect.objectContaining({ db, account, all: false, skip: ['7'], seen: expect.any(Map) }),
+    );
+    expect(mock.mock.calls[0][0].seen).toBe(mock.mock.calls[1][0].seen);
   });
 });

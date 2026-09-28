@@ -11,7 +11,11 @@ const base = {
 
 describe('dueTasks', () => {
   it('always refreshes the board list and the upcoming cards', () => {
-    expect(dueTasks(base)).toEqual([{ kind: 'boards', full: false }, { kind: 'upcoming' }]);
+    expect(dueTasks(base)).toEqual([
+      { kind: 'boards', full: false },
+      { kind: 'changedBoards', all: false, skip: [] },
+      { kind: 'upcoming' },
+    ]);
   });
 
   it('adds a delta of the open board', () => {
@@ -68,9 +72,19 @@ describe('dueTasks', () => {
     expect(tasks.filter((t) => t.kind === 'boardContent' && t.boardRemoteId === '1')).toHaveLength(1);
   });
 
-  it('orders the work by priority: the open board, then the board list, then upcoming', () => {
+  it('orders the work by priority: the open board, then the board list, changed boards, then upcoming', () => {
     const tasks = dueTasks({ ...base, activeBoardRemoteId: '7' });
-    expect(tasks.map((t) => t.kind)).toEqual(['boardContent', 'boards', 'upcoming']);
+    expect(tasks.map((t) => t.kind)).toEqual(['boardContent', 'boards', 'changedBoards', 'upcoming']);
+  });
+
+  it('leaves the open board out of the changed-boards sweep', () => {
+    const tasks = dueTasks({ ...base, activeBoardRemoteId: '7' });
+    expect(tasks).toContainEqual({ kind: 'changedBoards', all: false, skip: ['7'] });
+  });
+
+  it('sweeps every board alongside a board-list snapshot', () => {
+    const tasks = dueTasks({ ...base, now: 20 * MINUTE + 1 });
+    expect(tasks).toContainEqual({ kind: 'changedBoards', all: true, skip: [] });
   });
 });
 

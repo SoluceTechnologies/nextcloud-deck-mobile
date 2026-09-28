@@ -193,6 +193,5 @@ it('shows recent boards with their stats only on a wide layout', () => {
   (useWideLayout as jest.Mock).mockReturnValue(true);
   renderScreen();
   expect(screen.getByTestId('recent-progress')).toBeTruthy();
-  // c1 is overdue; c3 is past due but done, so it does not count.
   expect(screen.getByTestId('recent-overdue')).toHaveTextContent('today.overdueBanner:1');
 });
