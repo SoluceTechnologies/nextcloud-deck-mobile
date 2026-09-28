@@ -377,6 +377,7 @@
       "week": "NÄCHSTE 7 TAGE"
     },
     "recent": "ZULETZT VERWENDETE BOARDS",
+    "recentProgress": "{{done}}/{{total}} erledigt",
     "emptyTitle": "Alles erledigt",
     "empty": "Nichts fällig — genießen Sie die Ruhe.",
     "addCard": "Karte hinzufügen",
