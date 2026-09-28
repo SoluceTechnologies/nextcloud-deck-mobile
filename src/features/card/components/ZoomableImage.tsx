@@ -1,4 +1,4 @@
-import { StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { Image, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
   useAnimatedStyle,
@@ -106,13 +106,15 @@ export function ZoomableImage({ uri, testID, onError }: ZoomableImageProps) {
   return (
     <GestureDetector gesture={gesture}>
       <Reanimated.View style={styles.frame} onLayout={handleLayout} collapsable={false}>
-        <Reanimated.Image
-          testID={testID}
-          source={{ uri }}
-          style={[styles.image, imageStyle]}
-          resizeMode="contain"
-          onError={onError}
-        />
+        <Reanimated.View style={[styles.fill, imageStyle]}>
+          <Image
+            testID={testID}
+            source={{ uri }}
+            style={styles.fill}
+            resizeMode="contain"
+            onError={onError}
+          />
+        </Reanimated.View>
       </Reanimated.View>
     </GestureDetector>
   );
@@ -120,5 +122,5 @@ export function ZoomableImage({ uri, testID, onError }: ZoomableImageProps) {
 
 const styles = StyleSheet.create({
   frame: { flex: 1, alignSelf: 'stretch', overflow: 'hidden' },
-  image: { width: '100%', height: '100%' },
+  fill: { width: '100%', height: '100%' },
 });
