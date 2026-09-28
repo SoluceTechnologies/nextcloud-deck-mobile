@@ -37,6 +37,14 @@ import { Button, ScreenHeader, Spinner, ViewContainer } from '@/ui/components';
 
 const PEEK = 40;
 const GAP = 12;
+const TABLET_MIN_WIDTH = 600;
+const TABLET_VISIBLE_COLUMNS = 3;
+
+function getColumnWidth(windowWidth: number): number {
+  if (windowWidth < TABLET_MIN_WIDTH) return windowWidth - PEEK;
+  const n = TABLET_VISIBLE_COLUMNS;
+  return Math.floor((windowWidth - GAP * (n + 1)) / n);
+}
 
 type AddTarget = { kind: 'list' } | { kind: 'card'; stackId: string };
 
@@ -94,7 +102,7 @@ export default function BoardScreen() {
   const handleCardPress = useCallback((cardId: string) => router.push(`/card/${cardId}`), [router]);
   const handleAddCard = useCallback((stackId: string) => setAddTarget({ kind: 'card', stackId }), []);
 
-  const columnWidth = windowWidth - PEEK;
+  const columnWidth = getColumnWidth(windowWidth);
 
   const online = useIsOnline();
   const fetchedAt = useUiStore((s) =>
