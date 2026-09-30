@@ -53,14 +53,14 @@ it('ranks matches that start with the typed text first', () => {
   const boards: SuggestionData = {
     ...data,
     boards: [
-      { id: 'x', title: 'Web design' },
+      { id: 'x', title: 'Alpha design' },
       { id: 'y', title: 'Design team' },
       { id: 'z', title: 'Marketing' },
     ],
   };
   expect(buildValueSuggestions('board', 'design', boards, boardsLabel).map((s) => s.label)).toEqual([
     'Design team',
-    'Web design',
+    'Alpha design',
   ]);
 });
 
@@ -89,6 +89,40 @@ it('resolves an exact label or value, case-insensitively', () => {
   expect(resolveValue('date', 'overdue', data)).toEqual({ value: 'overdue', label: 'overdue' });
   expect(resolveValue('date', '<2026-10-01', data)).toEqual({ value: '<2026-10-01', label: '<2026-10-01' });
   expect(resolveValue('title', 'loyer', data)).toBeNull();
+});
+
+it('ignores tags and lists from boards that are not listed, such as archived ones', () => {
+  const archived: SuggestionData = {
+    ...data,
+    labels: [
+      { boardId: 'b1', title: 'Finished', color: '#1D9E75' },
+      { boardId: 'b9', title: 'Finished', color: '#1D9E75' },
+      { boardId: 'b9', title: 'Legacy', color: '#888780' },
+    ],
+    stacks: [{ boardId: 'b9', title: 'Old list' }],
+  };
+  expect(buildValueSuggestions('tag', '', archived, boardsLabel)).toEqual([
+    { key: 'tag', value: 'Finished', label: 'Finished', color: '#1D9E75', detail: 'Finance & Juridique' },
+  ]);
+  expect(buildValueSuggestions('list', '', archived, boardsLabel)).toEqual([]);
+  expect(resolveValue('tag', 'legacy', archived)).toBeNull();
+});
+
+it('ranks hints that start with the word first, across keys, and keeps three', () => {
+  const many: SuggestionData = {
+    boards: [{ id: 'b1', title: 'Marketing' }],
+    labels: [
+      { boardId: 'b1', title: 'Mars', color: '#D4537E' },
+      { boardId: 'b1', title: 'Big mark', color: '#1D9E75' },
+    ],
+    stacks: [{ boardId: 'b1', title: 'Aftermarket' }],
+    people: [{ participant: 'martin', displayName: 'Martin Dupont' }],
+  };
+  expect(buildHints('mar', many, []).map((s) => `${s.key}:${s.label}`)).toEqual([
+    'board:Marketing',
+    'tag:Mars',
+    'assigned:Martin Dupont',
+  ]);
 });
 
 it('suggests up to three filters for a typed word, skipping those already present', () => {

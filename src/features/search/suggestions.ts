@@ -25,6 +25,7 @@ function byTitle(
 ): Suggestion[] {
   const groups = new Map<string, { title: string; color?: string; boards: Set<string> }>();
   for (const item of items) {
+    if (!boardTitle.has(item.boardId)) continue;
     const id = item.title.toLocaleLowerCase();
     const group = groups.get(id);
     if (group) group.boards.add(item.boardId);
