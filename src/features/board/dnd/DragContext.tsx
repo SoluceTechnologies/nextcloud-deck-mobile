@@ -24,13 +24,15 @@ export type DragContextValue = {
   startY: SharedValue<number>;
   target: SharedValue<DragTarget | null>;
   frame: SharedValue<DragFrame>;
+  zoom: SharedValue<number>;
+  lift: SharedValue<number>;
+  stackOrder: SharedValue<string[]>;
   setActiveData: (data: DragData | null) => void;
   reportColumn: (stackId: string, state: ColumnState) => void;
   reportListTop: (y: number) => void;
   registerScroller: (stackId: string, scrollBy: (dy: number) => void) => () => void;
   scrollColumnBy: (stackId: string, dy: number) => void;
   onDrop: (result: DropResult) => void;
-  onStackHover?: (stackId: string, index: number) => void;
   onStackDrop?: (stackId: string, index: number) => void;
   enabled: boolean;
 };
@@ -50,12 +52,11 @@ const ActiveDataReactContext = createContext<DragData | null | undefined>(undefi
 export type DragProviderProps = {
   enabled: boolean;
   onDrop: (result: DropResult) => void;
-  onStackHover?: (stackId: string, index: number) => void;
   onStackDrop?: (stackId: string, index: number) => void;
   children: React.ReactNode;
 };
 
-export function DragProvider({ enabled, onDrop, onStackHover, onStackDrop, children }: DragProviderProps) {
+export function DragProvider({ enabled, onDrop, onStackDrop, children }: DragProviderProps) {
   const activeId = useRef(useSharedValue<string | null>(null)).current;
   const x = useRef(useSharedValue(0)).current;
   const y = useRef(useSharedValue(0)).current;
@@ -66,6 +67,9 @@ export function DragProvider({ enabled, onDrop, onStackHover, onStackDrop, child
   const startY = useRef(useSharedValue(0)).current;
   const target = useRef(useSharedValue<DragTarget | null>(null)).current;
   const frame = useRef(useSharedValue<DragFrame>(emptyFrame)).current;
+  const zoom = useRef(useSharedValue(1)).current;
+  const lift = useRef(useSharedValue(0)).current;
+  const stackOrder = useRef(useSharedValue<string[]>([])).current;
 
   const [activeData, setActiveData] = useState<DragData | null>(null);
   const scrollers = useRef(new Map<string, (dy: number) => void>());
@@ -104,14 +108,14 @@ export function DragProvider({ enabled, onDrop, onStackHover, onStackDrop, child
 
   const value = useMemo<DragContextValue>(
     () => ({
-      activeId, x, y, originX, originY, width, startX, startY, target, frame,
+      activeId, x, y, originX, originY, width, startX, startY, target, frame, zoom, lift, stackOrder,
       setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
-      onDrop, onStackHover, onStackDrop, enabled,
+      onDrop, onStackDrop, enabled,
     }),
     [
-      activeId, x, y, originX, originY, width, startX, startY, target, frame,
+      activeId, x, y, originX, originY, width, startX, startY, target, frame, zoom, lift, stackOrder,
       setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
-      onDrop, onStackHover, onStackDrop, enabled,
+      onDrop, onStackDrop, enabled,
     ],
   );
 

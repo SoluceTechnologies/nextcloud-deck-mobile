@@ -134,12 +134,11 @@ function StackColumnImpl({
 
   const activeId = dragCtx?.activeId;
   const stackId = stack.id;
-  const slotColor = colors.border;
   const liftedStyle = useAnimatedStyle(() => ({
     opacity: reorderable && activeId?.value === stackId ? 0 : 1,
   }));
   const slotStyle = useAnimatedStyle(() => ({
-    backgroundColor: reorderable && activeId?.value === stackId ? slotColor : 'transparent',
+    opacity: reorderable && activeId?.value === stackId ? 1 : 0,
   }));
 
   const emptyComponent = (
@@ -149,7 +148,7 @@ function StackColumnImpl({
   );
 
   return (
-    <Reanimated.View style={[styles.root, { width, borderRadius: radius.lg }, slotStyle]}>
+    <View style={[styles.root, { width }]}>
       <Reanimated.View
         testID="stack-column"
         style={[styles.root, { width, backgroundColor: colors.surface, borderRadius: radius.lg }, liftedStyle]}
@@ -205,7 +204,18 @@ function StackColumnImpl({
           />
         </View>
       </Reanimated.View>
-    </Reanimated.View>
+      {reorderable ? (
+        <Reanimated.View
+          testID="stack-drop-slot"
+          pointerEvents="none"
+          style={[
+            styles.slot,
+            { borderRadius: radius.lg, borderColor: colors.primary, backgroundColor: `${colors.primary}14` },
+            slotStyle,
+          ]}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -218,6 +228,7 @@ const styles = StyleSheet.create({
   listContent: { padding: LIST_PADDING, gap: LIST_GAP },
   empty: { padding: 16 },
   footer: { padding: 8 },
+  slot: { position: 'absolute', inset: 0, borderWidth: 3, borderStyle: 'dashed' },
 });
 
 export const StackColumn = React.memo(StackColumnImpl);

@@ -10,12 +10,15 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import Reanimated, { LinearTransition, useAnimatedScrollHandler } from 'react-native-reanimated';
+import Reanimated, {
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { boardContentKey, useUiStore } from '@/stores/uiStore';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { useDatabase } from '@/database/DatabaseProvider';
 import { useBoardCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
@@ -30,6 +33,7 @@ import { StackActionsSheet } from '@/features/board/components/StackActionsSheet
 import { toCardTileCard, type CardTileData } from '@/features/board/components/CardTile';
 import { DragProvider, useDrag, useDragActiveData } from '@/features/board/dnd/DragContext';
 import { DragOverlay } from '@/features/board/dnd/DragOverlay';
+import { StackSlot } from '@/features/board/dnd/StackSlot';
 import type { DropResult } from '@/features/board/dnd/dragController';
 import { edgeDirection, orderFor } from '@/features/board/dnd/dropTarget';
 import { useStackDragGesture, type StackDragSource } from '@/features/board/dnd/useStackDragGesture';
@@ -43,6 +47,8 @@ const PEEK = 40;
 const GAP = 12;
 const TABLET_MIN_WIDTH = 600;
 const TABLET_VISIBLE_COLUMNS = 3;
+// Board scale while a list is dragged: shows the neighbours while keeping card text readable.
+const DRAG_ZOOM = 0.9;
 
 function getColumnWidth(windowWidth: number): number {
   if (windowWidth < TABLET_MIN_WIDTH) return windowWidth - PEEK;
@@ -51,18 +57,6 @@ function getColumnWidth(windowWidth: number): number {
 }
 
 type FormTarget = { kind: 'list' } | { kind: 'card'; stackId: string } | { kind: 'rename'; stack: Stack };
-
-type StackPreview = { stackId: string; index: number; dropped: boolean };
-
-function withPreview(stacks: Stack[], preview: StackPreview | null): Stack[] {
-  if (!preview) return stacks;
-  const from = stacks.findIndex((s) => s.id === preview.stackId);
-  if (from === -1 || from === preview.index) return stacks;
-  const next = [...stacks];
-  const [moved] = next.splice(from, 1);
-  next.splice(preview.index, 0, moved);
-  return next;
-}
 
 export default function BoardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -83,12 +77,12 @@ export default function BoardScreen() {
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [menuStackId, setMenuStackId] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [stackPreview, setStackPreview] = useState<StackPreview | null>(null);
-  const displayedStacks = useMemo(() => withPreview(stacks, stackPreview), [stacks, stackPreview]);
-
-  useEffect(() => {
-    setStackPreview((p) => (p?.dropped ? null : p));
-  }, [stacks]);
+  // Bumped to put the lists back in database order when a drop could not be saved.
+  const [orderVersion, setOrderVersion] = useState(0);
+  const anchors = useRef(new Map<string, number>()).current;
+  stacks.forEach((stack, index) => {
+    if (!anchors.has(stack.id)) anchors.set(stack.id, index);
+  });
 
   const db = useDatabase();
   const boardRemoteId = board?.remoteId ?? '';
@@ -139,19 +133,21 @@ export default function BoardScreen() {
   const loadingContent = boardRemoteId !== '' && online && fetchedAt === undefined;
 
   const renderStack = useCallback(
-    ({ item }: ListRenderItemInfo<Stack>) => (
-      <StackColumn
-        stack={item}
-        cards={cardTilesByStack.get(item.id) ?? []}
-        width={columnWidth}
-        onCardPress={handleCardPress}
-        onAddCard={handleAddCard}
-        draggable={board?.canEdit}
-        reorderable={board?.canManage}
-        onOpenMenu={board?.canEdit ? handleOpenMenu : undefined}
-      />
+    ({ item, index }: ListRenderItemInfo<Stack>) => (
+      <StackSlot stackId={item.id} index={index} anchor={anchors.get(item.id) ?? index} step={columnWidth + GAP}>
+        <StackColumn
+          stack={item}
+          cards={cardTilesByStack.get(item.id) ?? []}
+          width={columnWidth}
+          onCardPress={handleCardPress}
+          onAddCard={handleAddCard}
+          draggable={board?.canEdit}
+          reorderable={board?.canManage}
+          onOpenMenu={board?.canEdit ? handleOpenMenu : undefined}
+        />
+      </StackSlot>
     ),
-    [cardTilesByStack, columnWidth, handleCardPress, handleAddCard, handleOpenMenu, board?.canEdit, board?.canManage],
+    [anchors, cardTilesByStack, columnWidth, handleCardPress, handleAddCard, handleOpenMenu, board?.canEdit, board?.canManage],
   );
 
   const handleDrop = useCallback(
@@ -171,17 +167,12 @@ export default function BoardScreen() {
     [cards, cardActions],
   );
 
-  const handleStackHover = useCallback(
-    (stackId: string, index: number) => setStackPreview({ stackId, index, dropped: false }),
-    [],
-  );
-
   const handleStackDrop = useCallback(
     (stackId: string, index: number) => {
+      const revert = () => setOrderVersion((v) => v + 1);
       const stack = stacks.find((s) => s.id === stackId);
-      if (!stack) return setStackPreview(null);
-      setStackPreview({ stackId, index, dropped: true });
-      void stackActions.move(stack, index).catch(() => setStackPreview(null));
+      if (!stack) return revert();
+      void stackActions.move(stack, index).catch(revert);
     },
     [stacks, stackActions],
   );
@@ -215,12 +206,12 @@ export default function BoardScreen() {
       <DragProvider
         enabled={board.canEdit}
         onDrop={handleDrop}
-        onStackHover={handleStackHover}
         onStackDrop={handleStackDrop}
       >
         <BoardColumns
           board={board}
-          stacks={displayedStacks}
+          stacks={stacks}
+          orderVersion={orderVersion}
           columnWidth={columnWidth}
           windowWidth={windowWidth}
           renderStack={renderStack}
@@ -281,6 +272,7 @@ export default function BoardScreen() {
 type BoardColumnsProps = {
   board: Pick<Board, 'title'>;
   stacks: Stack[];
+  orderVersion: number;
   columnWidth: number;
   windowWidth: number;
   renderStack: (info: ListRenderItemInfo<Stack>) => ReactElement;
@@ -293,6 +285,7 @@ type BoardColumnsProps = {
 function BoardColumns({
   board,
   stacks,
+  orderVersion,
   columnWidth,
   windowWidth,
   renderStack,
@@ -303,18 +296,20 @@ function BoardColumns({
 }: BoardColumnsProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { frame, x, y, target, scrollColumnBy } = useDrag();
+  const { frame, x, y, startX, target, zoom, stackOrder, scrollColumnBy } = useDrag();
   const activeData = useDragActiveData();
-  const listRef = useRef<FlatList<Stack>>(null);
+  const listRef = useAnimatedRef<FlatList<Stack>>();
   const listHeightRef = useRef(0);
   const insets = useSafeAreaInsets();
   const tabBarInset = nativeTabsEnabled() ? insets.bottom : 0;
-  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
   const bottomInset = 12 + tabBarInset;
   const boardRef = useRef<View>(null);
   const stackDragGesture = useStackDragGesture({
     enabled: canReorder,
     boardRef,
+    listRef,
+    viewportWidth: windowWidth,
+    zoomOut: DRAG_ZOOM,
     bottomInset,
     sourceOf: stackSourceOf,
   });
@@ -328,10 +323,11 @@ function BoardColumns({
       f.geometry = geometry;
       return f;
     });
-  }, [frame, stacks, columnWidth]);
+    stackOrder.value = stackIds;
+  }, [frame, stackOrder, stacks, columnWidth, orderVersion]);
 
   useEffect(() => {
-    if (activeData === null) return undefined;
+    if (activeData === null || !('card' in activeData)) return undefined;
 
     let lastHorizontalScrollAt = 0;
     const interval = setInterval(() => {
@@ -355,7 +351,11 @@ function BoardColumns({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [activeData, x, y, target, frame, windowWidth, columnWidth, scrollColumnBy]);
+  }, [activeData, x, y, target, frame, windowWidth, columnWidth, scrollColumnBy, listRef]);
+
+  const zoomStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: startX.value * (1 - zoom.value) }, { scale: zoom.value }],
+  }));
 
   const onScroll = useAnimatedScrollHandler((e) => {
     frame.modify((f) => {
@@ -371,39 +371,40 @@ function BoardColumns({
 
       <GestureDetector gesture={stackDragGesture}>
         <View ref={boardRef} style={styles.flex} collapsable={false}>
-          <Reanimated.FlatList<Stack>
-            ref={listRef}
-            horizontal
-            data={stacks}
-            keyExtractor={(item) => item.id}
-            renderItem={renderStack}
-            // Lists glide to their new slot while one is dragged across them.
-            itemLayoutAnimation={reduceMotion ? undefined : LinearTransition}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-            onLayout={(e: LayoutChangeEvent) => {
-              listHeightRef.current = e.nativeEvent.layout.height;
-            }}
-            contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
-            snapToInterval={columnWidth + GAP}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            disableIntervalMomentum
-            showsHorizontalScrollIndicator={false}
-            initialNumToRender={3}
-            ListEmptyComponent={
-              loading ? (
-                <View testID="board-loading" style={[styles.loading, { width: columnWidth }]}>
-                  <Spinner />
+          <Reanimated.View style={[styles.zoomable, zoomStyle]}>
+            <Reanimated.FlatList<Stack>
+              ref={listRef}
+              horizontal
+              style={styles.overflowVisible}
+              data={stacks}
+              keyExtractor={(item) => item.id}
+              renderItem={renderStack}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              onLayout={(e: LayoutChangeEvent) => {
+                listHeightRef.current = e.nativeEvent.layout.height;
+              }}
+              contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
+              snapToInterval={columnWidth + GAP}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              disableIntervalMomentum
+              showsHorizontalScrollIndicator={false}
+              initialNumToRender={3}
+              ListEmptyComponent={
+                loading ? (
+                  <View testID="board-loading" style={[styles.loading, { width: columnWidth }]}>
+                    <Spinner />
+                  </View>
+                ) : null
+              }
+              ListFooterComponent={
+                <View style={{ width: columnWidth }}>
+                  <Button variant="secondary" title={t('board.addList')} onPress={onAddList} />
                 </View>
-              ) : null
-            }
-            ListFooterComponent={
-              <View style={{ width: columnWidth }}>
-                <Button variant="secondary" title={t('board.addList')} onPress={onAddList} />
-              </View>
-            }
-          />
+              }
+            />
+          </Reanimated.View>
         </View>
       </GestureDetector>
     </SafeAreaView>
@@ -412,6 +413,8 @@ function BoardColumns({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  zoomable: { flex: 1, transformOrigin: [0, 0, 0] },
+  overflowVisible: { overflow: 'visible' },
   listContent: { paddingHorizontal: GAP, gap: GAP },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 48 },
 });

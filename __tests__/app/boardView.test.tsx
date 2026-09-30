@@ -59,7 +59,6 @@ jest.mock('../../src/features/board/hooks/useCardActions', () => ({
 let capturedDragProps: {
   enabled: boolean;
   onDrop: (result: any) => void;
-  onStackHover?: (stackId: string, index: number) => void;
   onStackDrop?: (stackId: string, index: number) => void;
 } | null = null;
 const mockDragContextValue = {
@@ -72,6 +71,9 @@ const mockDragContextValue = {
   startX: { value: 0 },
   startY: { value: 0 },
   target: { value: null },
+  zoom: { value: 1 },
+  lift: { value: 0 },
+  stackOrder: { value: [] as string[] },
   frame: {
     value: { stackIds: [], geometry: { gap: 0, columnWidth: 0, columnCount: 0 }, scrollX: 0, listTopY: 0, registry: {} },
     modify: jest.fn((updater?: (f: any) => any) => {
@@ -98,7 +100,6 @@ jest.mock('../../src/features/board/dnd/DragContext', () => ({
     capturedDragProps = {
       enabled: props.enabled,
       onDrop: props.onDrop,
-      onStackHover: props.onStackHover,
       onStackDrop: props.onStackDrop,
     };
     return props.children;
@@ -372,21 +373,17 @@ describe('list actions', () => {
     expect(mockStackRename).toHaveBeenCalledWith(expect.objectContaining({ id: 's2' }), 'Doing');
   });
 
-  const columnTitles = () => screen.getAllByText(/^(À faire|En cours)$/).map((n) => n.props.children);
-
-  it('previews the new order live while a list is dragged across the others', () => {
+  it('shows the lists in database order', () => {
     renderScreen();
-    expect(columnTitles()).toEqual(['À faire', 'En cours']);
-    act(() => capturedDragProps?.onStackHover?.('s1', 1));
-    expect(columnTitles()).toEqual(['En cours', 'À faire']);
-    expect(mockStackMove).not.toHaveBeenCalled();
+    expect(mockDragContextValue.stackOrder.value).toEqual(['s1', 's2']);
   });
 
-  it('holds the dropped order until the database catches up', () => {
+  it('puts the lists back in database order when a drop cannot be saved', async () => {
     renderScreen();
-    act(() => capturedDragProps?.onStackHover?.('s1', 1));
-    act(() => capturedDragProps?.onStackDrop?.('s1', 1));
-    expect(columnTitles()).toEqual(['En cours', 'À faire']);
+    mockStackMove.mockRejectedValueOnce(new Error('offline'));
+    mockDragContextValue.stackOrder.value = ['s2', 's1']; // the drag preview
+    await act(async () => capturedDragProps?.onStackDrop?.('s1', 1));
+    expect(mockDragContextValue.stackOrder.value).toEqual(['s1', 's2']);
   });
 
   it('moves a dropped list to the column it landed on', () => {
