@@ -1,6 +1,6 @@
 import { isEmptyQuery, parseQuery } from '../../../src/features/search/parseQuery';
 
-const empty = { title: [], description: [], list: [], tag: [], assigned: [], date: [], text: [] };
+const empty = { title: [], description: [], list: [], tag: [], assigned: [], board: [], date: [], text: [] };
 
 describe('parseQuery', () => {
   it('turns plain words into free-text terms', () => {
@@ -65,6 +65,12 @@ describe('parseQuery', () => {
   it('mixes free text and operators in any order', () => {
     expect(parseQuery('loyer tag:urgent bureaux')).toEqual({ ...empty, tag: ['urgent'], text: ['loyer', 'bureaux'] });
   });
+
+  it('reads a board filter, which only the app understands', () => {
+    expect(parseQuery('board:"Finance & Juridique" loyer')).toEqual({
+      ...empty, board: ['Finance & Juridique'], text: ['loyer'],
+    });
+  });
 });
 
 describe('isEmptyQuery', () => {
@@ -72,5 +78,6 @@ describe('isEmptyQuery', () => {
     expect(isEmptyQuery(parseQuery('   '))).toBe(true);
     expect(isEmptyQuery(parseQuery('x'))).toBe(false);
     expect(isEmptyQuery(parseQuery('title:'))).toBe(false);
+    expect(isEmptyQuery(parseQuery('board:x'))).toBe(false);
   });
 });

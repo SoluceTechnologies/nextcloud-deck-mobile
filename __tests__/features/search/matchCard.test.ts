@@ -1,4 +1,4 @@
-import { matchesBoardTitle, matchesQuery } from '../../../src/features/search/matchCard';
+import { matchesBoard, matchesBoardTitle, matchesQuery } from '../../../src/features/search/matchCard';
 import { parseQuery } from '../../../src/features/search/parseQuery';
 
 const NOW = new Date(2026, 8, 13, 12, 0, 0).getTime(); // 13 Sep 2026, local noon
@@ -55,16 +55,15 @@ it('never matches an empty operator value', () => {
   expect(matchesQuery(card(), parseQuery('title:""'), NOW)).toBe(false);
 });
 
-it('compares date: by calendar day', () => {
-  const dueToday = card({ duedate: NOW - 3 * 60 * 60 * 1000 }); // 09:00 today
-  expect(matchesQuery(dueToday, parseQuery('date:today'), NOW)).toBe(true);
+it('compares a plain date by calendar day', () => {
+  const dueToday = card({ duedate: NOW - 3 * 60 * 60 * 1000 });
   expect(matchesQuery(dueToday, parseQuery('date:2026-09-13'), NOW)).toBe(true);
   expect(matchesQuery(dueToday, parseQuery('date:tomorrow'), NOW)).toBe(false);
 });
 
 it('applies the date comparators', () => {
   const dueIn3 = card({ duedate: NOW + 3 * day });
-  expect(matchesQuery(dueIn3, parseQuery('date:>today'), NOW)).toBe(true);
+  expect(matchesQuery(dueIn3, parseQuery('date:>2026-09-13'), NOW)).toBe(true);
   expect(matchesQuery(dueIn3, parseQuery('date:<=2026-09-15'), NOW)).toBe(false);
   expect(matchesQuery(dueIn3, parseQuery('date:<=2026-09-16'), NOW)).toBe(true);
   expect(matchesQuery(dueIn3, parseQuery('date:>=2026-09-17'), NOW)).toBe(false);
@@ -79,4 +78,40 @@ it('matches a board title on free text only', () => {
   expect(matchesBoardTitle('Finance & Juridique', parseQuery('juridique'))).toBe(true);
   expect(matchesBoardTitle('Finance & Juridique', parseQuery('title:juridique'))).toBe(false);
   expect(matchesBoardTitle('Finance & Juridique', parseQuery(''))).toBe(false);
+});
+
+it('reads the date keywords the way the Deck server does', () => {
+  const dueAt = (ms: number) => card({ duedate: ms });
+  const hour = 60 * 60 * 1000;
+  expect(matchesQuery(dueAt(NOW - 60_000), parseQuery('date:overdue'), NOW)).toBe(true);
+  expect(matchesQuery(dueAt(NOW + 60_000), parseQuery('date:overdue'), NOW)).toBe(false);
+  expect(matchesQuery(dueAt(NOW + 23 * hour), parseQuery('date:today'), NOW)).toBe(true);
+  expect(matchesQuery(dueAt(NOW + 25 * hour), parseQuery('date:today'), NOW)).toBe(false);
+  expect(matchesQuery(dueAt(NOW - 60_000), parseQuery('date:today'), NOW)).toBe(false);
+  expect(matchesQuery(dueAt(NOW + 6 * day), parseQuery('date:week'), NOW)).toBe(true);
+  expect(matchesQuery(dueAt(NOW + 8 * day), parseQuery('date:week'), NOW)).toBe(false);
+  expect(matchesQuery(dueAt(NOW + 29 * day), parseQuery('date:month'), NOW)).toBe(true);
+  expect(matchesQuery(dueAt(NOW + 31 * day), parseQuery('date:month'), NOW)).toBe(false);
+});
+
+it('matches date:none and an empty date value on the presence of a due date', () => {
+  expect(matchesQuery(card(), parseQuery('date:none'), NOW)).toBe(true);
+  expect(matchesQuery(card({ duedate: NOW }), parseQuery('date:none'), NOW)).toBe(false);
+  expect(matchesQuery(card({ duedate: NOW }), parseQuery('date:""'), NOW)).toBe(true);
+  expect(matchesQuery(card(), parseQuery('date:""'), NOW)).toBe(false);
+});
+
+it('lets a date keyword win over its comparator, like the server', () => {
+  expect(matchesQuery(card({ duedate: NOW + 3 * day }), parseQuery('date:>today'), NOW)).toBe(false);
+});
+
+it('matches board: against the board title', () => {
+  expect(matchesQuery(card(), parseQuery('board:juridique'), NOW)).toBe(true);
+  expect(matchesQuery(card(), parseQuery('board:commercial'), NOW)).toBe(false);
+});
+
+it('checks a board title against every board filter', () => {
+  expect(matchesBoard('Finance & Juridique', parseQuery('board:finance loyer'))).toBe(true);
+  expect(matchesBoard('Commercial', parseQuery('board:finance'))).toBe(false);
+  expect(matchesBoard('Commercial', parseQuery('loyer'))).toBe(true);
 });
