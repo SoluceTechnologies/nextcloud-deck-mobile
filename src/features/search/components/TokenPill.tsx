@@ -50,6 +50,12 @@ export function TokenPill({ token, selected = false, onPress, onRemove }: TokenP
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={name}
+      accessibilityActions={
+        selected && onRemove ? [{ name: 'delete', label: t('search.removeFilter', { filter: name }) }] : undefined
+      }
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'delete') onRemove?.();
+      }}
       onPress={onPress}
       style={style}
     >

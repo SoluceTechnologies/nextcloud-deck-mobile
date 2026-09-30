@@ -58,6 +58,16 @@ it('selects a pill on tap and removes it from its cross once selected', () => {
   expect(handlers.onRemoveToken).toHaveBeenCalledWith(id);
 });
 
+it('offers removal as an accessibility action on a selected pill', () => {
+  const model = typed('tag:design ');
+  const id = model.segments[0].kind === 'token' ? model.segments[0].token.id : '';
+  const handlers = setup({ ...model, selectedId: id });
+  const pill = screen.getByTestId('token-tag-design');
+  expect(pill).toHaveProp('accessibilityActions', [{ name: 'delete', label: 'search.removeFilter' }]);
+  fireEvent(pill, 'accessibilityAction', { nativeEvent: { actionName: 'delete' } });
+  expect(handlers.onRemoveToken).toHaveBeenCalledWith(id);
+});
+
 it('shows no cross on a pill that is not selected', () => {
   setup(typed('tag:design '));
   expect(screen.queryByTestId('token-remove-tag-design')).toBeNull();
@@ -78,5 +88,6 @@ it('forwards typing, submit, blur and clear', () => {
 it('shows the placeholder and no clear button when empty', () => {
   setup(EMPTY_MODEL);
   expect(screen.getByTestId('search-input')).toHaveProp('placeholder', 'search.placeholder');
+  expect(screen.getByTestId('search-input')).toHaveProp('accessibilityLabel', 'search.placeholder');
   expect(screen.queryByLabelText('common.clear')).toBeNull();
 });

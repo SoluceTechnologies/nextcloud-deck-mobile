@@ -77,6 +77,7 @@ export function SearchField({
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
+          accessibilityLabel={t('search.placeholder')}
           placeholder={empty ? t('search.placeholder') : undefined}
           placeholderTextColor={colors.text + '66'}
           style={[styles.input, { color: colors.text }]}
