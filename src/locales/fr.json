@@ -377,6 +377,7 @@
       "week": "7 PROCHAINS JOURS"
     },
     "recent": "TABLEAUX RÉCENTS",
+    "recentProgress": "{{done}}/{{total}} terminées",
     "emptyTitle": "Tout est à jour",
     "empty": "Rien à échéance — profitez du calme.",
     "addCard": "Ajouter une carte",

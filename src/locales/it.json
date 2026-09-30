@@ -377,6 +377,7 @@
       "week": "PROSSIMI 7 GIORNI"
     },
     "recent": "BACHECHE RECENTI",
+    "recentProgress": "{{done}}/{{total}} completate",
     "emptyTitle": "Tutto in pari",
     "empty": "Niente in scadenza — goditi la calma.",
     "addCard": "Aggiungi una scheda",

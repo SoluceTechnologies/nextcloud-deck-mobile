@@ -377,6 +377,7 @@
       "week": "PRÓXIMOS 7 DÍAS"
     },
     "recent": "TABLEROS RECIENTES",
+    "recentProgress": "{{done}}/{{total}} hechas",
     "emptyTitle": "Todo al día",
     "empty": "Nada pendiente — disfruta de la calma.",
     "addCard": "Añadir una tarjeta",

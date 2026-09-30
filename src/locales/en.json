@@ -377,6 +377,7 @@
       "week": "NEXT 7 DAYS"
     },
     "recent": "RECENT BOARDS",
+    "recentProgress": "{{done}}/{{total}} done",
     "emptyTitle": "All caught up",
     "empty": "Nothing due — enjoy the calm.",
     "addCard": "Add a card",
