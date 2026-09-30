@@ -1,6 +1,6 @@
 import { EMPTY_MODEL } from '../../../src/features/search/searchModel';
 import type { Resolve, SearchModel } from '../../../src/features/search/searchModel';
-import { lastOpenWord, matchKey, parseInput, splitWords, toTerm } from '../../../src/features/search/searchSyntax';
+import { lastOpenWord, matchKey, parseInput, splitWords, toTerm, tokenFrom } from '../../../src/features/search/searchSyntax';
 import { parseQuery } from '../../../src/features/search/parseQuery';
 
 const resolve: Resolve = (key, raw) =>
@@ -120,5 +120,12 @@ describe('lastOpenWord', () => {
   it('returns the word being typed, not a finished one', () => {
     expect(lastOpenWord('loyer desi')).toEqual({ text: 'desi', start: 6, closed: false });
     expect(lastOpenWord('loyer ')).toBeNull();
+  });
+});
+
+describe('tokenFrom', () => {
+  it('derives a stable id from the key and the value, ignoring case', () => {
+    expect(tokenFrom('tag', { value: 'Design', label: 'Design' }).id).toBe(tokenFrom('tag', { value: 'design', label: 'design' }).id);
+    expect(tokenFrom('tag', { value: 'design', label: 'design' }).id).not.toBe(tokenFrom('list', { value: 'design', label: 'design' }).id);
   });
 });

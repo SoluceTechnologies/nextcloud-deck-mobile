@@ -5,8 +5,6 @@ export const FILTER_KEYS: readonly FilterKey[] = ['board', 'tag', 'assigned', 'l
 export type Word = { text: string; start: number; closed: boolean };
 export type ParsedInput = { segments: Segment[]; input: string; pending: FilterKey | null };
 
-let tokenSeq = 0;
-
 export function splitWords(input: string): Word[] {
   const words: Word[] = [];
   let current = '';
@@ -45,8 +43,7 @@ export function matchKey(word: string): { key: FilterKey; value: string } | null
 }
 
 export function tokenFrom(key: FilterKey, resolved: Resolved): Token {
-  tokenSeq += 1;
-  return { id: `token-${tokenSeq}`, key, value: resolved.value, label: resolved.label, color: resolved.color };
+  return { id: `${key}:${resolved.value.toLowerCase()}`, key, value: resolved.value, label: resolved.label, color: resolved.color };
 }
 
 export function makeToken(key: FilterKey, value: string, resolve: Resolve): Token {
