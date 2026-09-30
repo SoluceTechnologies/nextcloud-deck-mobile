@@ -28,3 +28,14 @@ export function targetAt(
   const index = insertionIndexAt(localY, column?.tiles ?? [], draggedId);
   return { stackId, index };
 }
+
+export function headerIndexAt(absoluteX: number, absoluteY: number, frame: DragFrame): number | null {
+  'worklet';
+  if (absoluteY >= frame.listTopY) return null;
+  const { gap, columnWidth, columnCount } = frame.geometry;
+  const contentX = absoluteX + frame.scrollX - gap;
+  if (contentX < 0) return null;
+  const index = Math.floor(contentX / (columnWidth + gap));
+  if (index >= columnCount || contentX - index * (columnWidth + gap) > columnWidth) return null;
+  return index;
+}

@@ -11,15 +11,10 @@ import { mutate, OUTBOX_QUEUED } from '@/sync/outbox/enqueue';
 export type StackActions = {
   create(title: string): Promise<void>;
   rename(stack: Stack, title: string): Promise<void>;
+  move(stack: Stack, toIndex: number): Promise<void>;
   remove(stack: Stack): Promise<void>;
 };
 
-/**
- * Every stack (list) write the board view needs, in one place, mirroring
- * useCardActions/useBoardActions. Each action is a no-op without an account or a
- * board — there is nowhere to file the intent, and enqueuing one anyway would
- * orphan it.
- */
 export function useStackActions(accountId: string | null, boardLocalId: string | null): StackActions {
   const db = useDatabase();
 
@@ -33,12 +28,10 @@ export function useStackActions(accountId: string | null, boardLocalId: string |
         .fetch();
       const order = siblings.reduce((max, row) => Math.max(max, row.order), -1) + 1;
 
-      // Synchronous: WatermelonDB assigns the row's id before prepareCreate returns,
-      // which is why the intent below can carry it immediately.
       const row = db.get<Stack>('stacks').prepareCreate((r) => {
         r.accountId = accountId;
         r.boardId = boardLocalId;
-        r.remoteId = ''; // Findable offline, before the server has assigned one.
+        r.remoteId = '';
         r.title = title;
         r.order = order;
         r.lastModified = 0;
@@ -65,31 +58,55 @@ export function useStackActions(accountId: string | null, boardLocalId: string |
       });
     };
 
+    const move: StackActions['move'] = async (stack, toIndex) => {
+      if (!accountId || !boardLocalId) return;
+
+      const siblings = (
+        await db
+          .get<Stack>('stacks')
+          .query(Q.where('account_id', accountId), Q.where('board_id', boardLocalId))
+          .fetch()
+      ).sort((a, b) => a.order - b.order);
+      const from = siblings.findIndex((row) => row.id === stack.id);
+      if (from === -1 || from === toIndex) return;
+
+      const [moved] = siblings.splice(from, 1);
+      siblings.splice(toIndex, 0, moved);
+      const changed = siblings
+        .map((row, order) => ({ row, order }))
+        .filter(({ row, order }) => row.order !== order);
+
+      for (const [i, { row, order }] of changed.entries()) {
+        await mutate({
+          db,
+          accountId,
+          intent: { kind: 'updateStack', stackId: row.id, title: row.title, order },
+          applyLocal: () =>
+            i > 0
+              ? []
+              : changed.map((c) =>
+                  c.row.prepareUpdate((r: Stack) => {
+                    r.order = c.order;
+                  }),
+                ),
+        });
+      }
+    };
+
     const remove: StackActions['remove'] = async (stack) => {
       if (!accountId) return;
 
-      // The local row is about to be destroyed, so the delete intent must carry the
-      // board's remote id itself — read before mutate, since prepareMarkAsDeleted is
-      // the only call that may run inside applyLocal.
       const board = await db.get<Board>('boards').find(stack.boardId);
 
       await mutate({
         db,
         accountId,
-        // Enqueued even when remoteId is '' (never synced) — coalescing collapses
-        // a create+delete pair for a row that never reached the server.
         intent: {
           kind: 'deleteStack',
           stackId: stack.id,
           boardRemoteId: board.remoteId,
           stackRemoteId: stack.remoteId,
         },
-        // The stack's cards go with it in the same batch, or they would linger as
-        // rows pointing at a destroyed stack — surfacing in Today and Search
-        // (both filter orphans by board, not stack) with a blank stack name,
-        // and inflating the board's done/total count — until a sync noticed.
-        // Mirrors useBoardActions.remove one scope down. A card already moved
-        // to another stack is not among them and keeps its intents.
         applyLocal: async () => {
           const cards = await db
             .get<Card>('cards')
@@ -116,6 +133,6 @@ export function useStackActions(accountId: string | null, boardLocalId: string |
       });
     };
 
-    return { create, rename, remove };
+    return { create, rename, move, remove };
   }, [db, accountId, boardLocalId]);
 }

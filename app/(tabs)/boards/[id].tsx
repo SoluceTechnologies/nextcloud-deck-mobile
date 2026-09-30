@@ -10,10 +10,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import Reanimated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+import Reanimated, { LinearTransition, useAnimatedScrollHandler } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 
 import { useAccountStore } from '@/stores/accountStore';
 import { boardContentKey, useUiStore } from '@/stores/uiStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useDatabase } from '@/database/DatabaseProvider';
 import { useBoardCards, useBoards } from '@/database/hooks/useBoards';
 import { useBoardStacks } from '@/database/hooks/useBoardContent';
@@ -24,11 +26,13 @@ import { useStackActions } from '@/features/board/hooks/useStackActions';
 import { useCardActions } from '@/features/board/hooks/useCardActions';
 import { StackColumn } from '@/features/board/components/StackColumn';
 import { StackFormSheet } from '@/features/board/components/StackFormSheet';
+import { StackActionsSheet } from '@/features/board/components/StackActionsSheet';
 import { toCardTileCard, type CardTileData } from '@/features/board/components/CardTile';
 import { DragProvider, useDrag, useDragActiveData } from '@/features/board/dnd/DragContext';
 import { DragOverlay } from '@/features/board/dnd/DragOverlay';
 import type { DropResult } from '@/features/board/dnd/dragController';
 import { edgeDirection, orderFor } from '@/features/board/dnd/dropTarget';
+import { useStackDragGesture, type StackDragSource } from '@/features/board/dnd/useStackDragGesture';
 import { recordRecentBoard } from '@/features/today/recentBoards';
 import { useIsOnline } from '@/services/shared/network';
 import { requestBoardSnapshot } from '@/sync/scheduler';
@@ -46,7 +50,19 @@ function getColumnWidth(windowWidth: number): number {
   return Math.floor((windowWidth - GAP * (n + 1)) / n);
 }
 
-type AddTarget = { kind: 'list' } | { kind: 'card'; stackId: string };
+type FormTarget = { kind: 'list' } | { kind: 'card'; stackId: string } | { kind: 'rename'; stack: Stack };
+
+type StackPreview = { stackId: string; index: number; dropped: boolean };
+
+function withPreview(stacks: Stack[], preview: StackPreview | null): Stack[] {
+  if (!preview) return stacks;
+  const from = stacks.findIndex((s) => s.id === preview.stackId);
+  if (from === -1 || from === preview.index) return stacks;
+  const next = [...stacks];
+  const [moved] = next.splice(from, 1);
+  next.splice(preview.index, 0, moved);
+  return next;
+}
 
 export default function BoardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -64,7 +80,15 @@ export default function BoardScreen() {
   const stackActions = useStackActions(accountId, boardLocalId);
   const cardActions = useCardActions(accountId);
 
-  const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
+  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
+  const [menuStackId, setMenuStackId] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [stackPreview, setStackPreview] = useState<StackPreview | null>(null);
+  const displayedStacks = useMemo(() => withPreview(stacks, stackPreview), [stacks, stackPreview]);
+
+  useEffect(() => {
+    setStackPreview((p) => (p?.dropped ? null : p));
+  }, [stacks]);
 
   const db = useDatabase();
   const boardRemoteId = board?.remoteId ?? '';
@@ -100,7 +124,11 @@ export default function BoardScreen() {
   }, [cards, labelsByCard, assigneesByCard]);
 
   const handleCardPress = useCallback((cardId: string) => router.push(`/card/${cardId}`), [router]);
-  const handleAddCard = useCallback((stackId: string) => setAddTarget({ kind: 'card', stackId }), []);
+  const handleAddCard = useCallback((stackId: string) => setFormTarget({ kind: 'card', stackId }), []);
+  const handleOpenMenu = useCallback((stackId: string) => {
+    setMenuStackId(stackId);
+    setMenuVisible(true);
+  }, []);
 
   const columnWidth = getColumnWidth(windowWidth);
 
@@ -119,9 +147,11 @@ export default function BoardScreen() {
         onCardPress={handleCardPress}
         onAddCard={handleAddCard}
         draggable={board?.canEdit}
+        reorderable={board?.canManage}
+        onOpenMenu={board?.canEdit ? handleOpenMenu : undefined}
       />
     ),
-    [cardTilesByStack, columnWidth, handleCardPress, handleAddCard, board?.canEdit],
+    [cardTilesByStack, columnWidth, handleCardPress, handleAddCard, handleOpenMenu, board?.canEdit, board?.canManage],
   );
 
   const handleDrop = useCallback(
@@ -141,6 +171,32 @@ export default function BoardScreen() {
     [cards, cardActions],
   );
 
+  const handleStackHover = useCallback(
+    (stackId: string, index: number) => setStackPreview({ stackId, index, dropped: false }),
+    [],
+  );
+
+  const handleStackDrop = useCallback(
+    (stackId: string, index: number) => {
+      const stack = stacks.find((s) => s.id === stackId);
+      if (!stack) return setStackPreview(null);
+      setStackPreview({ stackId, index, dropped: true });
+      void stackActions.move(stack, index).catch(() => setStackPreview(null));
+    },
+    [stacks, stackActions],
+  );
+
+  const stackSourceOf = useCallback(
+    (stackId: string): StackDragSource | null => {
+      const stack = stacks.find((s) => s.id === stackId);
+      return stack ? { stack, cards: cardTilesByStack.get(stackId) ?? [] } : null;
+    },
+    [stacks, cardTilesByStack],
+  );
+
+  const menuStack = stacks.find((s) => s.id === menuStackId) ?? null;
+  const menuCards = menuStack ? cards.filter((c) => c.stackId === menuStack.id) : [];
+
   if (!board) {
     return (
       <ViewContainer>
@@ -156,29 +212,63 @@ export default function BoardScreen() {
 
   return (
     <ViewContainer>
-      <DragProvider enabled={board.canEdit} onDrop={handleDrop}>
+      <DragProvider
+        enabled={board.canEdit}
+        onDrop={handleDrop}
+        onStackHover={handleStackHover}
+        onStackDrop={handleStackDrop}
+      >
         <BoardColumns
           board={board}
-          stacks={stacks}
+          stacks={displayedStacks}
           columnWidth={columnWidth}
           windowWidth={windowWidth}
           renderStack={renderStack}
+          canReorder={board.canManage}
+          stackSourceOf={stackSourceOf}
           loading={loadingContent}
-          onAddList={() => setAddTarget({ kind: 'list' })}
+          onAddList={() => setFormTarget({ kind: 'list' })}
         />
         <DragOverlay />
       </DragProvider>
 
+      {menuStack ? (
+        <StackActionsSheet
+          title={menuStack.title}
+          cardCount={menuCards.length}
+          canManage={board.canManage}
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          onRename={() => setFormTarget({ kind: 'rename', stack: menuStack })}
+          onMarkAllDone={() => {
+            void (async () => {
+              for (const card of menuCards) if (!card.doneAt) await cardActions.setDone(card, true);
+            })().catch(() => undefined);
+          }}
+          onArchiveAll={() => {
+            void (async () => {
+              for (const card of menuCards) await cardActions.setArchived(card, true);
+            })().catch(() => undefined);
+          }}
+          onDelete={() => void stackActions.remove(menuStack).catch(() => undefined)}
+        />
+      ) : null}
+
       <StackFormSheet
-        visible={addTarget !== null}
-        heading={addTarget?.kind === 'card' ? t('board.form.newCard') : undefined}
-        placeholder={addTarget?.kind === 'card' ? t('board.cardTitle') : undefined}
-        onClose={() => setAddTarget(null)}
+        visible={formTarget !== null}
+        initial={formTarget?.kind === 'rename' ? { title: formTarget.stack.title } : undefined}
+        heading={formTarget?.kind === 'card' ? t('board.form.newCard') : undefined}
+        placeholder={formTarget?.kind === 'card' ? t('board.cardTitle') : undefined}
+        onClose={() => setFormTarget(null)}
         onSubmit={({ title }) => {
-          if (addTarget?.kind === 'card') {
+          if (formTarget?.kind === 'card') {
             void cardActions
-              .create({ boardLocalId: board.id, stackLocalId: addTarget.stackId, title })
+              .create({ boardLocalId: board.id, stackLocalId: formTarget.stackId, title })
               .catch(() => undefined);
+          } else if (formTarget?.kind === 'rename') {
+            if (title !== formTarget.stack.title) {
+              void stackActions.rename(formTarget.stack, title).catch(() => undefined);
+            }
           } else {
             void stackActions.create(title).catch(() => undefined);
           }
@@ -194,6 +284,8 @@ type BoardColumnsProps = {
   columnWidth: number;
   windowWidth: number;
   renderStack: (info: ListRenderItemInfo<Stack>) => ReactElement;
+  canReorder: boolean;
+  stackSourceOf: (stackId: string) => StackDragSource | null;
   loading: boolean;
   onAddList: () => void;
 };
@@ -204,6 +296,8 @@ function BoardColumns({
   columnWidth,
   windowWidth,
   renderStack,
+  canReorder,
+  stackSourceOf,
   loading,
   onAddList,
 }: BoardColumnsProps) {
@@ -215,6 +309,15 @@ function BoardColumns({
   const listHeightRef = useRef(0);
   const insets = useSafeAreaInsets();
   const tabBarInset = nativeTabsEnabled() ? insets.bottom : 0;
+  const reduceMotion = useSettingsStore((s) => s.reduceMotion);
+  const bottomInset = 12 + tabBarInset;
+  const boardRef = useRef<View>(null);
+  const stackDragGesture = useStackDragGesture({
+    enabled: canReorder,
+    boardRef,
+    bottomInset,
+    sourceOf: stackSourceOf,
+  });
 
   useEffect(() => {
     const stackIds = stacks.map((s) => s.id);
@@ -266,37 +369,43 @@ function BoardColumns({
     <SafeAreaView edges={['top']} style={styles.flex}>
       <ScreenHeader title={board.title} onBack={() => router.back()} />
 
-      <Reanimated.FlatList<Stack>
-        ref={listRef}
-        horizontal
-        data={stacks}
-        keyExtractor={(item) => item.id}
-        renderItem={renderStack}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        onLayout={(e: LayoutChangeEvent) => {
-          listHeightRef.current = e.nativeEvent.layout.height;
-        }}
-        contentContainerStyle={[styles.listContent, { paddingBottom: 12 + tabBarInset }]}
-        snapToInterval={columnWidth + GAP}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        disableIntervalMomentum
-        showsHorizontalScrollIndicator={false}
-        initialNumToRender={3}
-        ListEmptyComponent={
-          loading ? (
-            <View testID="board-loading" style={[styles.loading, { width: columnWidth }]}>
-              <Spinner />
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          <View style={{ width: columnWidth }}>
-            <Button variant="secondary" title={t('board.addList')} onPress={onAddList} />
-          </View>
-        }
-      />
+      <GestureDetector gesture={stackDragGesture}>
+        <View ref={boardRef} style={styles.flex} collapsable={false}>
+          <Reanimated.FlatList<Stack>
+            ref={listRef}
+            horizontal
+            data={stacks}
+            keyExtractor={(item) => item.id}
+            renderItem={renderStack}
+            // Lists glide to their new slot while one is dragged across them.
+            itemLayoutAnimation={reduceMotion ? undefined : LinearTransition}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            onLayout={(e: LayoutChangeEvent) => {
+              listHeightRef.current = e.nativeEvent.layout.height;
+            }}
+            contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
+            snapToInterval={columnWidth + GAP}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
+            showsHorizontalScrollIndicator={false}
+            initialNumToRender={3}
+            ListEmptyComponent={
+              loading ? (
+                <View testID="board-loading" style={[styles.loading, { width: columnWidth }]}>
+                  <Spinner />
+                </View>
+              ) : null
+            }
+            ListFooterComponent={
+              <View style={{ width: columnWidth }}>
+                <Button variant="secondary" title={t('board.addList')} onPress={onAddList} />
+              </View>
+            }
+          />
+        </View>
+      </GestureDetector>
     </SafeAreaView>
   );
 }
