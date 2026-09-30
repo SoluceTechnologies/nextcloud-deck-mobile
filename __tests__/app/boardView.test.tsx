@@ -28,38 +28,39 @@ jest.mock('../../src/database/hooks/useBoardRelations', () => ({
 }));
 
 const mockStackCreate = jest.fn(() => Promise.resolve());
+const mockStackRename = jest.fn(() => Promise.resolve());
+const mockStackMove = jest.fn(() => Promise.resolve());
+const mockStackRemove = jest.fn(() => Promise.resolve());
 jest.mock('../../src/features/board/hooks/useStackActions', () => ({
   useStackActions: () => ({
     create: mockStackCreate,
-    rename: jest.fn(() => Promise.resolve()),
-    remove: jest.fn(() => Promise.resolve()),
+    rename: mockStackRename,
+    move: mockStackMove,
+    remove: mockStackRemove,
   }),
 }));
 
 const mockCardCreate = jest.fn(() => Promise.resolve());
 const mockCardMove = jest.fn(() => Promise.resolve());
+const mockCardSetDone = jest.fn(() => Promise.resolve());
+const mockCardSetArchived = jest.fn(() => Promise.resolve());
 jest.mock('../../src/features/board/hooks/useCardActions', () => ({
   useCardActions: () => ({
     create: mockCardCreate,
-    setDone: jest.fn(() => Promise.resolve()),
+    setDone: mockCardSetDone,
     patch: jest.fn(() => Promise.resolve()),
-    setArchived: jest.fn(() => Promise.resolve()),
+    setArchived: mockCardSetArchived,
     remove: jest.fn(() => Promise.resolve()),
     move: mockCardMove,
     clone: jest.fn(() => Promise.resolve()),
   }),
 }));
 
-// The captured-prop idiom (see QuickAddCardFlow.test.tsx): DragProvider is stubbed to
-// capture the `enabled`/`onDrop` props the screen passes it, and DragOverlay is left
-// unmocked — with `activeData` fixed at null here, its own real "mount only while a
-// drag is active" check already renders it as null, so it doesn't need its own stub.
-// StackColumn/DraggableCard resolve `useDrag`/`useOptionalDrag` through this same
-// mock too, so both need a well-formed (if inert) context value to render against.
-// activeData/setActiveData stay on this one object even though the real module now
-// splits them into a second context (see DragContext.tsx) — useDragActiveData below
-// just reads the same field, so nothing here needs to track that split.
-let capturedDragProps: { enabled: boolean; onDrop: (result: any) => void } | null = null;
+let capturedDragProps: {
+  enabled: boolean;
+  onDrop: (result: any) => void;
+  onStackDrop?: (stackId: string, index: number) => void;
+} | null = null;
 const mockDragContextValue = {
   activeId: { value: null },
   x: { value: 0 },
@@ -70,11 +71,11 @@ const mockDragContextValue = {
   startX: { value: 0 },
   startY: { value: 0 },
   target: { value: null },
+  zoom: { value: 1 },
+  lift: { value: 0 },
+  stackOrder: { value: [] as string[] },
   frame: {
     value: { stackIds: [], geometry: { gap: 0, columnWidth: 0, columnCount: 0 }, scrollX: 0, listTopY: 0, registry: {} },
-    // Mirrors the real SharedValue.modify(): the modifier runs on the UI
-    // runtime, so a plain JS closure crashes on device. A jest.fn() that
-    // swallows the call would hide exactly that, so validate and apply.
     modify: jest.fn((updater?: (f: any) => any) => {
       if (updater && typeof (updater as any).__workletHash !== 'number') {
         throw new Error(
@@ -96,7 +97,11 @@ const mockDragContextValue = {
 };
 jest.mock('../../src/features/board/dnd/DragContext', () => ({
   DragProvider: (props: any) => {
-    capturedDragProps = { enabled: props.enabled, onDrop: props.onDrop };
+    capturedDragProps = {
+      enabled: props.enabled,
+      onDrop: props.onDrop,
+      onStackDrop: props.onStackDrop,
+    };
     return props.children;
   },
   useDrag: () => mockDragContextValue,
@@ -106,8 +111,6 @@ jest.mock('../../src/features/board/dnd/DragContext', () => ({
 
 jest.mock('../../src/sync/scheduler', () => ({ requestBoardSnapshot: jest.fn() }));
 
-// The empty-board spinner is gated on connectivity: offline there will never
-// be a fetch to wait for.
 jest.mock('../../src/services/shared/network', () => ({ useIsOnline: jest.fn(() => true) }));
 
 jest.mock('../../src/features/today/recentBoards', () => ({ recordRecentBoard: jest.fn(async () => {}) }));
@@ -119,19 +122,10 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
-// Sheet renders via useSafeAreaInsets(), which throws without a provider —
-// same fix already used across the board feature's tests.
 jest.mock('react-native-safe-area-context', () =>
   require('react-native-safe-area-context/jest/mock').default,
 );
 
-// `router` and `useRouter()` must resolve to the SAME spy object (the brief
-// asserts via `require('expo-router').router.push`, the screen calls through
-// `useRouter()`). The router object is built entirely inside this factory,
-// not from outer `const`s: BoardScreen's import above transitively requires
-// 'expo-router' before any later top-level `const` in this file has run, and
-// Babel's object-spread bakes an outer reference into a snapshot at that
-// (too early) moment — self-contained state sidesteps the ordering issue.
 jest.mock('expo-router', () => {
   const router = { push: jest.fn(), back: jest.fn(), replace: jest.fn() };
   return {
@@ -148,16 +142,10 @@ const renderScreen = () => render(<BoardScreen />, { wrapper: ThemeWrapper });
 beforeEach(() => {
   jest.clearAllMocks();
   capturedDragProps = null;
-  // clearAllMocks() does not undo a mockReturnValue set by a previous test
-  // (mirrors cardDetail.test.tsx's beforeEach reseed) — reseed this one
-  // explicitly so a test that overrides it (e.g. an offline board with no
-  // remote id yet) can't leak into the next.
   const { useBoards } = require('../../src/database/hooks/useBoards');
   (useBoards as jest.Mock).mockReturnValue([
     { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: true, canManage: true, lastModified: 0 },
   ]);
-  // Same trap, one hook over: the empty-board tests below override this, and
-  // clearAllMocks() leaves that override in place for everything after them.
   const { useBoardStacks } = require('../../src/database/hooks/useBoardContent');
   (useBoardStacks as jest.Mock).mockReturnValue([
     { id: 's1', title: 'À faire', order: 0 },
@@ -183,7 +171,6 @@ it('puts each card in its own stack', () => {
   expect(screen.getByText('Beta')).toBeTruthy();
 });
 
-// Opening a board must never blank the screen while the network answers.
 it('renders cached content immediately, with no loading state', () => {
   renderScreen();
   expect(screen.queryByTestId('board-spinner')).toBeNull();
@@ -193,25 +180,15 @@ it('renders cached content immediately, with no loading state', () => {
 it('requests a full snapshot for this board on open', () => {
   const { requestBoardSnapshot } = require('../../src/sync/scheduler');
   renderScreen();
-  // The route id ('b1') is the board's LOCAL id; the scheduler is asked with
-  // the board's REMOTE id ('B1') since that's what the server-side fetch key
-  // is keyed on (see requestBoardSnapshot in src/sync/scheduler.ts).
   expect(requestBoardSnapshot).toHaveBeenCalledWith('a1', 'B1');
 });
 
-// Recent boards are sourced from in-app consultations (spec §7.6): opening
-// the screen is what counts, regardless of remote-id/sync state.
 it('records the board as recently opened on mount', () => {
   const { recordRecentBoard } = require('../../src/features/today/recentBoards');
   renderScreen();
   expect(recordRecentBoard).toHaveBeenCalledWith(expect.anything(), 'a1', 'b1');
 });
 
-// R7: recordRecentBoard is gated on accountId + the LOCAL board id only —
-// never on remoteId. A board created offline has no remote id yet, so this
-// is the one case that actually distinguishes the correct guard from a
-// regression that folds recordRecentBoard under the same `!boardRemoteId`
-// check the snapshot fetch uses below it.
 it('still records an offline-created board (no remote id yet), but does not request its snapshot', () => {
   const { useBoards } = require('../../src/database/hooks/useBoards');
   (useBoards as jest.Mock).mockReturnValue([
@@ -238,16 +215,11 @@ it('offers an add-list affordance after the last column', () => {
   expect(screen.getByText('board.addList')).toBeTruthy();
 });
 
-// board.canEdit is true in the fixture — spec §7.4 wants the gesture disabled, not
-// hidden, when it's false, but that's DragProvider's/DraggableCard's own concern
-// (Task 13); this only checks the screen passes the right value through.
 it('enables dragging only when the board can be edited', () => {
   renderScreen();
   expect(capturedDragProps?.enabled).toBe(true);
 });
 
-// Completes the "only" half of the test above — a hardcoded enabled={true} on the
-// screen would pass that one but not this one.
 it('disables dragging when the board cannot be edited', () => {
   const { useBoards } = require('../../src/database/hooks/useBoards');
   (useBoards as jest.Mock).mockReturnValue([
@@ -257,11 +229,6 @@ it('disables dragging when the board cannot be edited', () => {
   expect(capturedDragProps?.enabled).toBe(false);
 });
 
-// The drop tests below call capturedDragProps.onDrop(...) directly and never
-// render through to StackColumn/DraggableCard, so nothing else in this file
-// would catch a regression that stopped forwarding draggable={board?.canEdit}.
-// drag-<cardId> is the gesture test id DraggableCard registers (Task 13) — it
-// exists only on the draggable path, never on the plain CardTile path.
 it('wires draggable to StackColumn when the board can be edited', () => {
   renderScreen();
   expect(getByGestureTestId('drag-c1')).toBeTruthy();
@@ -282,8 +249,6 @@ it('commits a drop as one move with the computed orders', () => {
   expect(mockCardMove).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }), 's2', 0, expect.any(Number));
 });
 
-// s1 holds only c1 (fixture) — dropped back into s1 at index 0, its own (only) current
-// position among the OTHER cards in s1 (none), so nothing actually moved.
 it('ignores a drop that leaves the card where it was', () => {
   renderScreen();
   act(() => capturedDragProps?.onDrop({ cardId: 'c1', fromStackId: 's1', toStackId: 's1', index: 0 }));
@@ -296,16 +261,12 @@ describe('the empty board', () => {
     (useBoardStacks as jest.Mock).mockReturnValue([]);
   };
 
-  // An empty stack list means "not fetched yet" just as often as "this board
-  // has no lists"; only the scheduler's own record settles it.
   it('waits on the first content fetch rather than claiming the board is empty', () => {
     emptyBoard();
     renderScreen();
     expect(screen.getByTestId('board-loading')).toBeTruthy();
   });
 
-  // The complaint this fixes: a board created moments ago really is empty, and
-  // used to sit under a spinner on a fixed timer regardless.
   it('stops waiting as soon as the fetch has been attempted', () => {
     emptyBoard();
     act(() =>
@@ -315,7 +276,6 @@ describe('the empty board', () => {
     expect(screen.queryByTestId('board-loading')).toBeNull();
   });
 
-  // Nothing is going to fetch it, so waiting would spin forever.
   it('does not wait while offline', () => {
     emptyBoard();
     const { useIsOnline } = require('../../src/services/shared/network');
@@ -324,8 +284,6 @@ describe('the empty board', () => {
     expect(screen.queryByTestId('board-loading')).toBeNull();
   });
 
-  // A board created here has no remote id, so there is nothing on the server
-  // to wait for.
   it('does not wait on a board that has never been pushed', () => {
     emptyBoard();
     const { useBoards } = require('../../src/database/hooks/useBoards');
@@ -337,8 +295,6 @@ describe('the empty board', () => {
   });
 });
 
-// The add-list sheet is the real StackFormSheet over the real Sheet, so this
-// walks the whole affordance: open, type, submit, and the board's own handler.
 it('creates a list from the add-list sheet', () => {
   renderScreen();
   fireEvent.press(screen.getByText('board.addList'));
@@ -350,8 +306,6 @@ it('creates a list from the add-list sheet', () => {
   expect(mockCardCreate).not.toHaveBeenCalled();
 });
 
-// The same sheet is reused for "add a card to stack X"; the board has to route
-// the submission to the card action instead, with the stack it was opened from.
 it('creates a card from the same sheet when it was opened from a column', () => {
   renderScreen();
   fireEvent.press(screen.getAllByText('board.addCard')[0]);
@@ -365,4 +319,85 @@ it('creates a card from the same sheet when it was opened from a column', () => 
     title: 'Alpha 2',
   });
   expect(mockStackCreate).not.toHaveBeenCalled();
+});
+
+describe('list actions', () => {
+  const cardRow = (id: string, stackId: string, doneAt: number | null) => ({
+    id, stackId, title: id, order: 0, color: null, archived: false, doneAt, duedate: null, startdate: null,
+    attachmentCount: 0, commentsCount: 0, pending: false,
+  });
+
+  beforeEach(() => {
+    const { useBoardCards } = require('../../src/database/hooks/useBoards');
+    (useBoardCards as jest.Mock).mockReturnValue([
+      cardRow('open', 's1', null),
+      cardRow('done', 's1', 1000),
+      cardRow('other', 's2', null),
+    ]);
+  });
+
+  afterAll(() => {
+    const { useBoardCards } = require('../../src/database/hooks/useBoards');
+    (useBoardCards as jest.Mock).mockReset();
+  });
+
+  const openMenu = (index = 0) => fireEvent.press(screen.getAllByLabelText('board.actions.menu')[index]);
+
+  it('marks only the list\'s unfinished cards as done', async () => {
+    renderScreen();
+    openMenu();
+    await act(async () => fireEvent.press(screen.getByText('board.actions.markAllDone')));
+    expect(mockCardSetDone.mock.calls.map(([card]: any) => card.id)).toEqual(['open']);
+  });
+
+  it('archives every card of the list after confirmation', async () => {
+    const { Alert } = require('react-native');
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    renderScreen();
+    openMenu();
+    fireEvent.press(screen.getByText('board.actions.archiveAll'));
+    await act(async () => (alert.mock.calls[0][2] as any[]).find((b: any) => b.style === 'destructive').onPress());
+    expect(mockCardSetArchived.mock.calls).toEqual([
+      [expect.objectContaining({ id: 'open' }), true],
+      [expect.objectContaining({ id: 'done' }), true],
+    ]);
+  });
+
+  it('renames through the list form, prefilled with the current title', () => {
+    renderScreen();
+    openMenu(1);
+    fireEvent.press(screen.getByText('board.actions.rename'));
+    expect(screen.getByDisplayValue('En cours')).toBeTruthy();
+    fireEvent.changeText(screen.getByDisplayValue('En cours'), 'Doing');
+    fireEvent.press(screen.getByText('board.form.save'));
+    expect(mockStackRename).toHaveBeenCalledWith(expect.objectContaining({ id: 's2' }), 'Doing');
+  });
+
+  it('shows the lists in database order', () => {
+    renderScreen();
+    expect(mockDragContextValue.stackOrder.value).toEqual(['s1', 's2']);
+  });
+
+  it('puts the lists back in database order when a drop cannot be saved', async () => {
+    renderScreen();
+    mockStackMove.mockRejectedValueOnce(new Error('offline'));
+    mockDragContextValue.stackOrder.value = ['s2', 's1']; // the drag preview
+    await act(async () => capturedDragProps?.onStackDrop?.('s1', 1));
+    expect(mockDragContextValue.stackOrder.value).toEqual(['s1', 's2']);
+  });
+
+  it('moves a dropped list to the column it landed on', () => {
+    renderScreen();
+    act(() => capturedDragProps?.onStackDrop?.('s1', 1));
+    expect(mockStackMove).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), 1);
+  });
+
+  it('hides the list menu when the board cannot be edited', () => {
+    const { useBoards } = require('../../src/database/hooks/useBoards');
+    (useBoards as jest.Mock).mockReturnValue([
+      { id: 'b1', remoteId: 'B1', title: 'Team', color: null, archived: false, shared: false, canEdit: false, canManage: false, lastModified: 0 },
+    ]);
+    renderScreen();
+    expect(screen.queryByLabelText('board.actions.menu')).toBeNull();
+  });
 });

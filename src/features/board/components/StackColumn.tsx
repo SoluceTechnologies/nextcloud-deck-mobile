@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { Ellipsis, Plus } from 'lucide-react-native';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import type Stack from '@/database/models/Stack';
-import { Button, Divider, Typography } from '@/ui/components';
+import { Button, Divider, IconButton, Typography } from '@/ui/components';
 import { CardTile, type CardTileData } from './CardTile';
 import { DraggableCard } from '../dnd/DraggableCard';
 import { useOptionalDrag } from '../dnd/DragContext';
@@ -29,9 +30,20 @@ export interface StackColumnProps {
   onCardPress: (cardId: string) => void;
   onAddCard: (stackId: string) => void;
   draggable?: boolean;
+  reorderable?: boolean;
+  onOpenMenu?: (stackId: string) => void;
 }
 
-function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggable }: StackColumnProps) {
+function StackColumnImpl({
+  stack,
+  cards,
+  width,
+  onCardPress,
+  onAddCard,
+  draggable,
+  reorderable,
+  onOpenMenu,
+}: StackColumnProps) {
   const { t } = useTranslation();
   const { colors, radius } = useTheme();
   const dragCtx = useOptionalDrag();
@@ -118,6 +130,16 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
   );
   const keyExtractor = useCallback((item: CardTileData) => item.card.id, []);
   const handleAddCard = useCallback(() => onAddCard(stack.id), [onAddCard, stack.id]);
+  const handleOpenMenu = useCallback(() => onOpenMenu?.(stack.id), [onOpenMenu, stack.id]);
+
+  const activeId = dragCtx?.activeId;
+  const stackId = stack.id;
+  const liftedStyle = useAnimatedStyle(() => ({
+    opacity: reorderable && activeId?.value === stackId ? 0 : 1,
+  }));
+  const slotStyle = useAnimatedStyle(() => ({
+    opacity: reorderable && activeId?.value === stackId ? 1 : 0,
+  }));
 
   const emptyComponent = (
     <Typography color="secondary" align="center" style={styles.empty}>
@@ -126,65 +148,87 @@ function StackColumnImpl({ stack, cards, width, onCardPress, onAddCard, draggabl
   );
 
   return (
-    <View testID="stack-column" style={[styles.root, { width, backgroundColor: colors.surface, borderRadius: radius.lg }]}>
-      <View style={styles.header}>
-        <Typography variant="title" numberOfLines={1} style={styles.headerTitle}>
-          {stack.title}
-        </Typography>
-        <Typography variant="caption" color="secondary" nowrap>
-          {t('board.cardCount', { count: cards.length })}
-        </Typography>
-      </View>
-      <Divider />
+    <View style={[styles.root, { width }]}>
+      <Reanimated.View
+        testID="stack-column"
+        style={[styles.root, { width, backgroundColor: colors.surface, borderRadius: radius.lg }, liftedStyle]}
+      >
+        <View style={styles.header}>
+          <Typography variant="title" numberOfLines={1} style={styles.headerTitle}>
+            {stack.title}
+          </Typography>
+          <Typography variant="caption" color="secondary" nowrap>
+            {t('board.cardCount', { count: cards.length })}
+          </Typography>
+          {onOpenMenu ? (
+            <IconButton size={32} accessibilityLabel={t('board.actions.menu')} onPress={handleOpenMenu}>
+              <Ellipsis size={18} color={colors.textSecondary} />
+            </IconButton>
+          ) : null}
+        </View>
+        <Divider />
 
-      {draggable ? (
-        <View ref={listContainerRef} style={styles.list} onLayout={handleListContainerLayout}>
+        {draggable ? (
+          <View ref={listContainerRef} style={styles.list} onLayout={handleListContainerLayout}>
+            <FlatList
+              ref={listRef}
+              style={styles.listInner}
+              contentContainerStyle={styles.listContent}
+              data={cards}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              removeClippedSubviews
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              ListEmptyComponent={emptyComponent}
+            />
+          </View>
+        ) : (
           <FlatList
-            ref={listRef}
-            style={styles.listInner}
+            style={styles.list}
             contentContainerStyle={styles.listContent}
             data={cards}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
             removeClippedSubviews
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
             ListEmptyComponent={emptyComponent}
           />
-        </View>
-      ) : (
-        <FlatList
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          data={cards}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          removeClippedSubviews
-          ListEmptyComponent={emptyComponent}
-        />
-      )}
+        )}
 
-      <View style={styles.footer}>
-        <Button
-          variant="secondary"
-          icon={<Plus size={18} color={colors.primary} />}
-          title={t('board.addCard')}
-          onPress={handleAddCard}
+        <View style={styles.footer}>
+          <Button
+            variant="secondary"
+            icon={<Plus size={18} color={colors.primary} />}
+            title={t('board.addCard')}
+            onPress={handleAddCard}
+          />
+        </View>
+      </Reanimated.View>
+      {reorderable ? (
+        <Reanimated.View
+          testID="stack-drop-slot"
+          pointerEvents="none"
+          style={[
+            styles.slot,
+            { borderRadius: radius.lg, borderColor: colors.primary, backgroundColor: `${colors.primary}14` },
+            slotStyle,
+          ]}
         />
-      </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { height: '100%' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
-  headerTitle: { flex: 1, marginRight: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  headerTitle: { flex: 1 },
   list: { flex: 1 },
   listInner: { flex: 1 },
   listContent: { padding: LIST_PADDING, gap: LIST_GAP },
   empty: { padding: 16 },
   footer: { padding: 8 },
+  slot: { position: 'absolute', inset: 0, borderWidth: 3, borderStyle: 'dashed' },
 });
 
 export const StackColumn = React.memo(StackColumnImpl);

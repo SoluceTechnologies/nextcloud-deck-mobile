@@ -92,12 +92,6 @@ jest.mock('react-native-reanimated', () => {
     useSharedValue: (v) => {
       const sv = { value: v };
       sv.modify = (updater) => {
-        // The real modify() runs its modifier on the UI runtime, so a plain JS
-        // closure is a Remote Function there and throws "Tried to synchronously
-        // call a Remote Function". The worklets babel plugin runs under Jest,
-        // so a `'worklet'` modifier carries __workletHash and a plain one does
-        // not — reject the latter here or this mock silently accepts code that
-        // crashes on device.
         if (updater && typeof updater.__workletHash !== 'number') {
           throw new Error(
             '[Worklets] Tried to synchronously call a Remote Function. ' +
@@ -114,7 +108,11 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedScrollHandler: (h) => h,
     scrollTo: () => {},
     useEvent: () => null,
-    withTiming: (v) => v,
+    useFrameCallback: () => ({ setActive: () => {}, isActive: false, callbackId: -1 }),
+    withTiming: (v, _config, callback) => {
+      callback?.(true);
+      return v;
+    },
     withSpring: (v) => v,
     LinearTransition: {},
     runOnJS: (fn) => (...args) => fn(...args),
