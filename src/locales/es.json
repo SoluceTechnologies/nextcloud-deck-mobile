@@ -389,7 +389,7 @@
       "date": "Vence"
     },
     "date": {
-      "overdue": "Vencidas",
+      "overdue": "Atrasadas",
       "today": "Vence en 24 h",
       "week": "Vence en 7 días",
       "month": "Vence en 30 días",

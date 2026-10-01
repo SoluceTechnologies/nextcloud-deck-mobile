@@ -74,6 +74,7 @@ const hit = (remoteId: string, boardRemoteId: string, title: string, boardTitle:
   boardTitle,
   stackTitle: 'Done',
 });
+const recentTerms = () => (useRecentSearchStore.getState().byAccount.a1 ?? []).map((r) => r.term);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -124,13 +125,33 @@ it('keeps board filters on the device and applies them to server hits', () => {
     failed: false,
   });
   renderScreen();
-  fireEvent.changeText(input(), 'board:Commercial ');
+  fireEvent.changeText(input(), 'board:Commercial client');
+  expect(useRemoteSearch).toHaveBeenLastCalledWith('a1', 'client', expect.any(Set));
   expect(screen.getByTestId('token-board-Commercial')).toBeTruthy();
-  expect(useRemoteSearch).toHaveBeenLastCalledWith('a1', '', expect.any(Set));
   expect(screen.getByText('Hit on commercial')).toBeTruthy();
   expect(screen.queryByText('Hit on finance')).toBeNull();
   expect(screen.getByText('Relancer le client')).toBeTruthy();
   expect(screen.queryByText('Payer le loyer')).toBeNull();
+});
+
+it('ignores the server state when only board filters are set', () => {
+  (useRemoteSearch as jest.Mock).mockReturnValue({
+    hits: [hit('98', 'B2', 'Stale hit', 'Commercial')],
+    loading: false,
+    failed: true,
+  });
+  renderScreen();
+  fireEvent.changeText(input(), 'board:Commercial ');
+  expect(useRemoteSearch).toHaveBeenLastCalledWith('a1', '', expect.any(Set));
+  expect(screen.queryByText('Stale hit')).toBeNull();
+  expect(screen.queryByText('search.serverFailed')).toBeNull();
+  expect(screen.getByText('Relancer le client')).toBeTruthy();
+});
+
+it('does not search the server for a half-typed filter value', () => {
+  renderScreen();
+  fireEvent.changeText(input(), 'loyer tag:Urg');
+  expect(useRemoteSearch).toHaveBeenLastCalledWith('a1', 'loyer', expect.any(Set));
 });
 
 it('turns a typed word into a filter from a hint', () => {
@@ -139,6 +160,46 @@ it('turns a typed word into a filter from a hint', () => {
   fireEvent.press(screen.getByTestId('hint-tag-Urgent'));
   expect(screen.getByTestId('token-tag-Urgent')).toBeTruthy();
   expect(input()).toHaveProp('value', '');
+});
+
+it('turns a typed filter into a token on Return without remembering the search', () => {
+  renderScreen();
+  fireEvent.changeText(input(), 'loyer tag:urgent');
+  fireEvent(input(), 'submitEditing');
+  expect(screen.getByTestId('token-tag-Urgent')).toBeTruthy();
+  expect(screen.queryByTestId('pending-token')).toBeNull();
+  expect(useRecentSearchStore.getState().byAccount.a1).toBeUndefined();
+});
+
+it('remembers the search on Return', () => {
+  renderScreen();
+  fireEvent.changeText(input(), 'loyer');
+  fireEvent(input(), 'submitEditing');
+  expect(recentTerms()).toEqual(['loyer']);
+});
+
+it('keeps a pending filter when the field loses focus with nothing typed', () => {
+  renderScreen();
+  fireEvent.press(screen.getByTestId('filter-tag'));
+  fireEvent(input(), 'blur');
+  expect(screen.getByTestId('pending-token')).toBeTruthy();
+});
+
+it('commits a typed filter value when the field loses focus', () => {
+  renderScreen();
+  fireEvent.changeText(input(), 'tag:urgent');
+  fireEvent(input(), 'blur');
+  expect(screen.getByTestId('token-tag-Urgent')).toBeTruthy();
+  expect(screen.queryByTestId('pending-token')).toBeNull();
+});
+
+it('never commits a pending date when the field loses focus', () => {
+  renderScreen();
+  fireEvent.changeText(input(), 'date:ove');
+  fireEvent(input(), 'blur');
+  expect(screen.getByTestId('pending-token')).toBeTruthy();
+  expect(screen.queryByTestId('token-date-ove')).toBeNull();
+  expect(input()).toHaveProp('value', 'ove');
 });
 
 it('says there are no results rather than showing an empty list', () => {
@@ -153,7 +214,16 @@ it('opens a card from a result and remembers the search', () => {
   fireEvent.press(screen.getByTestId('result-card-c1'));
   const { router } = require('expo-router');
   expect(router.push).toHaveBeenCalledWith('/card/c1');
-  expect(useRecentSearchStore.getState().byAccount.a1.map((r) => r.term)).toEqual(['loyer']);
+  expect(recentTerms()).toEqual(['loyer']);
+});
+
+it('opens a board from a result and remembers the search', () => {
+  renderScreen();
+  fireEvent.changeText(input(), 'Commercial');
+  fireEvent.press(screen.getByTestId('result-board-b2'));
+  const { router } = require('expo-router');
+  expect(router.push).toHaveBeenCalledWith('/boards/b2', { withAnchor: true });
+  expect(recentTerms()).toEqual(['Commercial']);
 });
 
 it('runs a recent search again', () => {
@@ -177,6 +247,7 @@ it('lists a remote-only hit under its own section and opens its board', () => {
   fireEvent.press(screen.getByText('Only on server'));
   const { router } = require('expo-router');
   expect(router.push).toHaveBeenCalledWith('/boards/b1', { withAnchor: true });
+  expect(recentTerms()).toEqual(['server']);
 });
 
 it('notes that results are local only when offline', () => {

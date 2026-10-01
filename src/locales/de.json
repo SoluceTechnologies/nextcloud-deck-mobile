@@ -402,7 +402,7 @@
     "boards": "BOARDS",
     "fromServer": "WEITERE ERGEBNISSE VOM SERVER",
     "noResults": "Keine Ergebnisse",
-    "noResultsHint": "Versuche weniger Filter oder ein einfacheres Wort.",
+    "noResultsHint": "Versuchen Sie weniger Filter oder ein einfacheres Wort.",
     "offlineNote": "Offline — es werden nur lokale Ergebnisse angezeigt",
     "serverFailed": "Der Server konnte nicht erreicht werden — es werden nur lokale Ergebnisse angezeigt"
   },

@@ -389,7 +389,7 @@
       "date": "Scadenza"
     },
     "date": {
-      "overdue": "Scadute",
+      "overdue": "In ritardo",
       "today": "Scade entro 24 ore",
       "week": "Scade entro 7 giorni",
       "month": "Scade entro 30 giorni",

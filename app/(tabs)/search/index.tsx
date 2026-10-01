@@ -9,7 +9,7 @@ import { useAccountStore } from '@/stores/accountStore';
 import { useRecentSearchStore, type RecentSearch } from '@/stores/recentSearchStore';
 import { useBoards } from '@/database/hooks/useBoards';
 import { useLocalSearch } from '@/features/search/useLocalSearch';
-import { useRemoteSearch } from '@/features/search/useRemoteSearch';
+import { useRemoteSearch, type RemoteSearchState } from '@/features/search/useRemoteSearch';
 import { useSearchSuggestions } from '@/features/search/useSearchSuggestions';
 import { matchesBoard } from '@/features/search/matchCard';
 import { EMPTY_MODEL, isEmptyModel, reduceSearch } from '@/features/search/searchModel';
@@ -29,6 +29,7 @@ import { Button, IconButton, ScreenHeader, ViewContainer } from '@/ui/components
 type Dispatched = { action: SearchAction; resolve: Resolve };
 
 const NO_RECENT: RecentSearch[] = [];
+const NO_REMOTE: RemoteSearchState = { hits: [], loading: false, failed: false };
 
 function reducer(model: SearchModel, { action, resolve }: Dispatched): SearchModel {
   return reduceSearch(model, action, resolve);
@@ -47,8 +48,11 @@ export default function SearchScreen() {
   const send = useCallback((action: SearchAction) => dispatch({ action, resolve }), [resolve]);
 
   const local = useLocalSearch(accountId, toTerm(model, { board: true }));
-  const remoteState = useRemoteSearch(accountId, toTerm(model, { board: false }), local.remoteIds);
-  const remote = { ...remoteState, hits: remoteState.hits.filter((hit) => matchesBoard(hit.boardTitle, local.query)) };
+  const remoteTerm = toTerm(model, { board: false });
+  const remoteState = useRemoteSearch(accountId, remoteTerm, local.remoteIds);
+  const remote = remoteTerm.trim()
+    ? { ...remoteState, hits: remoteState.hits.filter((hit) => matchesBoard(hit.boardTitle, local.query)) }
+    : NO_REMOTE;
   const online = useIsOnline();
 
   const boards = useBoards(accountId);
@@ -99,7 +103,7 @@ export default function SearchScreen() {
               Keyboard.dismiss();
             }}
             onBlur={() => {
-              if (model.input.trim()) send({ type: 'commitRaw' });
+              if (model.pending !== 'date' && model.input.trim()) send({ type: 'commitRaw' });
             }}
             onSelectToken={(id) => send({ type: 'select', id })}
             onRemoveToken={(id) => send({ type: 'remove', id })}
