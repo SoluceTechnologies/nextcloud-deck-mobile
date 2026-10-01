@@ -11,7 +11,13 @@ import type { FilterKey, Resolved } from '../searchModel';
 import type { Suggestion } from '../suggestions';
 
 type Comparator = '<' | '>';
-type OpenPicker = { comparator: Comparator; seed: Date };
+type OpenPicker = { comparator: Comparator; draft: Date };
+
+const dayValue = (comparator: Comparator, date: Date) => `${comparator}${dayjs(date).format('YYYY-MM-DD')}`;
+
+const isCalendarNavigation = (draft: Date, date: Date) =>
+  (date.getMonth() !== draft.getMonth() || date.getFullYear() !== draft.getFullYear()) &&
+  date.getDate() === Math.min(draft.getDate(), dayjs(date).daysInMonth());
 
 export type ValueSuggestionsProps = {
   pending: FilterKey;
@@ -32,20 +38,38 @@ export function ValueSuggestions({ pending, typed, suggestions, onPick, onUseTyp
 
   const openPicker = (comparator: Comparator) => {
     Keyboard.dismiss();
-    setPicker({ comparator, seed: new Date() });
+    setPicker({ comparator, draft: new Date() });
   };
 
   const onPickDate = useCallback((event: DateTimePickerEvent, date?: Date) => {
     const open = pickerRef.current;
+    if (Platform.OS === 'ios' && event.type === 'set' && date && open && isCalendarNavigation(open.draft, date)) {
+      setPicker({ comparator: open.comparator, draft: date });
+      return;
+    }
     setPicker(null);
     if (event.type === 'dismissed' || !date || !open) return;
-    const day = `${open.comparator}${dayjs(date).format('YYYY-MM-DD')}`;
+    const day = dayValue(open.comparator, date);
     onPickRef.current({ value: day, label: day });
   }, []);
 
   const value = typed.trim();
 
+  const useDay = picker ? dayValue(picker.comparator, picker.draft) : '';
+
   const rows = [
+    picker && Platform.OS === 'ios' ? (
+      <Item
+        key="use-date"
+        testID="suggestion-use-date"
+        leading={<CornerDownLeft size={20} color={colors.textSecondary} />}
+        title={t('search.use', { value: useDay })}
+        onPress={() => {
+          setPicker(null);
+          onPick({ value: useDay, label: useDay });
+        }}
+      />
+    ) : null,
     value ? (
       <Item
         key="use"
@@ -94,7 +118,7 @@ export function ValueSuggestions({ pending, typed, suggestions, onPick, onUseTyp
     <Stack hAlign="stretch">
       {picker ? (
         <DateTimePicker
-          value={picker.seed}
+          value={picker.draft}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           themeVariant={dark ? 'dark' : 'light'}

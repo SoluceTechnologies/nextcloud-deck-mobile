@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -34,9 +35,15 @@ const tags: Suggestion[] = [{ key: 'tag', value: 'design', label: 'design', colo
 const dates = buildValueSuggestions('date', '', { boards: [], labels: [], stacks: [], people: [] }, () => '');
 
 beforeEach(() => {
+  jest.useFakeTimers({ now: new Date(2026, 8, 13, 12) });
   mockPicker.lastOnChange = null;
   mockPicker.lastValue = null;
   mockPicker.lastThemeVariant = null;
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.useRealTimers();
 });
 
 it('offers to use the typed value as is', () => {
@@ -138,4 +145,101 @@ it('draws no dot on a date preset', () => {
     wrapper: ThemeWrapper,
   });
   expect(screen.queryByTestId('suggestion-dot')).toBeNull();
+});
+
+describe('calendar navigation on iOS', () => {
+  const open = (onPick = jest.fn()) => {
+    render(<ValueSuggestions pending="date" typed="" suggestions={dates} onPick={onPick} onUseTyped={jest.fn()} />, {
+      wrapper: ThemeWrapper,
+    });
+    fireEvent.press(screen.getByTestId('suggestion-before'));
+    return onPick;
+  };
+  const change = (date: Date) => act(() => mockPicker.lastOnChange!({ type: 'set' }, date));
+
+  it('keeps the picker open when only the month moves', () => {
+    const onPick = open();
+    change(new Date(2026, 9, 13, 12));
+    expect(onPick).not.toHaveBeenCalled();
+    expect(mockPicker.lastValue).toEqual(new Date(2026, 9, 13, 12));
+    expect(screen.getByText('search.use:<2026-10-13')).toBeTruthy();
+  });
+
+  it('keeps the picker open when only the year moves', () => {
+    const onPick = open();
+    change(new Date(2027, 8, 13, 12));
+    expect(onPick).not.toHaveBeenCalled();
+    expect(screen.getByText('search.use:<2027-09-13')).toBeTruthy();
+  });
+
+  it('commits the day that is tapped after a month move', () => {
+    const onPick = open();
+    change(new Date(2026, 9, 13, 12));
+    change(new Date(2026, 9, 20, 12));
+    expect(onPick).toHaveBeenCalledTimes(1);
+    expect(onPick).toHaveBeenCalledWith({ value: '<2026-10-20', label: '<2026-10-20' });
+    expect(screen.queryByTestId('suggestion-use-date')).toBeNull();
+  });
+
+  it('commits a day tapped in the open month', () => {
+    const onPick = open();
+    change(new Date(2026, 8, 20, 12));
+    expect(onPick).toHaveBeenCalledWith({ value: '<2026-09-20', label: '<2026-09-20' });
+  });
+
+  it.each([
+    ['Feb 28', new Date(2026, 0, 31, 12), new Date(2026, 1, 28, 12), '<2026-02-28'],
+    ['Feb 29', new Date(2028, 0, 31, 12), new Date(2028, 1, 29, 12), '<2028-02-29'],
+  ])('treats a clamped move to %s as navigation', (_name, from, to, expected) => {
+    jest.setSystemTime(from);
+    const onPick = open();
+    change(to);
+    expect(onPick).not.toHaveBeenCalled();
+    expect(screen.getByText(`search.use:${expected}`)).toBeTruthy();
+  });
+
+  it('commits a tap on a day other than the clamped one', () => {
+    jest.setSystemTime(new Date(2026, 0, 31, 12));
+    const onPick = open();
+    change(new Date(2026, 1, 27, 12));
+    expect(onPick).toHaveBeenCalledWith({ value: '<2026-02-27', label: '<2026-02-27' });
+  });
+
+  it('commits the draft from the use row after a month move', () => {
+    const onPick = open();
+    change(new Date(2026, 9, 13, 12));
+    fireEvent.press(screen.getByTestId('suggestion-use-date'));
+    expect(onPick).toHaveBeenCalledWith({ value: '<2026-10-13', label: '<2026-10-13' });
+    expect(screen.queryByTestId('suggestion-use-date')).toBeNull();
+  });
+
+  it('commits today from the use row when nothing was moved', () => {
+    const onPick = open();
+    fireEvent.press(screen.getByTestId('suggestion-use-date'));
+    expect(onPick).toHaveBeenCalledWith({ value: '<2026-09-13', label: '<2026-09-13' });
+  });
+
+  it('offers no use row before the picker is open', () => {
+    render(<ValueSuggestions pending="date" typed="" suggestions={dates} onPick={jest.fn()} onUseTyped={jest.fn()} />, {
+      wrapper: ThemeWrapper,
+    });
+    expect(screen.queryByTestId('suggestion-use-date')).toBeNull();
+  });
+});
+
+describe('date dialog on Android', () => {
+  beforeEach(() => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+  });
+
+  it('commits any set, even one that keeps the day of the month', () => {
+    const onPick = jest.fn();
+    render(<ValueSuggestions pending="date" typed="" suggestions={dates} onPick={onPick} onUseTyped={jest.fn()} />, {
+      wrapper: ThemeWrapper,
+    });
+    fireEvent.press(screen.getByTestId('suggestion-before'));
+    expect(screen.queryByTestId('suggestion-use-date')).toBeNull();
+    act(() => mockPicker.lastOnChange!({ type: 'set' }, new Date(2026, 9, 13, 12)));
+    expect(onPick).toHaveBeenCalledWith({ value: '<2026-10-13', label: '<2026-10-13' });
+  });
 });
