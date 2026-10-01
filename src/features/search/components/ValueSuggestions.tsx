@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import type { FilterKey, Resolved } from '../searchModel';
 import type { Suggestion } from '../suggestions';
 
 type Comparator = '<' | '>';
+type OpenPicker = { comparator: Comparator; seed: Date };
 
 export type ValueSuggestionsProps = {
   pending: FilterKey;
@@ -23,21 +24,26 @@ export type ValueSuggestionsProps = {
 export function ValueSuggestions({ pending, typed, suggestions, onPick, onUseTyped }: ValueSuggestionsProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const [picker, setPicker] = useState<Comparator | null>(null);
-  const value = typed.trim();
+  const [picker, setPicker] = useState<OpenPicker | null>(null);
+  const pickerRef = useRef(picker);
+  pickerRef.current = picker;
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
 
   const openPicker = (comparator: Comparator) => {
     Keyboard.dismiss();
-    setPicker(comparator);
+    setPicker({ comparator, seed: new Date() });
   };
 
-  const onPickDate = (event: DateTimePickerEvent, date?: Date) => {
-    const comparator = picker;
+  const onPickDate = useCallback((event: DateTimePickerEvent, date?: Date) => {
+    const open = pickerRef.current;
     setPicker(null);
-    if (event.type === 'dismissed' || !date || !comparator) return;
-    const day = `${comparator}${dayjs(date).format('YYYY-MM-DD')}`;
-    onPick({ value: day, label: day });
-  };
+    if (event.type === 'dismissed' || !date || !open) return;
+    const day = `${open.comparator}${dayjs(date).format('YYYY-MM-DD')}`;
+    onPickRef.current({ value: day, label: day });
+  }, []);
+
+  const value = typed.trim();
 
   const rows = [
     value ? (
@@ -89,7 +95,7 @@ export function ValueSuggestions({ pending, typed, suggestions, onPick, onUseTyp
       {rows.length > 0 ? <List>{rows}</List> : null}
       {picker ? (
         <DateTimePicker
-          value={new Date()}
+          value={picker.seed}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onChange={onPickDate}

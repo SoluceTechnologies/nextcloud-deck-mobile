@@ -6,14 +6,16 @@ import { ValueSuggestions } from '../../../src/features/search/components/ValueS
 import { buildValueSuggestions, type Suggestion } from '../../../src/features/search/suggestions';
 
 type PickerChange = (event: { type: string }, date?: Date) => void;
-const mockPicker = DateTimePicker as unknown as { lastOnChange: PickerChange | null };
+const mockPicker = DateTimePicker as unknown as { lastOnChange: PickerChange | null; lastValue: unknown };
 
 jest.mock('@react-native-community/datetimepicker', () => {
-  function MockPicker(props: { onChange: unknown }) {
+  function MockPicker(props: { onChange: unknown; value: unknown }) {
     MockPicker.lastOnChange = props.onChange;
+    MockPicker.lastValue = props.value;
     return null;
   }
   MockPicker.lastOnChange = null as unknown;
+  MockPicker.lastValue = null as unknown;
   return MockPicker;
 });
 
@@ -24,6 +26,11 @@ jest.mock('react-i18next', () => ({
 
 const tags: Suggestion[] = [{ key: 'tag', value: 'design', label: 'design', color: '#D4537E', detail: '2 boards' }];
 const dates = buildValueSuggestions('date', '', { boards: [], labels: [], stacks: [], people: [] }, () => '');
+
+beforeEach(() => {
+  mockPicker.lastOnChange = null;
+  mockPicker.lastValue = null;
+});
 
 it('offers to use the typed value as is', () => {
   const onUseTyped = jest.fn();
@@ -62,7 +69,8 @@ it('commits a before-date filter from the picker', () => {
     wrapper: ThemeWrapper,
   });
   fireEvent.press(screen.getByTestId('suggestion-before'));
-  act(() => mockPicker.lastOnChange?.({ type: 'set' }, new Date(2026, 9, 1, 12)));
+  expect(mockPicker.lastOnChange).not.toBeNull();
+  act(() => mockPicker.lastOnChange!({ type: 'set' }, new Date(2026, 9, 1, 12)));
   expect(onPick).toHaveBeenCalledWith({ value: '<2026-10-01', label: '<2026-10-01' });
 });
 
@@ -72,6 +80,23 @@ it('commits nothing when the picker is dismissed', () => {
     wrapper: ThemeWrapper,
   });
   fireEvent.press(screen.getByTestId('suggestion-after'));
-  act(() => mockPicker.lastOnChange?.({ type: 'dismissed' }));
+  expect(mockPicker.lastOnChange).not.toBeNull();
+  act(() => mockPicker.lastOnChange!({ type: 'dismissed' }, new Date(2026, 9, 1, 12)));
   expect(onPick).not.toHaveBeenCalled();
+});
+
+it('keeps the open picker stable while the screen re-renders', () => {
+  const { rerender } = render(
+    <ValueSuggestions pending="date" typed="" suggestions={dates} onPick={jest.fn()} onUseTyped={jest.fn()} />,
+    { wrapper: ThemeWrapper },
+  );
+  fireEvent.press(screen.getByTestId('suggestion-after'));
+  const handler = mockPicker.lastOnChange;
+  const seed = mockPicker.lastValue;
+  const onPick = jest.fn();
+  rerender(<ValueSuggestions pending="date" typed="" suggestions={dates} onPick={onPick} onUseTyped={jest.fn()} />);
+  expect(mockPicker.lastOnChange).toBe(handler);
+  expect(mockPicker.lastValue).toBe(seed);
+  act(() => mockPicker.lastOnChange!({ type: 'set' }, new Date(2026, 9, 1, 12)));
+  expect(onPick).toHaveBeenCalledWith({ value: '>2026-10-01', label: '>2026-10-01' });
 });
