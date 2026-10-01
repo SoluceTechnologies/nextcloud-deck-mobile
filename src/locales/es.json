@@ -359,22 +359,50 @@
   "search": {
     "title": "Buscar",
     "placeholder": "Buscar tableros, tarjetas, comentarios…",
-    "operators": "OPERADORES",
-    "try": "PROBAR EJEMPLOS",
-    "op": {
-      "title": "Buscar en los títulos",
-      "description": "Buscar en las descripciones",
-      "list": "Filtrar por lista",
-      "tag": "Filtrar por etiqueta",
-      "assigned": "Filtrar por persona asignada",
-      "date": "Filtrar por fecha de vencimiento"
+    "filters": "FILTROS",
+    "filter": {
+      "board": "En un tablero",
+      "tag": "Con una etiqueta",
+      "assigned": "Asignada a",
+      "list": "En una lista",
+      "date": "Vencimiento",
+      "title": "En el título",
+      "description": "En la descripción"
     },
-    "dateHelp": "Aceptado: today, tomorrow o una fecha como 2026-09-25, con <, <=, > o >= delante si hace falta (date:<tomorrow). No reconocido: otras palabras (mañana…), solo un año (2026), 25/09/2026.",
-    "examples": ["notas de la versión", "tag:design", "tag:design date:<tomorrow"],
+    "hint": {
+      "name": "nombre",
+      "person": "persona",
+      "text": "texto"
+    },
+    "more": "Más filtros",
+    "moreHint": "título, descripción",
+    "recent": "RECIENTES",
+    "removeRecent": "Quitar de recientes",
+    "removeFilter": "Quitar el filtro {{filter}}",
+    "use": "Usar «{{value}}»",
+    "filterHint": "Filtrar:",
+    "short": {
+      "board": "Tablero",
+      "tag": "Etiqueta",
+      "assigned": "Persona",
+      "list": "Lista",
+      "date": "Vence"
+    },
+    "date": {
+      "overdue": "Atrasadas",
+      "today": "Vence en 24 h",
+      "week": "Vence en 7 días",
+      "month": "Vence en 30 días",
+      "none": "Sin vencimiento",
+      "before": "Antes de una fecha…",
+      "after": "Después de una fecha…"
+    },
+    "boardsCount_one": "{{count}} tablero",
+    "boardsCount_other": "{{count}} tableros",
     "boards": "TABLEROS",
     "fromServer": "MÁS RESULTADOS DEL SERVIDOR",
     "noResults": "Sin resultados",
-    "noResultsHint": "Prueba con un título más simple, otro tablero o un ejemplo de búsqueda.",
+    "noResultsHint": "Prueba con menos filtros o una palabra más simple.",
     "offlineNote": "Sin conexión — mostrando solo resultados locales",
     "serverFailed": "No se pudo contactar con el servidor — mostrando solo resultados locales"
   },

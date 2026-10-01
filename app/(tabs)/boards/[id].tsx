@@ -47,7 +47,6 @@ const PEEK = 40;
 const GAP = 12;
 const TABLET_MIN_WIDTH = 600;
 const TABLET_VISIBLE_COLUMNS = 3;
-// Board scale while a list is dragged: shows the neighbours while keeping card text readable.
 const DRAG_ZOOM = 0.9;
 
 function getColumnWidth(windowWidth: number): number {
@@ -77,7 +76,6 @@ export default function BoardScreen() {
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [menuStackId, setMenuStackId] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  // Bumped to put the lists back in database order when a drop could not be saved.
   const [orderVersion, setOrderVersion] = useState(0);
   const anchors = useRef(new Map<string, number>()).current;
   stacks.forEach((stack, index) => {

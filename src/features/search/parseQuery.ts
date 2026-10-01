@@ -7,14 +7,13 @@ export type SearchQuery = {
   list: string[];
   tag: string[];
   assigned: string[];
+  board: string[];
   date: DateTerm[];
   text: string[];
 };
 
-export const OPERATORS = ['title', 'description', 'list', 'tag', 'assigned', 'date'] as const;
-type Operator = (typeof OPERATORS)[number];
-
-const QUOTES = new Set(['"', "'"]);
+const KEYS = ['title', 'description', 'list', 'tag', 'assigned', 'board', 'date'] as const;
+type Key = (typeof KEYS)[number];
 
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
@@ -28,7 +27,7 @@ function tokenize(input: string): string[] {
       else current += ch;
       continue;
     }
-    if (QUOTES.has(ch)) {
+    if (ch === '"' || (ch === "'" && (current === '' || current.endsWith(':')))) {
       quote = ch;
       sawQuote = true;
       continue;
@@ -52,15 +51,15 @@ function parseDate(raw: string): DateTerm {
 }
 
 export function parseQuery(input: string): SearchQuery {
-  const query: SearchQuery = { title: [], description: [], list: [], tag: [], assigned: [], date: [], text: [] };
+  const query: SearchQuery = { title: [], description: [], list: [], tag: [], assigned: [], board: [], date: [], text: [] };
 
   for (const token of tokenize(input)) {
     const colon = token.indexOf(':');
     const name = colon === -1 ? null : token.slice(0, colon).toLowerCase();
-    if (name && (OPERATORS as readonly string[]).includes(name)) {
+    if (name && (KEYS as readonly string[]).includes(name)) {
       const value = token.slice(colon + 1);
       if (name === 'date') query.date.push(parseDate(value));
-      else query[name as Exclude<Operator, 'date'>].push(value);
+      else query[name as Exclude<Key, 'date'>].push(value);
       continue;
     }
     query.text.push(token);
@@ -72,6 +71,6 @@ export function parseQuery(input: string): SearchQuery {
 export function isEmptyQuery(query: SearchQuery): boolean {
   return (
     query.title.length + query.description.length + query.list.length + query.tag.length +
-      query.assigned.length + query.date.length + query.text.length === 0
+      query.assigned.length + query.board.length + query.date.length + query.text.length === 0
   );
 }
