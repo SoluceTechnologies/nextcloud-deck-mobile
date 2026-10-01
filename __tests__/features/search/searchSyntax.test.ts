@@ -114,6 +114,15 @@ describe('toTerm', () => {
       text: ['loyer', 'urgent'],
     });
   });
+
+  it('keeps every filter after an apostrophe word', () => {
+    const term = toTerm(model(`l'équipe tag:"d'abord" board:Commercial urgent`), { board: true });
+    expect(parseQuery(term)).toMatchObject({
+      text: ["l'équipe", 'urgent'],
+      tag: ["d'abord"],
+      board: ['Commercial'],
+    });
+  });
 });
 
 describe('lastOpenWord', () => {

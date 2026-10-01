@@ -15,8 +15,6 @@ export type SearchQuery = {
 const KEYS = ['title', 'description', 'list', 'tag', 'assigned', 'board', 'date'] as const;
 type Key = (typeof KEYS)[number];
 
-const QUOTES = new Set(['"', "'"]);
-
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
   let current = '';
@@ -29,7 +27,7 @@ function tokenize(input: string): string[] {
       else current += ch;
       continue;
     }
-    if (QUOTES.has(ch)) {
+    if (ch === '"' || (ch === "'" && (current === '' || current.endsWith(':')))) {
       quote = ch;
       sawQuote = true;
       continue;

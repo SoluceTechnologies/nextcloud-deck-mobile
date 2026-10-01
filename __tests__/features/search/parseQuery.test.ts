@@ -19,6 +19,15 @@ describe('parseQuery', () => {
     expect(parseQuery("list:'En cours'")).toEqual({ ...empty, list: ['En cours'] });
   });
 
+  it('keeps an apostrophe inside a word as an ordinary character', () => {
+    expect(parseQuery("l'équipe tag:Urgent")).toEqual({ ...empty, text: ["l'équipe"], tag: ['Urgent'] });
+    expect(parseQuery("d'abord board:Commercial")).toEqual({ ...empty, text: ["d'abord"], board: ['Commercial'] });
+  });
+
+  it('keeps an apostrophe inside a quoted value', () => {
+    expect(parseQuery(`tag:"l'équipe" list:'En cours'`)).toEqual({ ...empty, tag: ["l'équipe"], list: ['En cours'] });
+  });
+
   it('keeps a quoted free-text phrase together', () => {
     expect(parseQuery('"release notes"')).toEqual({ ...empty, text: ['release notes'] });
   });
