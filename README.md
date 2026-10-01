@@ -37,9 +37,23 @@ Use in production at your own discretion, and pin to a specific commit or tag if
 
 ---
 
+
 ## 📥 Download
 
-Comming soon...
+<p >
+  <a href="https://play.google.com/store/apps/details?id=com.soluce.nextclouddeck">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play" height="40" />
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/SoluceTechnologies/nextcloud-deck-mobile/releases/latest">
+    <img src="https://img.shields.io/github/v/release/SoluceTechnologies/nextcloud-deck-mobile?label=Download%20APK&logo=android&color=3DDC84&style=for-the-badge" alt="Download latest APK" height="40" />
+  </a>
+</p>
+
+<p >
+Apple is coming soon. The app is currently under review. Contact us for TestFlight access.
+</p>
+
 
 <p >
   Want early access? Beta builds are available, reach out at <a href="mailto:contact@soluce-technologies.com">contact@soluce-technologies.com</a>
