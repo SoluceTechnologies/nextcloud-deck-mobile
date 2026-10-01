@@ -19,7 +19,14 @@ export function TokenPill({ token, selected = false, onPress, onRemove }: TokenP
   const { colors, radius } = useTheme();
   const textColor = selected ? colors.primaryText : colors.text;
   const name = `${token.key}: ${token.label}`;
-  const style = [styles.pill, { borderRadius: radius.sm, backgroundColor: selected ? colors.primary : colors.chip }];
+  const style = [
+    styles.pill,
+    {
+      borderRadius: radius.sm,
+      backgroundColor: selected ? colors.primary : colors.chip,
+      borderColor: selected ? colors.primary : colors.border,
+    },
+  ];
 
   const body = (
     <>
@@ -65,7 +72,15 @@ export function TokenPill({ token, selected = false, onPress, onRemove }: TokenP
 }
 
 const styles = StyleSheet.create({
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, maxWidth: 240 },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: 240,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   dot: { width: 8, height: 8, borderRadius: 4 },
   label: { flexShrink: 1 },
 });
