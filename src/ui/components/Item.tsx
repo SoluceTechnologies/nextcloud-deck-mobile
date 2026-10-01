@@ -19,7 +19,6 @@ interface ItemProps {
   disabled?: boolean;
   testID?: string;
   children?: React.ReactNode;
-  /** Only applies to the pressable branch (there's an onPress). Defaults to 'button'. */
   accessibilityRole?: AccessibilityRole;
   accessibilityActions?: ReadonlyArray<AccessibilityActionInfo>;
   onAccessibilityAction?: (event: AccessibilityActionEvent) => void;
@@ -52,9 +51,6 @@ function Item({
     </View>
   );
 
-  // testID goes on whichever node is actually returned: the AnimatedPressable
-  // below when there's an onPress, this View when there isn't — never both,
-  // or a testID query would find two nodes for one id.
   const inner = (
     <View testID={onPress ? undefined : testID} style={styles.row}>
       {leading}
