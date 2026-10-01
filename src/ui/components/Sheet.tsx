@@ -54,9 +54,8 @@ function Sheet({ visible, onClose, title, children, footer }: SheetProps) {
   };
 
   const safeBottom = insets.bottom;
-  const liftStyle = useAnimatedStyle(() => ({ paddingBottom: IOS ? keyboard.height.value : 0 }));
-  const safeSpacerStyle = useAnimatedStyle(() => ({
-    height: Math.max(safeBottom - (IOS ? keyboard.height.value : 0), 0),
+  const bottomSpacerStyle = useAnimatedStyle(() => ({
+    height: Math.max(safeBottom, IOS ? keyboard.height.value : 0),
   }));
 
   return (
@@ -69,7 +68,7 @@ function Sheet({ visible, onClose, title, children, footer }: SheetProps) {
     >
       <KeyboardAvoidingView style={styles.flex} behavior="height" enabled={!IOS}>
         <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={onClose} />
-        <Reanimated.View pointerEvents="box-none" style={[styles.anchor, { paddingTop: insets.top + 8 }, liftStyle]}>
+        <Reanimated.View pointerEvents="box-none" style={[styles.anchor, { paddingTop: insets.top + 8 }]}>
           <Reanimated.View
             onLayout={handleLayout}
             style={[
@@ -109,7 +108,7 @@ function Sheet({ visible, onClose, title, children, footer }: SheetProps) {
             {footer ? (
               <View style={styles.footer}>{footer}</View>
             ) : null}
-            <Reanimated.View style={safeSpacerStyle} />
+            <Reanimated.View style={bottomSpacerStyle} />
           </Reanimated.View>
         </Reanimated.View>
       </KeyboardAvoidingView>

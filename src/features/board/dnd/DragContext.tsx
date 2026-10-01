@@ -1,8 +1,17 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 
+import type Stack from '@/database/models/Stack';
 import type { CardTileData } from '../components/CardTile';
 import type { ColumnState, DragFrame, DragTarget, DropResult } from './dragController';
+
+export type StackDragData = {
+  stack: Pick<Stack, 'id' | 'title'>;
+  cards: CardTileData[];
+  width: number;
+  height: number;
+};
+export type DragData = CardTileData | StackDragData;
 
 export type DragContextValue = {
   activeId: SharedValue<string | null>;
@@ -15,12 +24,16 @@ export type DragContextValue = {
   startY: SharedValue<number>;
   target: SharedValue<DragTarget | null>;
   frame: SharedValue<DragFrame>;
-  setActiveData: (data: CardTileData | null) => void;
+  zoom: SharedValue<number>;
+  lift: SharedValue<number>;
+  stackOrder: SharedValue<string[]>;
+  setActiveData: (data: DragData | null) => void;
   reportColumn: (stackId: string, state: ColumnState) => void;
   reportListTop: (y: number) => void;
   registerScroller: (stackId: string, scrollBy: (dy: number) => void) => () => void;
   scrollColumnBy: (stackId: string, dy: number) => void;
   onDrop: (result: DropResult) => void;
+  onStackDrop?: (stackId: string, index: number) => void;
   enabled: boolean;
 };
 
@@ -34,15 +47,16 @@ const emptyFrame: DragFrame = {
 
 const DragReactContext = createContext<DragContextValue | null>(null);
 
-const ActiveDataReactContext = createContext<CardTileData | null | undefined>(undefined);
+const ActiveDataReactContext = createContext<DragData | null | undefined>(undefined);
 
 export type DragProviderProps = {
   enabled: boolean;
   onDrop: (result: DropResult) => void;
+  onStackDrop?: (stackId: string, index: number) => void;
   children: React.ReactNode;
 };
 
-export function DragProvider({ enabled, onDrop, children }: DragProviderProps) {
+export function DragProvider({ enabled, onDrop, onStackDrop, children }: DragProviderProps) {
   const activeId = useRef(useSharedValue<string | null>(null)).current;
   const x = useRef(useSharedValue(0)).current;
   const y = useRef(useSharedValue(0)).current;
@@ -53,8 +67,11 @@ export function DragProvider({ enabled, onDrop, children }: DragProviderProps) {
   const startY = useRef(useSharedValue(0)).current;
   const target = useRef(useSharedValue<DragTarget | null>(null)).current;
   const frame = useRef(useSharedValue<DragFrame>(emptyFrame)).current;
+  const zoom = useRef(useSharedValue(1)).current;
+  const lift = useRef(useSharedValue(0)).current;
+  const stackOrder = useRef(useSharedValue<string[]>([])).current;
 
-  const [activeData, setActiveData] = useState<CardTileData | null>(null);
+  const [activeData, setActiveData] = useState<DragData | null>(null);
   const scrollers = useRef(new Map<string, (dy: number) => void>());
 
   const reportColumn = useCallback(
@@ -91,14 +108,14 @@ export function DragProvider({ enabled, onDrop, children }: DragProviderProps) {
 
   const value = useMemo<DragContextValue>(
     () => ({
-      activeId, x, y, originX, originY, width, startX, startY, target, frame,
+      activeId, x, y, originX, originY, width, startX, startY, target, frame, zoom, lift, stackOrder,
       setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
-      onDrop, enabled,
+      onDrop, onStackDrop, enabled,
     }),
     [
-      activeId, x, y, originX, originY, width, startX, startY, target, frame,
+      activeId, x, y, originX, originY, width, startX, startY, target, frame, zoom, lift, stackOrder,
       setActiveData, reportColumn, reportListTop, registerScroller, scrollColumnBy,
-      onDrop, enabled,
+      onDrop, onStackDrop, enabled,
     ],
   );
 
@@ -119,7 +136,7 @@ export function useOptionalDrag(): DragContextValue | null {
   return useContext(DragReactContext);
 }
 
-export function useDragActiveData(): CardTileData | null {
+export function useDragActiveData(): DragData | null {
   const ctx = useContext(ActiveDataReactContext);
   if (ctx === undefined) throw new Error('useDragActiveData must be used within a DragProvider');
   return ctx;

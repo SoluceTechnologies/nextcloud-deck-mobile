@@ -7,6 +7,7 @@ import { useAccountCards } from '../../src/database/hooks/useBoards';
 import { useAccountCardRelations } from '../../src/database/hooks/useAccountRelations';
 import { useActiveAccount } from '../../src/hooks/useAccounts';
 import { haptic } from '../../src/utils/haptics';
+import { useWideLayout } from '../../src/hooks/useWideLayout';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.now();
@@ -67,6 +68,8 @@ jest.mock('../../src/features/board/hooks/useCardActions', () => ({
 jest.mock('../../src/features/card/components/QuickAddCardFlow', () => ({
   QuickAddCardFlow: () => null,
 }));
+
+jest.mock('../../src/hooks/useWideLayout', () => ({ useWideLayout: jest.fn(() => false) }));
 
 jest.mock('../../src/utils/haptics', () => ({ haptic: jest.fn(), ImpactFeedbackStyle: { Light: 'light' } }));
 
@@ -181,4 +184,14 @@ it("shows a card assigned to the account's davUserId, and hides one assigned onl
   renderScreen();
   expect(screen.getByTestId('today-row-c1')).toBeTruthy();
   expect(screen.queryByTestId('today-row-c2')).toBeNull();
+});
+
+it('shows recent boards with their stats only on a wide layout', () => {
+  renderScreen();
+  expect(screen.queryByTestId('recent-progress')).toBeNull();
+
+  (useWideLayout as jest.Mock).mockReturnValue(true);
+  renderScreen();
+  expect(screen.getByTestId('recent-progress')).toBeTruthy();
+  expect(screen.getByTestId('recent-overdue')).toHaveTextContent('today.overdueBanner:1');
 });

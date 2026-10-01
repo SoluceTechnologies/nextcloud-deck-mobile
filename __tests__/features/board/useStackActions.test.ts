@@ -16,11 +16,6 @@ const prepareCreate = jest.fn((fn: (r: any) => void) => {
   return row;
 });
 const find = jest.fn(async (id: string) => ({ id, remoteId: `remote-${id}` }));
-// `remove` reads the stack's cards before marking them deleted; a test seeds them
-// per table here. The one clause the query mock honours is
-// `Q.where('entity_id', Q.oneOf(ids))`, so a test can see that the outbox sweep
-// is scoped to the cascaded card ids rather than the whole account — mirrors
-// useBoardActions.test.ts.
 let rowsByTable: Record<string, any[]> = {};
 const db = {
   get: jest.fn((table: string) => ({
@@ -123,8 +118,6 @@ it('marks the stack deleted locally and enqueues deleteStack with both remote id
   expect(markDeleted).toHaveBeenCalled();
 });
 
-// Coalescing (not this hook) is what collapses a create+delete pair for a row that
-// never reached the server — the hook must always enqueue.
 it('enqueues deleteStack even when the stack never synced', async () => {
   const stack: any = {
     id: 's1',
@@ -140,10 +133,6 @@ it('enqueues deleteStack even when the stack never synced', async () => {
   expect((mutate as jest.Mock).mock.calls[0][0].intent.stackRemoteId).toBe('');
 });
 
-// A stack-only delete left its cards pointing at a destroyed stack — they stay
-// as rows until reconnect + drain + a full content pass, surfacing meanwhile in
-// Today and Search with a blank stack name and inflating the board's done/total
-// count. Mirrors useBoardActions.remove one scope down.
 it('marks the stack’s card rows deleted along with it, in one batch', async () => {
   const stack: any = {
     id: 's1',
@@ -165,12 +154,6 @@ it('marks the stack’s card rows deleted along with it, in one batch', async ()
   ]);
 });
 
-// A cascaded card can still hold a queued intent — its own create, say. Left
-// queued, that intent's write-back hits a row this batch soft-deleted and
-// throws, which the drain counts as transient, wedging the account's queue for
-// every backoff round. Every intent on a stack's cards is moot once the
-// stack's own delete goes out. A card that already moved to another stack is
-// not among them and keeps its intents.
 it('drops the queued intents of the cascaded cards, and no other', async () => {
   const mine = {
     id: 'o1',
@@ -196,4 +179,60 @@ it('drops the queued intents of the cascaded cards, and no other', async () => {
   expect(mine.prepareDestroyPermanently).toHaveBeenCalled();
   expect(foreign.prepareDestroyPermanently).not.toHaveBeenCalled();
   expect(ops).toContainEqual({ op: 'destroy', table: 'outbox' });
+});
+
+describe('move', () => {
+  const row = (id: string, order: number) => ({
+    id,
+    title: id.toUpperCase(),
+    order,
+    prepareUpdate: jest.fn((fn: any) => {
+      const r: any = {};
+      fn(r);
+      return { id, order: r.order };
+    }),
+  });
+
+  it('renumbers every shifted list and applies all local orders in the first write', async () => {
+    const a = row('a', 0), b = row('b', 1), c = row('c', 2), d = row('d', 5);
+    rowsByTable.stacks = [c, a, d, b];
+
+    const { result } = renderHook(() => useStackActions('a1', 'b1'));
+    await act(() => result.current.move(d as any, 0));
+
+    const calls = (mutate as jest.Mock).mock.calls.map(([p]) => p);
+    expect(calls.map((p) => p.intent)).toEqual([
+      { kind: 'updateStack', stackId: 'd', title: 'D', order: 0 },
+      { kind: 'updateStack', stackId: 'a', title: 'A', order: 1 },
+      { kind: 'updateStack', stackId: 'b', title: 'B', order: 2 },
+      { kind: 'updateStack', stackId: 'c', title: 'C', order: 3 },
+    ]);
+    expect(await calls[0].applyLocal()).toEqual([
+      { id: 'd', order: 0 },
+      { id: 'a', order: 1 },
+      { id: 'b', order: 2 },
+      { id: 'c', order: 3 },
+    ]);
+    for (const later of calls.slice(1)) expect(await later.applyLocal()).toEqual([]);
+  });
+
+  it('leaves lists that keep their order alone', async () => {
+    const a = row('a', 0), b = row('b', 1), c = row('c', 2);
+    rowsByTable.stacks = [a, b, c];
+
+    const { result } = renderHook(() => useStackActions('a1', 'b1'));
+    await act(() => result.current.move(c as any, 1));
+
+    expect((mutate as jest.Mock).mock.calls.map(([p]) => p.intent.stackId)).toEqual(['c', 'b']);
+  });
+
+  it('does nothing when dropped back on its own position', async () => {
+    const a = row('a', 0), b = row('b', 1);
+    rowsByTable.stacks = [a, b];
+
+    const { result } = renderHook(() => useStackActions('a1', 'b1'));
+    await act(() => result.current.move(b as any, 1));
+
+    expect(mutate).not.toHaveBeenCalled();
+  });
 });

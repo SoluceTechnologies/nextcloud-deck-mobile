@@ -341,27 +341,68 @@
       "newCard": "New card",
       "renameTitle": "Rename list",
       "save": "Save"
+    },
+    "actions": {
+      "menu": "List actions",
+      "rename": "Rename",
+      "markAllDone": "Mark all cards as done",
+      "archiveAll": "Archive all cards",
+      "archiveAllTitle": "Archive all cards?",
+      "archiveAllMessage": "Every card in \"{{title}}\" will be archived and hidden from the board.",
+      "archive": "Archive",
+      "delete": "Delete list",
+      "deleteTitle": "Delete this list?",
+      "deleteMessage": "\"{{title}}\" and all its cards will be deleted for everyone with access.",
+      "cancel": "Cancel"
     }
   },
   "search": {
     "title": "Search",
     "placeholder": "Search boards, cards, comments…",
-    "operators": "OPERATORS",
-    "try": "TRY AN EXAMPLE",
-    "op": {
-      "title": "Match card titles",
-      "description": "Search descriptions",
-      "list": "Filter by list",
-      "tag": "Filter by tag",
-      "assigned": "Filter by assignee",
-      "date": "Filter by due date"
+    "filters": "FILTERS",
+    "filter": {
+      "board": "In a board",
+      "tag": "With a tag",
+      "assigned": "Assigned to",
+      "list": "In a list",
+      "date": "Due date",
+      "title": "In title",
+      "description": "In description"
     },
-    "dateHelp": "Accepted: today, tomorrow or a date as 2026-09-25, optionally after <, <=, > or >= (date:<tomorrow). Not recognised: other words, a year alone, 25/09/2026.",
-    "examples": ["release notes", "tag:design", "tag:design date:<tomorrow"],
+    "hint": {
+      "name": "name",
+      "person": "person",
+      "text": "text"
+    },
+    "more": "More filters",
+    "moreHint": "title, description",
+    "recent": "RECENT",
+    "removeRecent": "Remove from recent",
+    "removeFilter": "Remove filter {{filter}}",
+    "use": "Use “{{value}}”",
+    "filterHint": "Filter:",
+    "short": {
+      "board": "Board",
+      "tag": "Tag",
+      "assigned": "Assignee",
+      "list": "List",
+      "date": "Due"
+    },
+    "date": {
+      "overdue": "Overdue",
+      "today": "Due in 24h",
+      "week": "Due in 7 days",
+      "month": "Due in 30 days",
+      "none": "No due date",
+      "before": "Before a date…",
+      "after": "After a date…"
+    },
+    "boardsCount_one": "{{count}} board",
+    "boardsCount_other": "{{count}} boards",
     "boards": "BOARDS",
     "fromServer": "MORE FROM THE SERVER",
     "noResults": "No results",
-    "noResultsHint": "Try a simpler title, another board, or a search example.",
+    "noResultsHint": "Try fewer filters or a simpler word.",
     "offlineNote": "Offline — showing local results only",
     "serverFailed": "The server could not be reached — showing local results only"
   },
@@ -377,6 +418,7 @@
       "week": "NEXT 7 DAYS"
     },
     "recent": "RECENT BOARDS",
+    "recentProgress": "{{done}}/{{total}} done",
     "emptyTitle": "All caught up",
     "empty": "Nothing due — enjoy the calm.",
     "addCard": "Add a card",

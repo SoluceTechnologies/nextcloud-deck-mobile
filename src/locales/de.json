@@ -341,27 +341,68 @@
       "newCard": "Neue Karte",
       "renameTitle": "Liste umbenennen",
       "save": "Speichern"
+    },
+    "actions": {
+      "menu": "Listenaktionen",
+      "rename": "Umbenennen",
+      "markAllDone": "Alle Karten als erledigt markieren",
+      "archiveAll": "Alle Karten archivieren",
+      "archiveAllTitle": "Alle Karten archivieren?",
+      "archiveAllMessage": "Alle Karten in „{{title}}“ werden archiviert und im Board ausgeblendet.",
+      "archive": "Archivieren",
+      "delete": "Liste löschen",
+      "deleteTitle": "Diese Liste löschen?",
+      "deleteMessage": "„{{title}}“ und alle zugehörigen Karten werden für alle mit Zugriff gelöscht.",
+      "cancel": "Abbrechen"
     }
   },
   "search": {
     "title": "Suche",
     "placeholder": "Boards, Karten, Kommentare durchsuchen…",
-    "operators": "OPERATOREN",
-    "try": "BEISPIELE AUSPROBIEREN",
-    "op": {
-      "title": "Kartentitel durchsuchen",
-      "description": "Beschreibungen durchsuchen",
-      "list": "Nach Liste filtern",
-      "tag": "Nach Label filtern",
-      "assigned": "Nach zugewiesener Person filtern",
-      "date": "Nach Fälligkeitsdatum filtern"
+    "filters": "FILTER",
+    "filter": {
+      "board": "In einem Board",
+      "tag": "Mit einem Label",
+      "assigned": "Zugewiesen an",
+      "list": "In einer Liste",
+      "date": "Fälligkeit",
+      "title": "Im Titel",
+      "description": "In der Beschreibung"
     },
-    "dateHelp": "Erlaubt: today, tomorrow oder ein Datum wie 2026-09-25, optional mit <, <=, > oder >= davor (date:<tomorrow). Nicht erkannt: andere Wörter (morgen…), nur eine Jahreszahl (2026), 25.09.2026.",
-    "examples": ["Versionshinweise", "tag:design", "tag:design date:<tomorrow"],
+    "hint": {
+      "name": "Name",
+      "person": "Person",
+      "text": "Text"
+    },
+    "more": "Weitere Filter",
+    "moreHint": "Titel, Beschreibung",
+    "recent": "ZULETZT",
+    "removeRecent": "Aus dem Verlauf entfernen",
+    "removeFilter": "Filter {{filter}} entfernen",
+    "use": "„{{value}}“ verwenden",
+    "filterHint": "Filtern:",
+    "short": {
+      "board": "Board",
+      "tag": "Label",
+      "assigned": "Person",
+      "list": "Liste",
+      "date": "Fällig"
+    },
+    "date": {
+      "overdue": "Überfällig",
+      "today": "In 24 Std. fällig",
+      "week": "In 7 Tagen fällig",
+      "month": "In 30 Tagen fällig",
+      "none": "Ohne Fälligkeit",
+      "before": "Vor einem Datum…",
+      "after": "Nach einem Datum…"
+    },
+    "boardsCount_one": "{{count}} Board",
+    "boardsCount_other": "{{count}} Boards",
     "boards": "BOARDS",
     "fromServer": "WEITERE ERGEBNISSE VOM SERVER",
     "noResults": "Keine Ergebnisse",
-    "noResultsHint": "Versuchen Sie einen einfacheren Titel, ein anderes Board oder ein Suchbeispiel.",
+    "noResultsHint": "Versuchen Sie weniger Filter oder ein einfacheres Wort.",
     "offlineNote": "Offline — es werden nur lokale Ergebnisse angezeigt",
     "serverFailed": "Der Server konnte nicht erreicht werden — es werden nur lokale Ergebnisse angezeigt"
   },
@@ -377,6 +418,7 @@
       "week": "NÄCHSTE 7 TAGE"
     },
     "recent": "ZULETZT VERWENDETE BOARDS",
+    "recentProgress": "{{done}}/{{total}} erledigt",
     "emptyTitle": "Alles erledigt",
     "empty": "Nichts fällig — genießen Sie die Ruhe.",
     "addCard": "Karte hinzufügen",

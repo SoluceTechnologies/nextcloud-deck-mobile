@@ -12,6 +12,8 @@ export type SearchableCard = {
   assignees: string[];
 };
 
+const DAY = 86_400_000;
+
 function contains(haystack: string, needle: string): boolean {
   if (needle.length === 0) return false;
   return haystack.toLocaleLowerCase().includes(needle.toLocaleLowerCase());
@@ -28,14 +30,33 @@ function dayIndex(ms: number): number {
 }
 
 function termDay(term: DateTerm, now: number): number | null {
-  if (term.value === 'today') return dayIndex(now);
   if (term.value === 'tomorrow') return dayIndex(now) + 1;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(term.value);
   if (!m) return null;
   return dayIndex(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12).getTime());
 }
 
+function inOneMonth(now: number): number {
+  const d = new Date(now);
+  d.setMonth(d.getMonth() + 1);
+  return d.getTime();
+}
+
+function matchesKeyword(duedate: number | null, keyword: string, now: number): boolean | null {
+  switch (keyword) {
+    case '': return duedate !== null;
+    case 'none': return duedate === null;
+    case 'overdue': return duedate !== null && duedate < now;
+    case 'today': return duedate !== null && duedate >= now && duedate <= now + DAY;
+    case 'week': return duedate !== null && duedate >= now && duedate <= now + 7 * DAY;
+    case 'month': return duedate !== null && duedate >= now && duedate <= inOneMonth(now);
+    default: return null;
+  }
+}
+
 function matchesDate(duedate: number | null, term: DateTerm, now: number): boolean {
+  const keyword = matchesKeyword(duedate, term.value, now);
+  if (keyword !== null) return keyword;
   if (duedate === null) return false;
   const wanted = termDay(term, now);
   if (wanted === null) return false;
@@ -66,9 +87,14 @@ export function matchesQuery(card: SearchableCard, query: SearchQuery, now: numb
     query.list.every((t) => contains(card.stackTitle, t)) &&
     query.tag.every((t) => anyContains(card.labels, t)) &&
     query.assigned.every((t) => anyContains(card.assignees, t)) &&
+    matchesBoard(card.boardTitle, query) &&
     query.text.every((t) => matchesAnyField(card, t)) &&
     query.date.every((t) => matchesDate(card.duedate, t, now))
   );
+}
+
+export function matchesBoard(boardTitle: string, query: SearchQuery): boolean {
+  return query.board.every((b) => contains(boardTitle, b));
 }
 
 export function matchesBoardTitle(boardTitle: string, query: SearchQuery): boolean {

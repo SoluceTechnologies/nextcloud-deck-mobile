@@ -1,6 +1,6 @@
 import { isEmptyQuery, parseQuery } from '../../../src/features/search/parseQuery';
 
-const empty = { title: [], description: [], list: [], tag: [], assigned: [], date: [], text: [] };
+const empty = { title: [], description: [], list: [], tag: [], assigned: [], board: [], date: [], text: [] };
 
 describe('parseQuery', () => {
   it('turns plain words into free-text terms', () => {
@@ -17,6 +17,15 @@ describe('parseQuery', () => {
 
   it('keeps a single-quoted value as one term', () => {
     expect(parseQuery("list:'En cours'")).toEqual({ ...empty, list: ['En cours'] });
+  });
+
+  it('keeps an apostrophe inside a word as an ordinary character', () => {
+    expect(parseQuery("l'équipe tag:Urgent")).toEqual({ ...empty, text: ["l'équipe"], tag: ['Urgent'] });
+    expect(parseQuery("d'abord board:Commercial")).toEqual({ ...empty, text: ["d'abord"], board: ['Commercial'] });
+  });
+
+  it('keeps an apostrophe inside a quoted value', () => {
+    expect(parseQuery(`tag:"l'équipe" list:'En cours'`)).toEqual({ ...empty, tag: ["l'équipe"], list: ['En cours'] });
   });
 
   it('keeps a quoted free-text phrase together', () => {
@@ -65,6 +74,12 @@ describe('parseQuery', () => {
   it('mixes free text and operators in any order', () => {
     expect(parseQuery('loyer tag:urgent bureaux')).toEqual({ ...empty, tag: ['urgent'], text: ['loyer', 'bureaux'] });
   });
+
+  it('reads a board filter, which only the app understands', () => {
+    expect(parseQuery('board:"Finance & Juridique" loyer')).toEqual({
+      ...empty, board: ['Finance & Juridique'], text: ['loyer'],
+    });
+  });
 });
 
 describe('isEmptyQuery', () => {
@@ -72,5 +87,6 @@ describe('isEmptyQuery', () => {
     expect(isEmptyQuery(parseQuery('   '))).toBe(true);
     expect(isEmptyQuery(parseQuery('x'))).toBe(false);
     expect(isEmptyQuery(parseQuery('title:'))).toBe(false);
+    expect(isEmptyQuery(parseQuery('board:x'))).toBe(false);
   });
 });

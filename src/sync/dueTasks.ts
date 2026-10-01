@@ -1,5 +1,6 @@
 export type SyncTask =
   | { kind: 'boards'; full: boolean }
+  | { kind: 'changedBoards'; all: boolean; skip: string[] }
   | { kind: 'upcoming' }
   | { kind: 'boardContent'; boardRemoteId: string; full: boolean };
 
@@ -44,7 +45,13 @@ export function dueTasks({
     });
   }
 
-  tasks.push({ kind: 'boards', full: now - state.boardsSnapshotAt >= SNAPSHOT_INTERVAL_MS });
+  const boardsFull = now - state.boardsSnapshotAt >= SNAPSHOT_INTERVAL_MS;
+  tasks.push({ kind: 'boards', full: boardsFull });
+  tasks.push({
+    kind: 'changedBoards',
+    all: boardsFull,
+    skip: activeBoardRemoteId !== null ? [activeBoardRemoteId] : [],
+  });
   tasks.push({ kind: 'upcoming' });
 
   if (now - state.recentDeltaAt >= RECENT_DELTA_INTERVAL_MS) {
