@@ -49,6 +49,21 @@ it('lists each person once by id, falling back to the id as name', () => {
   ]);
 });
 
+it('lists boards sharing a title once, keeping the first title and color', () => {
+  const boards: SuggestionData = {
+    ...data,
+    boards: [
+      { id: 'b1', title: 'Tasks', color: '#0082c9' },
+      { id: 'b2', title: 'tasks', color: '#e9322d' },
+      { id: 'b3', title: 'Commercial' },
+    ],
+  };
+  expect(buildValueSuggestions('board', '', boards, boardsLabel)).toEqual([
+    { key: 'board', value: 'Commercial', label: 'Commercial', color: undefined },
+    { key: 'board', value: 'Tasks', label: 'Tasks', color: '#0082c9' },
+  ]);
+});
+
 it('ranks matches that start with the typed text first', () => {
   const boards: SuggestionData = {
     ...data,

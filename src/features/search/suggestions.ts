@@ -43,8 +43,15 @@ function byTitle(
 function allValues(key: FilterKey, data: SuggestionData, boardsLabel: BoardsLabel): Suggestion[] {
   const boardTitle = new Map(data.boards.map((board) => [board.id, board.title]));
   switch (key) {
-    case 'board':
-      return data.boards.map((board) => ({ key, value: board.title, label: board.title, color: board.color ?? undefined }));
+    case 'board': {
+      const boards = new Map<string, Suggestion>();
+      for (const board of data.boards) {
+        const id = board.title.toLocaleLowerCase();
+        if (boards.has(id)) continue;
+        boards.set(id, { key, value: board.title, label: board.title, color: board.color ?? undefined });
+      }
+      return [...boards.values()];
+    }
     case 'tag':
       return byTitle(key, data.labels, boardTitle, boardsLabel);
     case 'list':
