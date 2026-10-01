@@ -145,7 +145,7 @@ function ModelPreview({ model }: { model: SearchModel }) {
 }
 
 const styles = StyleSheet.create({
-  mono: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }) },
+  mono: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }), letterSpacing: 0 },
   section: { marginTop: 24 },
   preview: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
 });
