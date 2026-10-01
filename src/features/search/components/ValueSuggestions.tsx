@@ -23,7 +23,7 @@ export type ValueSuggestionsProps = {
 
 export function ValueSuggestions({ pending, typed, suggestions, onPick, onUseTyped }: ValueSuggestionsProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   const [picker, setPicker] = useState<OpenPicker | null>(null);
   const pickerRef = useRef(picker);
   pickerRef.current = picker;
@@ -92,25 +92,32 @@ export function ValueSuggestions({ pending, typed, suggestions, onPick, onUseTyp
 
   return (
     <Stack hAlign="stretch">
-      {rows.length > 0 ? <List>{rows}</List> : null}
       {picker ? (
         <DateTimePicker
           value={picker.seed}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          themeVariant={dark ? 'dark' : 'light'}
           onChange={onPickDate}
         />
       ) : null}
+      {rows.length > 0 ? <List>{rows}</List> : null}
     </Stack>
   );
 }
 
 function SuggestionLeading({ suggestion }: { suggestion: Suggestion }) {
-  const { colors } = useTheme();
   if (suggestion.key === 'assigned') return <Avatar name={suggestion.label} size={28} />;
-  return <View style={[styles.dot, { backgroundColor: suggestion.color ?? colors.border }]} />;
+  return (
+    <View style={styles.leading}>
+      {suggestion.color ? (
+        <View testID="suggestion-dot" style={[styles.dot, { backgroundColor: suggestion.color }]} />
+      ) : null}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  dot: { width: 12, height: 12, borderRadius: 6, marginHorizontal: 8 },
+  leading: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 12, height: 12, borderRadius: 6 },
 });

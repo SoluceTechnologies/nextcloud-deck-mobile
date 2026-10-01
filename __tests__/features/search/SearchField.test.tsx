@@ -1,3 +1,4 @@
+import { TextInput } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ThemeWrapper } from '../../helpers/theme';
@@ -22,8 +23,8 @@ function setup(model: SearchModel) {
     onRemoveToken: jest.fn(),
     onClear: jest.fn(),
   };
-  render(<SearchField model={model} {...handlers} />, { wrapper: ThemeWrapper });
-  return handlers;
+  const view = render(<SearchField model={model} {...handlers} />, { wrapper: ThemeWrapper });
+  return { ...handlers, rerender: view.rerender, props: handlers };
 }
 
 const backspace = () =>
@@ -90,4 +91,16 @@ it('shows the placeholder and no clear button when empty', () => {
   expect(screen.getByTestId('search-input')).toHaveProp('placeholder', 'search.placeholder');
   expect(screen.getByTestId('search-input')).toHaveProp('accessibilityLabel', 'search.placeholder');
   expect(screen.queryByLabelText('common.clear')).toBeNull();
+});
+
+it('focuses the input when a key becomes pending, not while it stays pending', () => {
+  const focus = jest.spyOn(TextInput.prototype, 'focus');
+  focus.mockClear();
+  const { rerender, props } = setup(EMPTY_MODEL);
+  expect(focus).not.toHaveBeenCalled();
+  const pending = reduceSearch(EMPTY_MODEL, { type: 'startFilter', key: 'tag' }, () => null);
+  rerender(<SearchField model={pending} {...props} />);
+  expect(focus).toHaveBeenCalledTimes(1);
+  rerender(<SearchField model={{ ...pending, input: 'de' }} {...props} />);
+  expect(focus).toHaveBeenCalledTimes(1);
 });

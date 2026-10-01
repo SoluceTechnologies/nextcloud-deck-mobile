@@ -1,21 +1,27 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-import { ThemeWrapper } from '../../helpers/theme';
+import { DarkThemeWrapper, ThemeWrapper } from '../../helpers/theme';
 import { ValueSuggestions } from '../../../src/features/search/components/ValueSuggestions';
 import { buildValueSuggestions, type Suggestion } from '../../../src/features/search/suggestions';
 
 type PickerChange = (event: { type: string }, date?: Date) => void;
-const mockPicker = DateTimePicker as unknown as { lastOnChange: PickerChange | null; lastValue: unknown };
+const mockPicker = DateTimePicker as unknown as {
+  lastOnChange: PickerChange | null;
+  lastValue: unknown;
+  lastThemeVariant: unknown;
+};
 
 jest.mock('@react-native-community/datetimepicker', () => {
-  function MockPicker(props: { onChange: unknown; value: unknown }) {
+  function MockPicker(props: { onChange: unknown; value: unknown; themeVariant?: unknown }) {
     MockPicker.lastOnChange = props.onChange;
     MockPicker.lastValue = props.value;
+    MockPicker.lastThemeVariant = props.themeVariant;
     return null;
   }
   MockPicker.lastOnChange = null as unknown;
   MockPicker.lastValue = null as unknown;
+  MockPicker.lastThemeVariant = null as unknown;
   return MockPicker;
 });
 
@@ -30,6 +36,7 @@ const dates = buildValueSuggestions('date', '', { boards: [], labels: [], stacks
 beforeEach(() => {
   mockPicker.lastOnChange = null;
   mockPicker.lastValue = null;
+  mockPicker.lastThemeVariant = null;
 });
 
 it('offers to use the typed value as is', () => {
@@ -99,4 +106,36 @@ it('keeps the open picker stable while the screen re-renders', () => {
   expect(mockPicker.lastValue).toBe(seed);
   act(() => mockPicker.lastOnChange!({ type: 'set' }, new Date(2026, 9, 1, 12)));
   expect(onPick).toHaveBeenCalledWith({ value: '>2026-10-01', label: '>2026-10-01' });
+});
+
+it.each([
+  ['light', ThemeWrapper],
+  ['dark', DarkThemeWrapper],
+] as const)('gives the picker the %s theme variant of the app', (variant, wrapper) => {
+  render(<ValueSuggestions pending="date" typed="" suggestions={dates} onPick={jest.fn()} onUseTyped={jest.fn()} />, {
+    wrapper,
+  });
+  fireEvent.press(screen.getByTestId('suggestion-before'));
+  expect(mockPicker.lastThemeVariant).toBe(variant);
+});
+
+it('draws a dot only for suggestions that have a color', () => {
+  const suggestions: Suggestion[] = [
+    { key: 'tag', value: 'design', label: 'design', color: '#D4537E' },
+    { key: 'list', value: 'todo', label: 'todo' },
+    { key: 'list', value: 'done', label: 'done', color: '' },
+  ];
+  render(<ValueSuggestions pending="tag" typed="" suggestions={suggestions} onPick={jest.fn()} onUseTyped={jest.fn()} />, {
+    wrapper: ThemeWrapper,
+  });
+  expect(within(screen.getByTestId('suggestion-design')).getByTestId('suggestion-dot')).toBeTruthy();
+  expect(within(screen.getByTestId('suggestion-todo')).queryByTestId('suggestion-dot')).toBeNull();
+  expect(within(screen.getByTestId('suggestion-done')).queryByTestId('suggestion-dot')).toBeNull();
+});
+
+it('draws no dot on a date preset', () => {
+  render(<ValueSuggestions pending="date" typed="" suggestions={dates} onPick={jest.fn()} onUseTyped={jest.fn()} />, {
+    wrapper: ThemeWrapper,
+  });
+  expect(screen.queryByTestId('suggestion-dot')).toBeNull();
 });

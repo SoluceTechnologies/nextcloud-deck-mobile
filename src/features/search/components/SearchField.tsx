@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useTheme } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,12 @@ export function SearchField({
   const { t } = useTranslation();
   const { colors, radius } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
   const empty = isEmptyModel(model);
+
+  useEffect(() => {
+    if (model.pending) inputRef.current?.focus();
+  }, [model.pending]);
 
   return (
     <View style={[styles.field, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md }]}>
@@ -65,6 +70,7 @@ export function SearchField({
           </View>
         ) : null}
         <TextInput
+          ref={inputRef}
           testID="search-input"
           value={model.input}
           onChangeText={onChangeInput}
