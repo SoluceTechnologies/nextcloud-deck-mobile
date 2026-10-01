@@ -113,6 +113,10 @@ export function FilterMenu({ recent, onStart, onLoadRecent, onRemoveRecent }: Fi
                     <X size={16} color={colors.textTertiary} />
                   </IconButton>
                 }
+                accessibilityActions={[{ name: 'delete', label: t('search.removeRecent') }]}
+                onAccessibilityAction={(event) => {
+                  if (event.nativeEvent.actionName === 'delete') onRemoveRecent(entry);
+                }}
                 onPress={() => onLoadRecent(entry)}
               />
             ))}

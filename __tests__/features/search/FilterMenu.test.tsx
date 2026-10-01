@@ -51,6 +51,14 @@ it('loads and removes a recent search', () => {
   expect(handlers.onRemoveRecent).toHaveBeenCalledWith(entry);
 });
 
+it('offers removal of a recent search as an accessibility action', () => {
+  const handlers = setup([entry]);
+  const row = screen.getByTestId('recent-tag:design loyer');
+  expect(row).toHaveProp('accessibilityActions', [{ name: 'delete', label: 'search.removeRecent' }]);
+  fireEvent(row, 'accessibilityAction', { nativeEvent: { actionName: 'delete' } });
+  expect(handlers.onRemoveRecent).toHaveBeenCalledWith(entry);
+});
+
 it('hides the recent section when there is none', () => {
   setup();
   expect(screen.queryByText('search.recent')).toBeNull();

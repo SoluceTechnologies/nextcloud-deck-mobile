@@ -1,5 +1,11 @@
 import React from 'react';
-import { StyleSheet, View, type AccessibilityRole } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  type AccessibilityActionEvent,
+  type AccessibilityActionInfo,
+  type AccessibilityRole,
+} from 'react-native';
 import AnimatedPressable from './AnimatedPressable';
 import Typography from './Typography';
 
@@ -15,6 +21,8 @@ interface ItemProps {
   children?: React.ReactNode;
   /** Only applies to the pressable branch (there's an onPress). Defaults to 'button'. */
   accessibilityRole?: AccessibilityRole;
+  accessibilityActions?: ReadonlyArray<AccessibilityActionInfo>;
+  onAccessibilityAction?: (event: AccessibilityActionEvent) => void;
 }
 
 function Item({
@@ -28,6 +36,8 @@ function Item({
   testID,
   children,
   accessibilityRole = 'button',
+  accessibilityActions,
+  onAccessibilityAction,
 }: ItemProps) {
   const body = children ?? (
     <View style={styles.content}>
@@ -63,6 +73,8 @@ function Item({
       disabled={disabled}
       scaleTo={0.98}
       accessibilityRole={accessibilityRole}
+      accessibilityActions={accessibilityActions}
+      onAccessibilityAction={onAccessibilityAction}
     >
       {inner}
     </AnimatedPressable>
