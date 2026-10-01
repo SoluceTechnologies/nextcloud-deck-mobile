@@ -71,6 +71,8 @@ it('applies the date comparators', () => {
 
 it('never matches a date term on a card without a due date, or with an unreadable value', () => {
   expect(matchesQuery(card(), parseQuery('date:today'), NOW)).toBe(false);
+  expect(matchesQuery(card(), parseQuery('date:<2026-09-30'), NOW)).toBe(false);
+  expect(matchesQuery(card(), parseQuery('date:>2026-09-01'), NOW)).toBe(false);
   expect(matchesQuery(card({ duedate: NOW }), parseQuery('date:whenever'), NOW)).toBe(false);
 });
 
