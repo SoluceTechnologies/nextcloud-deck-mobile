@@ -12,7 +12,6 @@ export type SearchQuery = {
   text: string[];
 };
 
-export const OPERATORS = ['title', 'description', 'list', 'tag', 'assigned', 'date'] as const;
 const KEYS = ['title', 'description', 'list', 'tag', 'assigned', 'board', 'date'] as const;
 type Key = (typeof KEYS)[number];
 
