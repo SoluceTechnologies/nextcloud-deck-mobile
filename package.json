@@ -1,6 +1,6 @@
 {
   "name": "nextcloud-deck",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "main": "expo-router/entry",
   "enriched-markdown": {
     "enableCodeHighlight": false,
