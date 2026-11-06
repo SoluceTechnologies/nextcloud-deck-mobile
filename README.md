@@ -55,11 +55,6 @@ Use in production at your own discretion, and pin to a specific commit or tag if
 </p>
 
 <p >
-Apple is coming soon. The app is currently under review. Contact us for TestFlight access.
-</p>
-
-
-<p >
   Want early access? Beta builds are available, reach out at <a href="mailto:contact@soluce-technologies.com">contact@soluce-technologies.com</a>
 </p>
 
