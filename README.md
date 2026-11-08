@@ -41,7 +41,7 @@ Use in production at your own discretion, and pin to a specific commit or tag if
 ## 📥 Download
 
 <p >
-    <a href="https://apps.apple.com/app/nextcloud-calendar/id6766678698">
+    <a href="https://apps.apple.com/fr/app/nextcloud-deck/id6815564048">
     <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="46" />
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
