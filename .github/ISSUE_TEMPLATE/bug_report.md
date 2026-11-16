@@ -24,16 +24,13 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Desktop (please complete the following information):**
-
-- OS: [e.g. iOS]
-- Version [e.g. 22]
+**Deck mobile app version**
+[e.g. 0.6.0]
 
 **Smartphone (please complete the following information):**
 
 - Device: [e.g. iPhone17]
-- OS: [e.g. iOS18]
-- Version [e.g. 22]
+- OS & version: [e.g. iOS18]
 
 **Additional context**
 Add any other context about the problem here.
